@@ -44,8 +44,13 @@
 #define __USE_GNU
 #include <fenv.h>
 
+#include <bzlib.h>
+
 #include "cmdline.h"
 #include "Bstorm.h"
+
+/* Command line variable */
+struct gengetopt_args_info bstorm_args;
 
 /* Constant definitions */
 
@@ -79,7 +84,7 @@ const int plot_rescale = 1;
 const float sigpsf = 1.04 * 8; /* size of a pixel in unit of lambda */
 const float numap = 1.0;
 
-const int nbiter = 1000;
+const int nbiter = 1;
 
 void gaussker(float * ker)
 {
@@ -233,6 +238,49 @@ void plot_overlay(float * mes,
     free(img_data);
 }
 
+void saveimage(float * img, int size, const char * fname)
+{
+    FILE * fout = fopen(fname, "wb");
+    if (!fout) exit(EXIT_FAILURE);
+
+    BZFILE* b;
+    int nBuf = 256 * 1024;
+    char buf[nBuf];
+    int bzerror;
+    int j = 0;
+
+    b = BZ2_bzWriteOpen( &bzerror, fout, 9, 0, 30 );
+    if (bzerror != BZ_OK) {
+        BZ2_bzWriteClose (&bzerror, b, 0, NULL, NULL);
+        exit(EXIT_FAILURE);
+    }
+    int nbtot = 0;
+
+    while (j < size) {
+        /* get data to write into buf, and set nBuf appropriately */
+        size_t i;
+        for (i = 0; i < nBuf && j < size; i += 2)
+        {
+            *(uint16_t *)(buf + i) = (uint16_t)(img[j]);
+            j++;
+        }
+        printf("%i %i\n", i, j);
+        BZ2_bzWrite ( &bzerror, b, buf, i);
+        if (bzerror == BZ_IO_ERROR) { 
+            BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
+            exit(EXIT_FAILURE);
+        }
+        nbtot += i;
+    }
+    printf("%i\n", nbtot);
+
+    BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
+    if (bzerror == BZ_IO_ERROR) {
+            exit(EXIT_FAILURE);
+    }
+    printf("Exit cleanly\n");
+}
+
 
 void fafcfunc(float * out, float sig2, float r)
 {
@@ -309,10 +357,12 @@ void update_omegavmu(float * omegamu, float * vmu,
                      float * abeal, float * vbeal,
                      int * pixactivity)
 {
-    for (int mu = 0; mu < nbmes2; ++mu)
+    const __m128 zero = _mm_set1_ps(0);
+
+    for (int mu = 0; mu < nbmes2; mu += 4)
     {
-        vmu[mu] = 0;
-        omegamu[mu] = 0;
+        _mm_store_ps(vmu + mu, zero);
+        _mm_store_ps(omegamu + mu, zero);
     }
     for (size_t i = 0; i < size2; ++i)
     {
@@ -342,13 +392,58 @@ void update_omegavmu(float * omegamu, float * vmu,
             }
         }
     }
+    /*
+     * Difficult to parallelize due to alignment problem...
+    for (size_t i = 0; i < size2; ++i)
+    {
+        if (pixactivity[i]){
+            float * cabeal = abeal + i * sker2;
+            float * cvbeal = vbeal + i * sker2;
+
+
+            int ci = (i % sizey) % smes;
+            int li = (i / sizey) % smes;
+            int ikeri = ci + li * smes;
+
+            float * cker = ker + ikeri * sker2;
+            float * cker2 = ker2 + ikeri * sker2;
+
+            for (int mu = 0; mu < sker2; mu += 4)
+            {
+                int dcmu = mu % sker - sker / 2;
+                int dlmu = mu / sker - sker / 2;
+
+                int cmu = (i % sizey) / smes + dcmu;
+                int lmu = (i / sizey) / smes + dlmu;
+                int imu = cmu + lmu * nbmesy;
+
+                __m128 ck = _mm_load_ps(cker + mu);
+                __m128 ck2 = _mm_load_ps(cker2 + mu);
+
+                __m128 ca = _mm_load_ps(cabeal + mu);
+                __m128 cv = _mm_load_ps(cvbeal + mu);
+
+                __m128 o = _mm_mul_ps(ck, ca);
+                __m128 v = _mm_mul_ps(ck2, cv);
+
+                __m128 po =  _mm_load_ps(omegamu + imu);
+                __m128 pv =  _mm_load_ps(omegamu + imu);
+
+                o = _mm_add_ps(o, po);
+                v = _mm_add_ps(o, po);
+
+                _mm_store_ps(omegamu + imu, o);
+                _mm_store_ps(vmu + imu, v);
+            }
+        }
+    }
+    */
 }
 
 double update_mualbe(float * mu_albe_A, float * mu_albe_B,
                      float * mu_beal_A, float * mu_beal_B,
                      float * P_albe_A, float * P_albe_B,
                      float * abeal, float * vbeal,
-                     float * init_E, float * init_F,
                      float * P_be_E, float * P_be_F,
                      float * omegamu, float * vmu,
                      float * ker, float * ker2,
@@ -385,10 +480,10 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
             float * cker = ker + ikeri * sker2;
             float * cker2 = ker2 + ikeri * sker2;
 
-            const __m128 rPE = _mm_set1_ps(rat * P_be_E[i]);
-            const __m128 rPF = _mm_set1_ps(rat * P_be_F[i]);
+            //const __m128 rPE = _mm_set1_ps(rat * P_be_E[i]);
+            //const __m128 rPF = _mm_set1_ps(rat * P_be_F[i]);
 
-            const __m128 epserr = _mm_set1_ps(1e-6);
+            //const __m128 epserr = _mm_set1_ps(1e-6);
 
             for (int mu = 0; mu < sker2; ++mu)
             {
@@ -497,13 +592,11 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
     {
         if (pixactivity[i]){
             const __m128 zero = _mm_set1_ps(0);
+            const __m128 vthr = _mm_set1_ps(thrA);
             const __m128 oneosk = _mm_set1_ps(1.0f / sker2);
             __m128 PAt = _mm_set1_ps(0);
             __m128 PBt = _mm_set1_ps(0);
 
-            __m128 iE = _mm_set1_ps(init_E[i]);
-            __m128 iF = _mm_set1_ps(init_F[i]);
-            
             float * caA = mu_albe_A + i * sker2;
             float * caB = mu_albe_B + i * sker2;
             float * cbA = mu_beal_A + i * sker2;
@@ -533,18 +626,16 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
             {
                 __m128 A = _mm_load_ps(cPA + mu);
                 __m128 B = _mm_load_ps(cPB + mu);
-                __m128 mbA = _mm_load_ps(cbA + mu);
-                __m128 mbB = _mm_load_ps(cbB + mu);
-
-                A = _mm_sub_ps(A, mbA);
-                B = _mm_sub_ps(B, mbB);
+                __m128 maA = _mm_load_ps(caA + mu);
+                __m128 maB = _mm_load_ps(caB + mu);
 
                 A = _mm_sub_ps(A, PAt);
                 B = _mm_sub_ps(B, PBt);
 
-                A = _mm_add_ps(A, iE);
-                B = _mm_add_ps(B, iF);
+                A = _mm_add_ps(A, maA);
+                B = _mm_add_ps(B, maB);
 
+                B = _mm_max_ps(vthr, A);
                 B = _mm_max_ps(zero, B);
 
                 _mm_store_ps(caA + mu, A);
@@ -698,7 +789,7 @@ void update_mubeal(float * vbeal, float * abeal,
             {
                 float cC = P_be_A - caA[mu];
                 float cD = P_be_B - caB[mu];
-                if (cC < thrA) cC = thrA;
+                //if (cC < thrA) cC = thrA;
                 if (cD < 0) cD = 0;
                 cbA[mu] = cC;
                 cbB[mu] = cD;
@@ -717,7 +808,7 @@ void update_pbe(float * P_be_E, float * P_be_F,
                 float * ker, float * ker2,
                 float * imgnoise, float * imgmes,
                 int * pixactivity,
-                float damp)
+                float damp, int iterpbe)
 {
     /* The coefficient should be equal after convergence, we choose to take
      * the average of the coefficients here...
@@ -725,8 +816,8 @@ void update_pbe(float * P_be_E, float * P_be_F,
      * should not make a difference at convergence.
      */
     float relerr = 1.0;
-    //while (relerr > 1e-2)
-    for (size_t iter = 0; iter < 1; ++iter)
+    //while (relerr > 5e-2)
+    for (size_t iter = 0; iter < iterpbe; ++iter)
     {
         for (size_t i = 0; i < size2; ++i)
         {
@@ -742,7 +833,7 @@ void update_pbe(float * P_be_E, float * P_be_F,
                 }
                 float PEt = avA  - (sker2 - 1) * P_be_E[i];
                 float PFt = avB  - (sker2 - 1) * P_be_F[i];
-                if (PEt < thrA * 10) PEt = thrA * 10;
+                //if (PEt < thrA * 10) PEt = thrA * 10;
                 if (PFt < 0) PFt = 0;
 
                 float fafc[2];
@@ -790,8 +881,6 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     float * P_albe_B;
     float * abeal;
     float * vbeal;
-    float * init_E;
-    float * init_F;
     float * P_be_E;
     float * P_be_F;
     float * omegamu;
@@ -813,8 +902,6 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     posix_memalign((void **)&P_albe_B, 16, size2 * sker2 * sizeof(float));
     posix_memalign((void **)&abeal, 16, size2 * sker2 * sizeof(float));
     posix_memalign((void **)&vbeal, 16, size2 * sker2 * sizeof(float));
-    posix_memalign((void **)&init_E, 16, size2 * sizeof(float));
-    posix_memalign((void **)&init_F , 16, size2 * sizeof(float));
     posix_memalign((void **)&P_be_E, 16, size2 * sizeof(float));
     posix_memalign((void **)&P_be_F, 16, size2 * sizeof(float));
     posix_memalign((void **)&omegamu, 16, nbmes2 * sizeof(float));
@@ -852,9 +939,6 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     for (int i = 0; i < size2; ++i) {
         P_be_E[i] = Ainit;
         P_be_F[i] = Binit;
-
-        init_E[i] = Ainit;
-        init_F[i] = Binit;
     }
     printf("ABinit: %f %f\n", Ainit, Binit);
 
@@ -878,20 +962,12 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
                 abeal[ind] = 0;
                 vbeal[ind] = 1e-2;
             }
-            init_E[i] = 1e2;
-            init_F[i] = 0;
             P_be_E[i] = 1e2;
             P_be_F[i] = 0;
         } else {
             pixactivity[i] = 1;
         }
     }
-    /*
-    for (int i = 0; i < size2; ++i)
-    {
-        pixactivity[i] = 1;
-    }
-    */
 
     int nbact = 0;
     for (int i = 0; i < size2; ++i)
@@ -901,13 +977,13 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     printf("nbact: %i\n", nbact);
 
     /* Main loop */
-    //updatetemp(1.0 / 10.0, imgnoise);
     for (int iter = 0; iter < nbiter; ++iter)
     {
         printf("iteration: %i\n", iter); 
         /* Internal loop */
         double relerr = 1;
-        while (relerr > 2e-3){
+        int nbinw = 0;
+        //while (relerr > 1e-1 && nbinw < 10){
             update_mubeal(vbeal, abeal,
                           mu_beal_A, mu_beal_B,
                           mu_albe_A, mu_albe_B,
@@ -926,7 +1002,6 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
                                    mu_beal_A, mu_beal_B,
                                    P_albe_A, P_albe_B,
                                    abeal, vbeal,
-                                   init_E, init_F,
                                    P_be_E, P_be_F,
                                    omegamu, vmu,
                                    ker, ker2,
@@ -942,14 +1017,27 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
             printf("PalbeBoA min, max: %f %f\n",                                            
                    minra(P_albe_B, P_albe_A, size2 * sker2),
                    maxra(P_albe_B, P_albe_A, size2 * sker2));
-        }
+            nbinw++;
+        //}
 
         /* External loop */
         printf("updatePbe\n");
-        float damp = 0;
-        if (iter < 5) damp = 0.01;
-        if (iter < 20) damp = 0.03;
-        if (iter < 100) damp = 0.06;
+        //float damp = 0.005;
+        //int iterpbe = 20;
+        float damp = 0.1;
+        int iterpbe = 1;
+        //if (iter < 5){
+        //    damp = 0.02;
+        //    iterpbe = 1;
+        //}
+        //if (iter < 30){
+        //    damp = 0.1;
+        //    iterpbe = 1;
+        //}
+        //if (iter < 20) damp = 0.002;
+        //if (iter < 20) damp = 0.03;
+        //if (iter < 100) damp = 0.05;
+
         update_pbe(P_be_E, P_be_F,
                 P_albe_A, P_albe_B,
                 abeal, vbeal,
@@ -958,7 +1046,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
                 ker, ker2,
                 imgnoise, imgmes,
                 pixactivity,
-                damp);
+                damp, iterpbe);
 
         for (int i = 0; i < size2; ++i)
         {
@@ -1033,11 +1121,9 @@ float minra(float * num, float * den, int size)
 const int width = 329;
 const int height = 199;
 
-const unsigned int offset = 10;
-
 const float meanback = 110;
 
-int main(int argc, char const *argv[])
+int main(int argc, char ** argv)
 {
     FILE * fimg;
     uint16_t * img;
@@ -1046,6 +1132,10 @@ int main(int argc, char const *argv[])
 
     float * imgnoise;
     float * imgrecons;
+
+    /* Command line parser */
+    if (cmdline_parser(argc, argv, & bstorm_args) != 0)
+        exit(EXIT_FAILURE);
     
     /* enable floating point exceptions */
     //feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -1057,8 +1147,9 @@ int main(int argc, char const *argv[])
     imgker = malloc(size2 * sizeof(float));
     
 
-    fimg = fopen("../Run1_640_c123_sum_X3.dat", "rb");
+    fimg = fopen(bstorm_args.file_arg, "rb");
 
+    int offset = bstorm_args.picnb_arg;
     fseek(fimg, width * height * 2 * offset, SEEK_SET);
     fread(img, 2, width * height, fimg);
     //printf("%i\n", readb);
@@ -1067,7 +1158,7 @@ int main(int argc, char const *argv[])
 
     for (unsigned int i = 0; i < nbmes2; ++i)
     {
-        imgnoise[i] = 25;
+        imgnoise[i] = 1e5;
         imgmes[i] = 0;
     }
     for (unsigned int i = 0; i < width / 3; ++i) {
@@ -1099,6 +1190,7 @@ int main(int argc, char const *argv[])
 
     plot_image(sizex, sizey, imgrecons, "recons.png", plot_rescale);
     plot_overlay(imgmes, imgrecons, "overlay.png");
+    saveimage(imgrecons, size2, "output.dat.bz2");
     
     return EXIT_SUCCESS;
 }

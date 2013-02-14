@@ -28,5 +28,7 @@
 purpose "Reconstruct superresolution images"
 
 option "picnb" n "Picture number in the file"
+           int typestr="int" required
 
 option "file" f "Filename where the pictures are included"
+           string typestr="str" required
