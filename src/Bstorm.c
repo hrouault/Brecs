@@ -84,7 +84,7 @@ const int plot_rescale = 1;
 const float sigpsf = 1.04 * 8; /* size of a pixel in unit of lambda */
 const float numap = 1.0;
 
-const int nbiter = 1;
+const int nbiter = 120;
 
 void gaussker(float * ker)
 {
@@ -264,7 +264,6 @@ void saveimage(float * img, int size, const char * fname)
             *(uint16_t *)(buf + i) = (uint16_t)(img[j]);
             j++;
         }
-        printf("%i %i\n", i, j);
         BZ2_bzWrite ( &bzerror, b, buf, i);
         if (bzerror == BZ_IO_ERROR) { 
             BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
@@ -272,13 +271,11 @@ void saveimage(float * img, int size, const char * fname)
         }
         nbtot += i;
     }
-    printf("%i\n", nbtot);
 
     BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
     if (bzerror == BZ_IO_ERROR) {
             exit(EXIT_FAILURE);
     }
-    printf("Exit cleanly\n");
 }
 
 
@@ -378,36 +375,6 @@ void update_omegavmu(float * omegamu, float * vmu,
             float * cker = ker + ikeri * sker2;
             float * cker2 = ker2 + ikeri * sker2;
 
-            for (int mu = 0; mu < sker2; ++mu)
-            {
-                int dcmu = mu % sker - sker / 2;
-                int dlmu = mu / sker - sker / 2;
-
-                int cmu = (i % sizey) / smes + dcmu;
-                int lmu = (i / sizey) / smes + dlmu;
-                int imu = cmu + lmu * nbmesy;
-
-                omegamu[imu] += cker[mu] * cabeal[mu];
-                vmu[imu] += cker2[mu] * cvbeal[mu];
-            }
-        }
-    }
-    /*
-     * Difficult to parallelize due to alignment problem...
-    for (size_t i = 0; i < size2; ++i)
-    {
-        if (pixactivity[i]){
-            float * cabeal = abeal + i * sker2;
-            float * cvbeal = vbeal + i * sker2;
-
-
-            int ci = (i % sizey) % smes;
-            int li = (i / sizey) % smes;
-            int ikeri = ci + li * smes;
-
-            float * cker = ker + ikeri * sker2;
-            float * cker2 = ker2 + ikeri * sker2;
-
             for (int mu = 0; mu < sker2; mu += 4)
             {
                 int dcmu = mu % sker - sker / 2;
@@ -423,21 +390,20 @@ void update_omegavmu(float * omegamu, float * vmu,
                 __m128 ca = _mm_load_ps(cabeal + mu);
                 __m128 cv = _mm_load_ps(cvbeal + mu);
 
-                __m128 o = _mm_mul_ps(ck, ca);
-                __m128 v = _mm_mul_ps(ck2, cv);
+                ca = _mm_mul_ps(ck, ca);
+                cv = _mm_mul_ps(ck2, cv);
 
-                __m128 po =  _mm_load_ps(omegamu + imu);
-                __m128 pv =  _mm_load_ps(omegamu + imu);
+                __m128 po =  _mm_loadu_ps(omegamu + imu);
+                __m128 pv =  _mm_loadu_ps(vmu + imu);
 
-                o = _mm_add_ps(o, po);
-                v = _mm_add_ps(o, po);
+                ca = _mm_add_ps(ca, po);
+                cv = _mm_add_ps(cv, pv);
 
-                _mm_store_ps(omegamu + imu, o);
-                _mm_store_ps(vmu + imu, v);
+                _mm_storeu_ps(omegamu + imu, ca);
+                _mm_storeu_ps(vmu + imu, cv);
             }
         }
     }
-    */
 }
 
 double update_mualbe(float * mu_albe_A, float * mu_albe_B,
@@ -453,14 +419,6 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
     float rat = ((float)sker2 - 1) / sker2;
     double relerr = 0;
     update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, pixactivity);
-    /*
-    printf("omegamu min, max: %f %f\n",                                            
-           min(omegamu, nbmes2),                                               
-           max(omegamu, nbmes2));
-    printf("vmu min, max: %f %f\n",                                            
-           min(vmu, nbmes2),                                               
-           max(vmu, nbmes2));
-    */
 
     for (size_t i = 0; i < size2; ++i)
     {
@@ -691,14 +649,6 @@ float update_Palbe(float * mu_beal_A, float * mu_beal_B,
     float rat = ((float)sker2 - 1) / sker2;
     float relerr = 0;
     update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, pixactivity);
-    /*
-    printf("omegamu min, max: %f %f\n",                                            
-           min(omegamu, nbmes2),                                               
-           max(omegamu, nbmes2));
-    printf("vmu min, max: %f %f\n",                                            
-           min(vmu, nbmes2),                                               
-           max(vmu, nbmes2));
-    */
 
     for (size_t i = 0; i < size2; ++i)
     {
@@ -856,18 +806,6 @@ void update_pbe(float * P_be_E, float * P_be_F,
                               imgnoise, imgmes,
                               pixactivity);
         printf("relerr: %f\n", relerr);
-        printf("Palbevar min, max: %f %f\n",                                            
-                1 / min(P_albe_A, size2 * sker2),
-                1 / max(P_albe_A, size2 * sker2));
-        printf("PalbeB min, max: %f %f\n",                                            
-                min(P_albe_B, size2 * sker2),
-                max(P_albe_B, size2 * sker2));
-        printf("P_be_var min, max: %f %f\n",                                            
-                1 / min(P_be_E, size2),
-                1 / max(P_be_E, size2));
-        printf("P_be_F min, max: %f %f\n",                                            
-                min(P_be_F, size2),
-                max(P_be_F, size2));
     }
 }
 
@@ -982,61 +920,27 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
         printf("iteration: %i\n", iter); 
         /* Internal loop */
         double relerr = 1;
-        int nbinw = 0;
-        //while (relerr > 1e-1 && nbinw < 10){
-            update_mubeal(vbeal, abeal,
-                          mu_beal_A, mu_beal_B,
-                          mu_albe_A, mu_albe_B,
-                          P_be_E, P_be_F,
-                          pixactivity);
-            /*
-               printf("abeal min, max: %f %f\n",                                            
-               min(abeal, size2 * sker2),                                               
-               max(abeal, size2 * sker2));
-               printf("vbeal min, max: %f %f\n",                                            
-               min(vbeal, size2 * sker2),                                               
-               max(vbeal, size2 * sker2));
-               */
+        update_mubeal(vbeal, abeal,
+                mu_beal_A, mu_beal_B,
+                mu_albe_A, mu_albe_B,
+                P_be_E, P_be_F,
+                pixactivity);
 
-            relerr = update_mualbe(mu_albe_A, mu_albe_B,
-                                   mu_beal_A, mu_beal_B,
-                                   P_albe_A, P_albe_B,
-                                   abeal, vbeal,
-                                   P_be_E, P_be_F,
-                                   omegamu, vmu,
-                                   ker, ker2,
-                                   imgnoise, imgmes,
-                                   pixactivity);
-            printf("relerr: %f\n", relerr);
-            printf("Palbevar min, max: %f %f\n",                                            
-                   1 / min(P_albe_A, size2 * sker2),
-                   1 / max(P_albe_A, size2 * sker2));
-            printf("PalbeB min, max: %f %f\n",                                            
-                   min(P_albe_B, size2 * sker2),
-                   max(P_albe_B, size2 * sker2));
-            printf("PalbeBoA min, max: %f %f\n",                                            
-                   minra(P_albe_B, P_albe_A, size2 * sker2),
-                   maxra(P_albe_B, P_albe_A, size2 * sker2));
-            nbinw++;
-        //}
+        relerr = update_mualbe(mu_albe_A, mu_albe_B,
+                mu_beal_A, mu_beal_B,
+                P_albe_A, P_albe_B,
+                abeal, vbeal,
+                P_be_E, P_be_F,
+                omegamu, vmu,
+                ker, ker2,
+                imgnoise, imgmes,
+                pixactivity);
+        printf("relerr: %f\n", relerr);
 
         /* External loop */
         printf("updatePbe\n");
-        //float damp = 0.005;
-        //int iterpbe = 20;
         float damp = 0.1;
         int iterpbe = 1;
-        //if (iter < 5){
-        //    damp = 0.02;
-        //    iterpbe = 1;
-        //}
-        //if (iter < 30){
-        //    damp = 0.1;
-        //    iterpbe = 1;
-        //}
-        //if (iter < 20) damp = 0.002;
-        //if (iter < 20) damp = 0.03;
-        //if (iter < 100) damp = 0.05;
 
         update_pbe(P_be_E, P_be_F,
                 P_albe_A, P_albe_B,
@@ -1047,29 +951,41 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
                 imgnoise, imgmes,
                 pixactivity,
                 damp, iterpbe);
-
-        for (int i = 0; i < size2; ++i)
-        {
-            res[i] = P_be_F[i] / P_be_E[i];
-        }
-        plot_overlay(imgmes, res, "overlay.png");
+    /* Build result */
+    for (int i = 0; i < size2; ++i)
+    {
+        res[i] = P_be_F[i] / P_be_E[i];
     }
-
+    printf("res min, max: %f %f\n",                                            
+            min(res, size2),                                               
+            max(res, size2));
+    }
 
     /* Build result */
     for (int i = 0; i < size2; ++i)
     {
         res[i] = P_be_F[i] / P_be_E[i];
     }
-    printf("F min, max: %f %f\n",                                            
-            min(P_be_F, size2),                                               
-            max(P_be_F, size2));
-    printf("E min, max: %f %f\n",                                            
-            min(P_be_E, size2),                                               
-            max(P_be_E, size2));
     printf("res min, max: %f %f\n",                                            
             min(res, size2),                                               
             max(res, size2));
+
+    free(mu_albe_A);
+    free(mu_albe_B);
+    free(mu_beal_A);
+    free(mu_beal_B);
+    free(P_albe_A);
+    free(P_albe_B);
+    free(abeal);
+    free(vbeal);
+    free(P_be_E);
+    free(P_be_F);
+    free(omegamu);
+    free(vmu);
+    free(pixactivity);
+
+    free(ker);
+    free(ker2);
 
     return res;
 }
@@ -1149,20 +1065,18 @@ int main(int argc, char ** argv)
 
     fimg = fopen(bstorm_args.file_arg, "rb");
 
-    int offset = bstorm_args.picnb_arg;
+    long int offset = bstorm_args.picnb_arg;
     fseek(fimg, width * height * 2 * offset, SEEK_SET);
     fread(img, 2, width * height, fimg);
-    //printf("%i\n", readb);
-
-    //printf("%i %i\n", img[0], img[1]);
+    fclose(fimg);
 
     for (unsigned int i = 0; i < nbmes2; ++i)
     {
         imgnoise[i] = 1e5;
         imgmes[i] = 0;
     }
-    for (unsigned int i = 0; i < width / 3; ++i) {
-        for (unsigned int j = 2 * height / 3; j < height; ++j){
+    for (unsigned int i = 0; i < width; ++i) {
+        for (unsigned int j = 0; j < height; ++j){
             float val = (img[i + j * width] - 300) / 18.8;
 
             imgnoise[i + sker / 2 + (j + sker / 2) * nbmesy] = val;
@@ -1190,7 +1104,15 @@ int main(int argc, char ** argv)
 
     plot_image(sizex, sizey, imgrecons, "recons.png", plot_rescale);
     plot_overlay(imgmes, imgrecons, "overlay.png");
-    saveimage(imgrecons, size2, "output.dat.bz2");
+    
+    char fname[100];
+    snprintf(fname, 100, "img-%i.dat.bz2", offset);
+    saveimage(imgrecons, size2, fname);
+
+    free(img);
+    free(imgker);
+    free(imgmes);
+    free(imgnoise);
     
     return EXIT_SUCCESS;
 }
