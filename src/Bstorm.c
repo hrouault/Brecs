@@ -59,7 +59,7 @@ struct gengetopt_args_info bstorm_args;
 const float pixmean = 4000;
 const double pixstd = 3000;
 const double rho = 0.002;
-float thrA = 0.1 / (10 * 4000 * 4000);
+float thrA = 1.0 / (10 * 4000 * 4000);
 
 const float pixthr = 40;
 
@@ -406,18 +406,25 @@ void update_omegavmu(float * omegamu, float * vmu,
     }
 }
 
-double update_mualbe(float * mu_albe_A, float * mu_albe_B,
-                     float * mu_beal_A, float * mu_beal_B,
-                     float * P_albe_A, float * P_albe_B,
-                     float * abeal, float * vbeal,
-                     float * P_be_E, float * P_be_F,
-                     float * omegamu, float * vmu,
-                     float * ker, float * ker2,
-                     float * imgnoise, float * imgmes,
-                     int * pixactivity)
+inline __m128 abs_ps(__m128 x) {
+    __m128 sign_mask = _mm_set1_ps(-0.f); // -0.f = 1 << 31
+    return _mm_andnot_ps(sign_mask, x);
+}
+
+float update_Palbe(float * mu_beal_A, float * mu_beal_B,
+                   float * P_albe_A, float * P_albe_B,
+                   float * abeal, float * vbeal,
+                   float * P_be_E, float * P_be_F,
+                   float * omegamu, float * vmu,
+                   float * ker, float * ker2,
+                   float * imgnoise, float * imgmes,
+                   int * pixactivity)
 {
     float rat = ((float)sker2 - 1) / sker2;
-    double relerr = 0;
+    const __m128 zero = _mm_set1_ps(0);
+    const __m128 one = _mm_set1_ps(1.0);
+    __m128 relerr = zero;
+
     update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, pixactivity);
 
     for (size_t i = 0; i < size2; ++i)
@@ -438,45 +445,11 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
             float * cker = ker + ikeri * sker2;
             float * cker2 = ker2 + ikeri * sker2;
 
-            //const __m128 rPE = _mm_set1_ps(rat * P_be_E[i]);
-            //const __m128 rPF = _mm_set1_ps(rat * P_be_F[i]);
+            const __m128 rPE = _mm_set1_ps(rat * P_be_E[i]);
+            const __m128 rPF = _mm_set1_ps(rat * P_be_F[i]);
 
-            //const __m128 epserr = _mm_set1_ps(1e-6);
+            const __m128 epserr = _mm_set1_ps(1e-6);
 
-            for (int mu = 0; mu < sker2; ++mu)
-            {
-
-                int dcmu = mu % sker - sker / 2;
-                int dlmu = mu / sker - sker / 2;
-
-                int cmu = (i % sizey) / smes + dcmu;
-                int lmu = (i / sizey) / smes + dlmu;
-                int imu = cmu + lmu * nbmesy;
-
-                float den;
-
-                den = imgnoise[imu] + vmu[imu] - cker2[mu] * cvbeal[mu];
-
-                float bnum;
-                bnum = cker[mu] *
-                    (imgmes[imu] - omegamu[imu] + cker[mu] * cabeal[mu]);
-
-                float valA = cker2[mu] / den + rat * P_be_E[i] + cbA[mu];
-                float errt = fabs((valA - cPA[mu]) / (valA + cPA[mu]));
-                if (errt > relerr && valA > thrA * 10) relerr = errt;
-                cPA[mu] = valA;
-
-                float valB = bnum / den + rat * P_be_F[i] + cbB[mu];
-                float denerr = fabs(valB + cPB[mu]);
-                if (denerr < 1e-6) denerr = 1e-6;
-                errt = fabs(valB - cPB[mu]) / denerr;
-                if (errt > relerr && valB > 0) relerr = errt;
-                cPB[mu] = valB;
-                //if (cPA[mu] < thrA) cPA[mu] = thrA;
-                if (cPB[mu] < 0) cPB[mu] = 0;
-            }
-
-            /*
             for (int mu = 0; mu < sker2; mu += 4)
             {
                 int dcmu = mu % sker - sker / 2;
@@ -486,8 +459,8 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
                 int lmu = (i / sizey) / smes + dlmu;
                 int imu = cmu + lmu * nbmesy;
 
-                __m128 den = _mm_load_ps(imgnoise + imu);
-                __m128 v = _mm_load_ps(vmu + imu);
+                __m128 den = _mm_loadu_ps(imgnoise + imu);
+                __m128 v = _mm_loadu_ps(vmu + imu);
                 __m128 k2 = _mm_load_ps(cker2 + mu);
                 __m128 k = _mm_load_ps(cker + mu);
                 __m128 vb = _mm_load_ps(cvbeal + mu);
@@ -495,57 +468,82 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
                 den = _mm_add_ps(den, v);
                 vb = _mm_mul_ps(k2, vb);
                 den = _mm_sub_ps(den, vb);
+                den = _mm_div_ps(one, den);
 
-                //den = imgnoise[imu] + vmu[imu] - cker2[mu] * cvbeal[mu];
-
-                __m128 bnum = _mm_load_ps(imgmes + imu);
-                __m128 om = _mm_load_ps(omegamu + imu);
-
+                __m128 bnum = _mm_loadu_ps(imgmes + imu);
+                __m128 om = _mm_loadu_ps(omegamu + imu);
                 __m128 ab = _mm_load_ps(cabeal + mu);
 
-                k = _mm_mul_ps(k, ab);
+                ab = _mm_mul_ps(k, ab);
                 bnum = _mm_sub_ps(bnum, om);
-                bnum = _mm_add_ps(bnum, k);
+                bnum = _mm_add_ps(bnum, ab);
+                bnum = _mm_mul_ps(bnum, k);
 
-                //float bnum;
-                //bnum = cker[mu] *
-                //    (imgmes[imu] - omegamu[imu] + cker[mu] * cabeal[mu]);
-
-                __m128 valA = _mm_div_ps(k2, den);
+                __m128 valA = _mm_mul_ps(k2, den);
                 valA = _mm_add_ps(valA, rPE);
                 __m128 ibA = _mm_load_ps(cbA + mu);
                 valA = _mm_add_ps(valA, ibA);
 
-                //float valA = cker2[mu] / den + rat * P_be_E[i] + cbA[mu];
-
+                /*
                 __m128 c = _mm_load_ps(cPA + mu);
                 __m128 n = _mm_sub_ps(valA, c);
-                //__m128 n = valA - c;
                 __m128 d = _mm_add_ps(valA, c);
-                d = _mm_max_ps(epserr, d);
-                __m128 errt = _mm_div_ps(n, d);
+                n = _mm_div_ps(n, d);
+                __m128 errt = abs_ps(n);
+                relerr = _mm_max_ps(relerr, errt);
+                */
 
-                //float errt = fabs((valA - cPA[mu]) / (valA + cPA[mu]));
-                if (errt > relerr && valA > thrA * 10) relerr = errt;
                 _mm_store_ps(cPA + mu, valA);
-                //cPA[mu] = valA;
 
-                __m128 valB = _mm_div_ps(bnum, den);
+                __m128 valB = _mm_mul_ps(bnum, den);
                 valB = _mm_add_ps(valB, rPF);
                 __m128 ibB = _mm_load_ps(cbB + mu);
                 valB = _mm_add_ps(valB, ibB);
-                //float valB = bnum / den + rat * P_be_F[i] + cbB[mu];
-                float denerr = fabs(valB + cPB[mu]);
-                if (denerr < 1e-2) denerr = 1e-2;
-                errt = fabs(valB - cPB[mu]) / denerr;
-                if (errt > relerr && valB > 0) relerr = errt;
-                cPB[mu] = valB;
-                //if (cPA[mu] < thrA) cPA[mu] = thrA;
-                if (cPB[mu] < 0) cPB[mu] = 0;
+
+                /*
+                c = _mm_load_ps(cPB + mu);
+                d = _mm_add_ps(valB, c);
+                d = _mm_max_ps(epserr, n);
+                n = _mm_sub_ps(valB, c);
+                errt = _mm_div_ps(n, d);
+                errt = abs_ps(errt);
+                relerr = _mm_max_ps(relerr, errt);
+                */
+
+                valB = _mm_max_ps(zero, valB);
+
+                _mm_store_ps(cPB + mu, valB);
             }
-            */
         }
     }
+    float relerrf4[4] __attribute__ ((aligned (16)));
+    _mm_store_ps(relerrf4, relerr);
+    if (relerrf4[1] > relerrf4[0]) relerrf4[0] = relerrf4[1];
+    if (relerrf4[2] > relerrf4[0]) relerrf4[0] = relerrf4[2];
+    if (relerrf4[3] > relerrf4[0]) relerrf4[0] = relerrf4[3];
+
+    return relerrf4[0];
+}
+
+double update_mualbe(float * mu_albe_A, float * mu_albe_B,
+                     float * mu_beal_A, float * mu_beal_B,
+                     float * P_albe_A, float * P_albe_B,
+                     float * abeal, float * vbeal,
+                     float * P_be_E, float * P_be_F,
+                     float * omegamu, float * vmu,
+                     float * ker, float * ker2,
+                     float * imgnoise, float * imgmes,
+                     int * pixactivity)
+{
+    float relerr = update_Palbe(mu_beal_A, mu_beal_B,
+                                P_albe_A, P_albe_B,
+                                abeal, vbeal,
+                                P_be_E, P_be_F,
+                                omegamu, vmu,
+                                ker, ker2,
+                                imgnoise, imgmes,
+                                pixactivity);
+
     for (size_t i = 0; i < size2; ++i)
     {
         if (pixactivity[i]){
@@ -601,106 +599,7 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
             }
         }
     }
-    /*
-    for (size_t i = 0; i < size2; ++i)
-    {
-        if (pixactivity[i]){
-            float P_al_A = 0;
-            float P_al_B = 0;
-            for (int mu = 0; mu < sker2; ++mu)
-            {
-                int indalbe = mu + i * sker2;
-                P_al_A += P_albe_A[indalbe];
-                P_al_B += P_albe_B[indalbe];
-            }
-            P_al_A /= sker2;
-            P_al_B /= sker2;
-            if (P_al_B < 0) P_al_B = 0;
-            if (P_al_A < thrA) P_al_A = thrA;
 
-            for (int mu = 0; mu < sker2; ++mu)
-            {
-                int indav = mu + sker2 * i;
-
-                float vA = P_albe_A[indav] - P_al_A + init_E[i] - mu_beal_A[indav];
-                float vB = P_albe_B[indav] - P_al_B + init_F[i] - mu_beal_B[indav];
-                //mu_albe_A[indav] = 0.9 * mu_albe_A[indav] + 0.1 * vA;
-                //mu_albe_B[indav] = 0.9 * mu_albe_B[indav] + 0.1 * vB;
-                mu_albe_A[indav] = vA;
-                mu_albe_B[indav] = vB;
-                if (mu_albe_B[indav] < 0) mu_albe_B[indav] = 0;
-
-            }
-        }
-    }
-    */
-    return relerr;
-}
-
-float update_Palbe(float * mu_beal_A, float * mu_beal_B,
-                    float * P_albe_A, float * P_albe_B,
-                    float * abeal, float * vbeal,
-                    float * P_be_E, float * P_be_F,
-                    float * omegamu, float * vmu,
-                    float * ker, float * ker2,
-                    float * imgnoise, float * imgmes,
-                    int * pixactivity)
-{
-    float rat = ((float)sker2 - 1) / sker2;
-    float relerr = 0;
-    update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, pixactivity);
-
-    for (size_t i = 0; i < size2; ++i)
-    {
-        if (pixactivity[i]){
-            float * cbA = mu_beal_A + i * sker2;
-            float * cbB = mu_beal_B + i * sker2;
-            float * cabeal = abeal + i * sker2;
-            float * cvbeal = vbeal + i * sker2;
-            float * cPA = P_albe_A + i * sker2;
-            float * cPB = P_albe_B + i * sker2;
-
-
-            int ci = (i % sizey) % smes;
-            int li = (i / sizey) % smes;
-            int ikeri = ci + li * smes;
-
-            float * cker = ker + ikeri * sker2;
-            float * cker2 = ker2 + ikeri * sker2;
-
-            for (int mu = 0; mu < sker2; ++mu)
-            {
-                int dcmu = mu % sker - sker / 2;
-                int dlmu = mu / sker - sker / 2;
-
-                int cmu = (i % sizey) / smes + dcmu;
-                int lmu = (i / sizey) / smes + dlmu;
-                int imu = cmu + lmu * nbmesy;
-
-                float den;
-
-                den = imgnoise[imu] + vmu[imu] - cker2[mu] * cvbeal[mu];
-
-                float bnum;
-                bnum = cker[mu] *
-                    (imgmes[imu] - omegamu[imu] + cker[mu] * cabeal[mu]);
-
-                float valA = cker2[mu] / den + rat * P_be_E[i] + cbA[mu];
-                float errt = fabs((valA - cPA[mu]) / (valA + cPA[mu]));
-                if (errt > relerr) relerr = errt;
-                cPA[mu] = valA;
-
-                float valB = bnum / den + rat * P_be_F[i] + cbB[mu];
-                float denerr = fabs(valB + cPB[mu]);
-                if (denerr < 1e-6) denerr = 1e-6;
-                errt = fabs(valB - cPB[mu]) / denerr;
-                if (errt > relerr && valB > 0) relerr = errt;
-                cPB[mu] = valB;
-                //if (cPA[mu] < thrA) cPA[mu] = thrA;
-                if (cPB[mu] < 0) cPB[mu] = 0;
-            }
-        }
-    }
     return relerr;
 }
 
@@ -711,6 +610,10 @@ void update_mubeal(float * vbeal, float * abeal,
                    int * pixactivity)
 {
     float rat = ((float)sker2 - 1) / sker2;
+    const __m128 zero = _mm_set1_ps(0);
+    const __m128 one = _mm_set1_ps(1.0);
+    const __m128 oneosk = _mm_set1_ps(1.0f / sker2);
+
     for (size_t i = 0; i < size2; ++i)
     {
         if (pixactivity[i]){
@@ -722,29 +625,53 @@ void update_mubeal(float * vbeal, float * abeal,
             float * cvbeal = vbeal + i * sker2;
 
             /* Compute P_beta */
-            float P_be_A = 0;
-            float P_be_B = 0;
-            for (size_t mu = 0; mu < sker2; ++mu)
+            __m128 P_be_A = zero;
+            __m128 P_be_B = zero;
+            for (size_t mu = 0; mu < sker2; mu += 4)
             {
-                P_be_A += caA[mu];
-                P_be_B += caB[mu];
+                __m128 a = _mm_load_ps(caA + mu);
+                P_be_A = _mm_add_ps(P_be_A, a);
+                __m128 b = _mm_load_ps(caB + mu);
+                P_be_B = _mm_add_ps(P_be_B, b);
             }
-            P_be_A /= sker2;
-            //if (P_be_A < thrA) P_be_A = thrA;
-            P_be_B /= sker2;
-            if (P_be_B < 0) P_be_B = 0;
+            P_be_A = _mm_hadd_ps(P_be_A, P_be_A);
+            P_be_A = _mm_hadd_ps(P_be_A, P_be_A);
+
+            P_be_B = _mm_hadd_ps(P_be_B, P_be_B);
+            P_be_B = _mm_hadd_ps(P_be_B, P_be_B);
+
+            P_be_A = _mm_mul_ps (P_be_A, oneosk);
+            P_be_B = _mm_mul_ps (P_be_B, oneosk);
+
+            P_be_B = _mm_max_ps (P_be_B, zero);
+
+            const __m128 rPE = _mm_set1_ps(rat * P_be_E[i]);
+            const __m128 rPF = _mm_set1_ps(rat * P_be_F[i]);
 
             /* Compute mu_beal */
-            for (size_t mu = 0; mu < sker2; ++mu)
+            for (size_t mu = 0; mu < sker2; mu += 4)
             {
-                float cC = P_be_A - caA[mu];
-                float cD = P_be_B - caB[mu];
-                //if (cC < thrA) cC = thrA;
-                if (cD < 0) cD = 0;
-                cbA[mu] = cC;
-                cbB[mu] = cD;
-                cvbeal[mu] = 1.0 / (cC + rat * P_be_E[i]);
-                cabeal[mu] = (cD + rat * P_be_F[i]) * cvbeal[mu];
+                __m128 cC = _mm_load_ps(caA + mu);
+                cC = _mm_sub_ps(P_be_A, cC);
+                __m128 cD = _mm_load_ps(caB + mu);
+                cD = _mm_sub_ps(P_be_B, cD);
+
+                cD = _mm_max_ps(zero, cD);
+
+                _mm_store_ps(cbA + mu, cC);
+                _mm_store_ps(cbB + mu, cD);
+
+                __m128 maA = _mm_load_ps(caA + mu);
+                __m128 maB = _mm_load_ps(caB + mu);
+
+                cC = _mm_add_ps(rPE, cC);
+                cC = _mm_div_ps(one, cC);
+
+                cD = _mm_add_ps(rPF, cD);
+                cD = _mm_mul_ps(cC, cD);
+
+                _mm_store_ps(cvbeal + mu, cC);
+                _mm_store_ps(cabeal + mu, cD);
             }
         }
     }
@@ -767,8 +694,8 @@ void update_pbe(float * P_be_E, float * P_be_F,
      */
     float relerr = 1.0;
     //while (relerr > 5e-2)
-    for (size_t iter = 0; iter < iterpbe; ++iter)
-    {
+    //for (size_t iter = 0; iter < iterpbe; ++iter)
+    //{
         for (size_t i = 0; i < size2; ++i)
         {
             if (pixactivity[i]){
@@ -797,6 +724,7 @@ void update_pbe(float * P_be_E, float * P_be_F,
                 //P_be_F[i] = fafc[0] / fafc[1];
             }
         }
+        /*
         relerr = update_Palbe(mu_beal_A, mu_beal_B,
                               P_albe_A, P_albe_B,
                               abeal, vbeal,
@@ -805,8 +733,9 @@ void update_pbe(float * P_be_E, float * P_be_F,
                               ker, ker2,
                               imgnoise, imgmes,
                               pixactivity);
-        printf("relerr: %f\n", relerr);
-    }
+                              */
+        //printf("relerr: %f\n", relerr);
+    //}
 }
 
 float * reconssparse(float * imgmes, float * imgnoise, float * psf)
@@ -952,6 +881,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
                 pixactivity,
                 damp, iterpbe);
     /* Build result */
+        /*
     for (int i = 0; i < size2; ++i)
     {
         res[i] = P_be_F[i] / P_be_E[i];
@@ -959,6 +889,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     printf("res min, max: %f %f\n",                                            
             min(res, size2),                                               
             max(res, size2));
+            */
     }
 
     /* Build result */
