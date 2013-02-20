@@ -34,15 +34,20 @@
 #include <math.h>
 #include <gsl/gsl_sf_bessel.h>
 #include <png.h>
+#include <tiffio.h>
 
 #include <cpuid.h> /* __get_cpuid_max, __get_cpuid */
 #include <mmintrin.h> /* MMX instrinsics  __m64 integer type  */
 #include <xmmintrin.h> /* SSE  __m128  float */
 #include <pmmintrin.h>
 
+/* floating point exception on OS X uses SSE, but does not work... */
+//_MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
+
 /* Floating point control */
-#define __USE_GNU
-#include <fenv.h>
+//#define __USE_GNU
+//#define _GNU_SOURCE
+//#include <fenv.h>
 
 #include <bzlib.h>
 
@@ -55,36 +60,107 @@ struct gengetopt_args_info bstorm_args;
 /* Constant definitions */
 
 
+// DATASET 1 (eye 2)
+///* signal noise properties */
+//const float pixmean = 4800;
+//const double pixstd = 200;
+//const double rho = 0.001;
+//float thrA = 0.1 / (10 * 1000 * 1000);
+//
+//const float pixthr = 500;
+//
+///* Sizes of the images */
+//const int smes = 8;
+//const int smes2 = 8 * 8;
+//const int sizex = 128 * 8;
+//const int sizey = 256 * 8;
+//const int size2 = 128 * 8 * 256 * 8;
+//const int sker = 8; /* has to be a multiple of 4 to use sse */
+//const int sker2 = 8 * 8;
+//
+//const float spix = 150.0 / 8;
+//
+//const int nbmesx = 128;
+//const int nbmesy = 256;
+//const int nbmes2 = 128 * 256;
+//
+//const int plot_no_rescale = 0;
+//const int plot_rescale = 1;
+//
+//const int nbintern = 1;
+//
+//const float damp = 0.02;
+//
+//const int printres = 0;
+//
+//const float noiseback = 1200;
+//
+///* Properties of the psf */
+//const float sigpsf = 1.376 * 8; /* size of a pixel in unit of lambda */
+///* the 0.86 is due to defocus */
+//const float numap = 1.0;
+//
+//const float Ainit = 10.0 / (4800 * 4800);
+//
+//const int nbiter = 500;
+//
+//const float meanback = 100;
+//
+//const int width = 256;
+//const int height = 256;
+
+
+
+// DATASET 2 (snow)
 /* signal noise properties */
-const float pixmean = 4000;
-const double pixstd = 3000;
-const double rho = 0.002;
-float thrA = 1.0 / (10 * 4000 * 4000);
+const float pixmean = 5000;
+const double pixstd = 2000;
+const double rho = 0.001;
+float thrA = 0.1 / (10 * 1000 * 1000);
 
 const float pixthr = 40;
+
+const float thrpoint = 300;
 
 /* Sizes of the images */
 const int smes = 8;
 const int smes2 = 8 * 8;
-const int sizex = 212 * 8;
-const int sizey = 340 * 8;
-const int size2 = 212 * 8 * 340 * 8;
-const int sker = 8; /* has to be a multiple of 4 to use sse */
-const int sker2 = 8 * 8;
+const int sizex = 128 * 8;
+const int sizey = 128 * 8;
+const int size2 = 128 * 8 * 128 * 8;
+const int sker = 12; /* has to be a multiple of 4 to use sse */
+const int sker2 = 12 * 12;
 
-const int nbmesx = 212;
-const int nbmesy = 340;
-const int nbmes2 = 212 * 340;
+const float spix = 100.0 / 8;
+
+const int width = 128;
+const int height = 128;
+
+const int nbmesx = 128;
+const int nbmesy = 128;
+const int nbmes2 = 128 * 128;
 
 const int plot_no_rescale = 0;
 const int plot_rescale = 1;
 
+const int nbintern = 1;
+
+const float damp = 0.02;
+
+const int printres = 1;
+
+const float noiseback = 18;
+const float meanback = 34;
 
 /* Properties of the psf */
-const float sigpsf = 1.04 * 8; /* size of a pixel in unit of lambda */
+const float sigpsf = 1.376 * 8 * 1.5;
 const float numap = 1.0;
 
-const int nbiter = 120;
+const float Ainit = 10.0 / (4800 * 4800);
+
+const int nbiter = 10;
+
+int nbframe;
 
 void gaussker(float * ker)
 {
@@ -214,7 +290,7 @@ void plot_overlay(float * mes,
     }
     for (x = 0 ; x < sizex ; x++){
         for (y = 0 ; y < sizey ; y++){
-            if (pred[x * sizey + y] > 20){
+            if (pred[x * sizey + y] > 10){
                 img_data[(x * sizey + y) * 3] = 255 / (max1 - min1)
                          * (pred[x * sizey + y] - min1);;
                 img_data[1 + (x * sizey + y) * 3] = 0;
@@ -290,7 +366,13 @@ void fafcfunc(float * out, float sig2, float r)
     float fra1 = fra / varr;
     float fra2 = fra1 / varr;
 
-    float exprgauss = exp(-r * r / 2 / sig2 + deltr / 2 / varr);
+    float argexp = -r * r / 2 / sig2 + deltr / 2 / varr;
+    if (argexp > 15.0){
+        out[0] = 0;
+        out[1] = 1e-6;
+        return;
+    }
+    float exprgauss = exp(argexp);
 
     float onemrho = 1 - rho;
     float onemrm1 = 1 / rho - 1;
@@ -310,8 +392,9 @@ void fafcfunc(float * out, float sig2, float r)
     out[0] = num1 / den1;
     out[1] = num2 / den2;
 
-    //if (out[1] < 1e-4) out[1] = 1e-4;
+    //if (out[1] < 1) out[1] = 1;
     if (out[0] < 0) out[0] = 0;
+    //if (out[0] > 1500) out[0] = 1500;
 }
 
 void init_kernels(float * ker, float * ker2,
@@ -352,8 +435,61 @@ void init_kernels(float * ker, float * ker2,
 void update_omegavmu(float * omegamu, float * vmu,
                      float * ker, float * ker2,
                      float * abeal, float * vbeal,
-                     int * pixactivity)
+                     int nbact, int * activepix)
 {
+#ifdef __AVX__
+    const __m256 zero = _mm256_set1_ps(0);
+
+    for (int mu = 0; mu < nbmes2; mu += 8)
+    {
+        _mm256_store_ps(vmu + mu, zero);
+        _mm256_store_ps(omegamu + mu, zero);
+    }
+    for (unsigned int k = 0; k < nbact; ++k)
+    {
+        int i = activepix[k];
+        float * cabeal = abeal + i * sker2;
+        float * cvbeal = vbeal + i * sker2;
+
+
+        int ci = (i % sizey) % smes;
+        int li = (i / sizey) % smes;
+        int ikeri = ci + li * smes;
+
+        float * cker = ker + ikeri * sker2;
+        float * cker2 = ker2 + ikeri * sker2;
+
+        for (int mu = 0; mu < sker2; mu += 8)
+        {
+            int dcmu = mu % sker - sker / 2;
+            int dlmu = mu / sker - sker / 2;
+
+            int cmu = (i % sizey) / smes + dcmu;
+            int lmu = (i / sizey) / smes + dlmu;
+            int imu = cmu + lmu * nbmesy;
+
+            __m256 ck = _mm256_load_ps(cker + mu);
+            __m256 ck2 = _mm256_load_ps(cker2 + mu);
+
+            __m256 ca = _mm256_load_ps(cabeal + mu);
+            __m256 cv = _mm256_load_ps(cvbeal + mu);
+
+            ca = _mm256_mul_ps(ck, ca);
+            cv = _mm256_mul_ps(ck2, cv);
+
+            __m256 po =  _mm256_loadu_ps(omegamu + imu);
+            __m256 pv =  _mm256_loadu_ps(vmu + imu);
+
+            ca = _mm256_add_ps(ca, po);
+            cv = _mm256_add_ps(cv, pv);
+
+            _mm256_storeu_ps(omegamu + imu, ca);
+            _mm256_storeu_ps(vmu + imu, cv);
+        }
+    }
+
+#else
+
     const __m128 zero = _mm_set1_ps(0);
 
     for (int mu = 0; mu < nbmes2; mu += 4)
@@ -361,55 +497,62 @@ void update_omegavmu(float * omegamu, float * vmu,
         _mm_store_ps(vmu + mu, zero);
         _mm_store_ps(omegamu + mu, zero);
     }
-    for (size_t i = 0; i < size2; ++i)
+    for (unsigned int k = 0; k < nbact; ++k)
     {
-        if (pixactivity[i]){
-            float * cabeal = abeal + i * sker2;
-            float * cvbeal = vbeal + i * sker2;
+        int i = activepix[k];
+        float * cabeal = abeal + i * sker2;
+        float * cvbeal = vbeal + i * sker2;
 
 
-            int ci = (i % sizey) % smes;
-            int li = (i / sizey) % smes;
-            int ikeri = ci + li * smes;
+        int ci = (i % sizey) % smes;
+        int li = (i / sizey) % smes;
+        int ikeri = ci + li * smes;
 
-            float * cker = ker + ikeri * sker2;
-            float * cker2 = ker2 + ikeri * sker2;
+        float * cker = ker + ikeri * sker2;
+        float * cker2 = ker2 + ikeri * sker2;
 
-            for (int mu = 0; mu < sker2; mu += 4)
-            {
-                int dcmu = mu % sker - sker / 2;
-                int dlmu = mu / sker - sker / 2;
+        for (int mu = 0; mu < sker2; mu += 4)
+        {
+            int dcmu = mu % sker - sker / 2;
+            int dlmu = mu / sker - sker / 2;
 
-                int cmu = (i % sizey) / smes + dcmu;
-                int lmu = (i / sizey) / smes + dlmu;
-                int imu = cmu + lmu * nbmesy;
+            int cmu = (i % sizey) / smes + dcmu;
+            int lmu = (i / sizey) / smes + dlmu;
+            int imu = cmu + lmu * nbmesy;
 
-                __m128 ck = _mm_load_ps(cker + mu);
-                __m128 ck2 = _mm_load_ps(cker2 + mu);
+            __m128 ck = _mm_load_ps(cker + mu);
+            __m128 ck2 = _mm_load_ps(cker2 + mu);
 
-                __m128 ca = _mm_load_ps(cabeal + mu);
-                __m128 cv = _mm_load_ps(cvbeal + mu);
+            __m128 ca = _mm_load_ps(cabeal + mu);
+            __m128 cv = _mm_load_ps(cvbeal + mu);
 
-                ca = _mm_mul_ps(ck, ca);
-                cv = _mm_mul_ps(ck2, cv);
+            ca = _mm_mul_ps(ck, ca);
+            cv = _mm_mul_ps(ck2, cv);
 
-                __m128 po =  _mm_loadu_ps(omegamu + imu);
-                __m128 pv =  _mm_loadu_ps(vmu + imu);
+            __m128 po =  _mm_loadu_ps(omegamu + imu);
+            __m128 pv =  _mm_loadu_ps(vmu + imu);
 
-                ca = _mm_add_ps(ca, po);
-                cv = _mm_add_ps(cv, pv);
+            ca = _mm_add_ps(ca, po);
+            cv = _mm_add_ps(cv, pv);
 
-                _mm_storeu_ps(omegamu + imu, ca);
-                _mm_storeu_ps(vmu + imu, cv);
-            }
+            _mm_storeu_ps(omegamu + imu, ca);
+            _mm_storeu_ps(vmu + imu, cv);
         }
     }
+#endif
 }
 
+#ifdef __AVX__
 inline __m128 abs_ps(__m128 x) {
     __m128 sign_mask = _mm_set1_ps(-0.f); // -0.f = 1 << 31
     return _mm_andnot_ps(sign_mask, x);
 }
+#else
+inline __m128 abs_ps(__m128 x) {
+    __m128 sign_mask = _mm_set1_ps(-0.f); // -0.f = 1 << 31
+    return _mm_andnot_ps(sign_mask, x);
+}
+#endif
 
 float update_Palbe(float * mu_beal_A, float * mu_beal_B,
                    float * P_albe_A, float * P_albe_B,
@@ -418,18 +561,18 @@ float update_Palbe(float * mu_beal_A, float * mu_beal_B,
                    float * omegamu, float * vmu,
                    float * ker, float * ker2,
                    float * imgnoise, float * imgmes,
-                   int * pixactivity)
+                   int nbact, int * activepix)
 {
     float rat = ((float)sker2 - 1) / sker2;
     const __m128 zero = _mm_set1_ps(0);
     const __m128 one = _mm_set1_ps(1.0);
     __m128 relerr = zero;
 
-    update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, pixactivity);
+    update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, nbact, activepix);
 
-    for (size_t i = 0; i < size2; ++i)
+    for (unsigned int k = 0; k < nbact; ++k)
     {
-        if (pixactivity[i]){
+        int i = activepix[k];
             float * cbA = mu_beal_A + i * sker2;
             float * cbB = mu_beal_B + i * sker2;
             float * cabeal = abeal + i * sker2;
@@ -515,7 +658,7 @@ float update_Palbe(float * mu_beal_A, float * mu_beal_B,
                 _mm_store_ps(cPB + mu, valB);
             }
         }
-    }
+    //}
     float relerrf4[4] __attribute__ ((aligned (16)));
     _mm_store_ps(relerrf4, relerr);
     if (relerrf4[1] > relerrf4[0]) relerrf4[0] = relerrf4[1];
@@ -533,7 +676,7 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
                      float * omegamu, float * vmu,
                      float * ker, float * ker2,
                      float * imgnoise, float * imgmes,
-                     int * pixactivity)
+                     int nbact, int * activepix)
 {
     float relerr = update_Palbe(mu_beal_A, mu_beal_B,
                                 P_albe_A, P_albe_B,
@@ -542,61 +685,62 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
                                 omegamu, vmu,
                                 ker, ker2,
                                 imgnoise, imgmes,
-                                pixactivity);
+                                nbact, activepix);
 
-    for (size_t i = 0; i < size2; ++i)
+    for (unsigned int k = 0; k < nbact; ++k)
     {
-        if (pixactivity[i]){
-            const __m128 zero = _mm_set1_ps(0);
-            const __m128 vthr = _mm_set1_ps(thrA);
-            const __m128 oneosk = _mm_set1_ps(1.0f / sker2);
-            __m128 PAt = _mm_set1_ps(0);
-            __m128 PBt = _mm_set1_ps(0);
+        int i = activepix[k];
+        const __m128 zero = _mm_set1_ps(0);
+        const __m128 vthr = _mm_set1_ps(thrA);
+        const __m128 vthr2 = _mm_set1_ps(1e2);
+        const __m128 oneosk = _mm_set1_ps(1.0f / sker2);
+        __m128 PAt = _mm_set1_ps(0);
+        __m128 PBt = _mm_set1_ps(0);
 
-            float * caA = mu_albe_A + i * sker2;
-            float * caB = mu_albe_B + i * sker2;
-            float * cbA = mu_beal_A + i * sker2;
-            float * cbB = mu_beal_B + i * sker2;
-            float * cPA = P_albe_A + i * sker2;
-            float * cPB = P_albe_B + i * sker2;
+        float * caA = mu_albe_A + i * sker2;
+        float * caB = mu_albe_B + i * sker2;
+        float * cbA = mu_beal_A + i * sker2;
+        float * cbB = mu_beal_B + i * sker2;
+        float * cPA = P_albe_A + i * sker2;
+        float * cPB = P_albe_B + i * sker2;
 
-            for (int mu = 0; mu < sker2; mu += 4)
-            {
-                __m128 v = _mm_load_ps(cPA + mu);
-                PAt = _mm_add_ps(PAt, v);
-                v = _mm_load_ps(cPB + mu);
-                PBt = _mm_add_ps(PBt, v);
-            }
-            PAt = _mm_hadd_ps(PAt, PAt);
-            PAt = _mm_hadd_ps(PAt, PAt);
+        for (int mu = 0; mu < sker2; mu += 4)
+        {
+            __m128 v = _mm_load_ps(cPA + mu);
+            PAt = _mm_add_ps(PAt, v);
+            v = _mm_load_ps(cPB + mu);
+            PBt = _mm_add_ps(PBt, v);
+        }
+        PAt = _mm_hadd_ps(PAt, PAt);
+        PAt = _mm_hadd_ps(PAt, PAt);
 
-            PBt = _mm_hadd_ps(PBt, PBt);
-            PBt = _mm_hadd_ps(PBt, PBt);
+        PBt = _mm_hadd_ps(PBt, PBt);
+        PBt = _mm_hadd_ps(PBt, PBt);
 
-            PAt = _mm_mul_ps (PAt, oneosk);
-            PBt = _mm_mul_ps (PBt, oneosk);
+        PAt = _mm_mul_ps (PAt, oneosk);
+        PBt = _mm_mul_ps (PBt, oneosk);
 
-            PBt = _mm_max_ps(zero, PBt);
+        PBt = _mm_max_ps(zero, PBt);
 
-            for (int mu = 0; mu < sker2; mu += 4)
-            {
-                __m128 A = _mm_load_ps(cPA + mu);
-                __m128 B = _mm_load_ps(cPB + mu);
-                __m128 maA = _mm_load_ps(caA + mu);
-                __m128 maB = _mm_load_ps(caB + mu);
+        for (int mu = 0; mu < sker2; mu += 4)
+        {
+            __m128 A = _mm_load_ps(cPA + mu);
+            __m128 B = _mm_load_ps(cPB + mu);
+            __m128 maA = _mm_load_ps(caA + mu);
+            __m128 maB = _mm_load_ps(caB + mu);
 
-                A = _mm_sub_ps(A, PAt);
-                B = _mm_sub_ps(B, PBt);
+            A = _mm_sub_ps(A, PAt);
+            B = _mm_sub_ps(B, PBt);
 
-                A = _mm_add_ps(A, maA);
-                B = _mm_add_ps(B, maB);
+            A = _mm_add_ps(A, maA);
+            B = _mm_add_ps(B, maB);
 
-                B = _mm_max_ps(vthr, A);
-                B = _mm_max_ps(zero, B);
+            B = _mm_max_ps(vthr, A);
+            B = _mm_min_ps(vthr2, A);
+            B = _mm_max_ps(zero, B);
 
-                _mm_store_ps(caA + mu, A);
-                _mm_store_ps(caB + mu, B);
-            }
+            _mm_store_ps(caA + mu, A);
+            _mm_store_ps(caB + mu, B);
         }
     }
 
@@ -607,72 +751,71 @@ void update_mubeal(float * vbeal, float * abeal,
                    float * mu_beal_A, float * mu_beal_B,
                    float * mu_albe_A, float * mu_albe_B,
                    float * P_be_E, float * P_be_F,
-                   int * pixactivity)
+                   int nbact, int * activepix)
 {
     float rat = ((float)sker2 - 1) / sker2;
     const __m128 zero = _mm_set1_ps(0);
     const __m128 one = _mm_set1_ps(1.0);
     const __m128 oneosk = _mm_set1_ps(1.0f / sker2);
 
-    for (size_t i = 0; i < size2; ++i)
+    for (unsigned int k = 0; k < nbact; ++k)
     {
-        if (pixactivity[i]){
-            float * caA = mu_albe_A + i * sker2;
-            float * caB = mu_albe_B + i * sker2;
-            float * cbA = mu_beal_A + i * sker2;
-            float * cbB = mu_beal_B + i * sker2;
-            float * cabeal = abeal + i * sker2;
-            float * cvbeal = vbeal + i * sker2;
+        int i = activepix[k];
+        float * caA = mu_albe_A + i * sker2;
+        float * caB = mu_albe_B + i * sker2;
+        float * cbA = mu_beal_A + i * sker2;
+        float * cbB = mu_beal_B + i * sker2;
+        float * cabeal = abeal + i * sker2;
+        float * cvbeal = vbeal + i * sker2;
 
-            /* Compute P_beta */
-            __m128 P_be_A = zero;
-            __m128 P_be_B = zero;
-            for (size_t mu = 0; mu < sker2; mu += 4)
-            {
-                __m128 a = _mm_load_ps(caA + mu);
-                P_be_A = _mm_add_ps(P_be_A, a);
-                __m128 b = _mm_load_ps(caB + mu);
-                P_be_B = _mm_add_ps(P_be_B, b);
-            }
-            P_be_A = _mm_hadd_ps(P_be_A, P_be_A);
-            P_be_A = _mm_hadd_ps(P_be_A, P_be_A);
+        /* Compute P_beta */
+        __m128 P_be_A = zero;
+        __m128 P_be_B = zero;
+        for (size_t mu = 0; mu < sker2; mu += 4)
+        {
+            __m128 a = _mm_load_ps(caA + mu);
+            P_be_A = _mm_add_ps(P_be_A, a);
+            __m128 b = _mm_load_ps(caB + mu);
+            P_be_B = _mm_add_ps(P_be_B, b);
+        }
+        P_be_A = _mm_hadd_ps(P_be_A, P_be_A);
+        P_be_A = _mm_hadd_ps(P_be_A, P_be_A);
 
-            P_be_B = _mm_hadd_ps(P_be_B, P_be_B);
-            P_be_B = _mm_hadd_ps(P_be_B, P_be_B);
+        P_be_B = _mm_hadd_ps(P_be_B, P_be_B);
+        P_be_B = _mm_hadd_ps(P_be_B, P_be_B);
 
-            P_be_A = _mm_mul_ps (P_be_A, oneosk);
-            P_be_B = _mm_mul_ps (P_be_B, oneosk);
+        P_be_A = _mm_mul_ps (P_be_A, oneosk);
+        P_be_B = _mm_mul_ps (P_be_B, oneosk);
 
-            P_be_B = _mm_max_ps (P_be_B, zero);
+        P_be_B = _mm_max_ps (P_be_B, zero);
 
-            const __m128 rPE = _mm_set1_ps(rat * P_be_E[i]);
-            const __m128 rPF = _mm_set1_ps(rat * P_be_F[i]);
+        const __m128 rPE = _mm_set1_ps(rat * P_be_E[i]);
+        const __m128 rPF = _mm_set1_ps(rat * P_be_F[i]);
 
-            /* Compute mu_beal */
-            for (size_t mu = 0; mu < sker2; mu += 4)
-            {
-                __m128 cC = _mm_load_ps(caA + mu);
-                cC = _mm_sub_ps(P_be_A, cC);
-                __m128 cD = _mm_load_ps(caB + mu);
-                cD = _mm_sub_ps(P_be_B, cD);
+        /* Compute mu_beal */
+        for (size_t mu = 0; mu < sker2; mu += 4)
+        {
+            __m128 cC = _mm_load_ps(caA + mu);
+            cC = _mm_sub_ps(P_be_A, cC);
+            __m128 cD = _mm_load_ps(caB + mu);
+            cD = _mm_sub_ps(P_be_B, cD);
 
-                cD = _mm_max_ps(zero, cD);
+            cD = _mm_max_ps(zero, cD);
 
-                _mm_store_ps(cbA + mu, cC);
-                _mm_store_ps(cbB + mu, cD);
+            _mm_store_ps(cbA + mu, cC);
+            _mm_store_ps(cbB + mu, cD);
 
-                __m128 maA = _mm_load_ps(caA + mu);
-                __m128 maB = _mm_load_ps(caB + mu);
+            __m128 maA = _mm_load_ps(caA + mu);
+            __m128 maB = _mm_load_ps(caB + mu);
 
-                cC = _mm_add_ps(rPE, cC);
-                cC = _mm_div_ps(one, cC);
+            cC = _mm_add_ps(rPE, cC);
+            cC = _mm_div_ps(one, cC);
 
-                cD = _mm_add_ps(rPF, cD);
-                cD = _mm_mul_ps(cC, cD);
+            cD = _mm_add_ps(rPF, cD);
+            cD = _mm_mul_ps(cC, cD);
 
-                _mm_store_ps(cvbeal + mu, cC);
-                _mm_store_ps(cabeal + mu, cD);
-            }
+            _mm_store_ps(cvbeal + mu, cC);
+            _mm_store_ps(cabeal + mu, cD);
         }
     }
 }
@@ -684,8 +827,8 @@ void update_pbe(float * P_be_E, float * P_be_F,
                 float * mu_beal_A, float * mu_beal_B,
                 float * ker, float * ker2,
                 float * imgnoise, float * imgmes,
-                int * pixactivity,
-                float damp, int iterpbe)
+                int nbact, int * activepix,
+                int iterpbe)
 {
     /* The coefficient should be equal after convergence, we choose to take
      * the average of the coefficients here...
@@ -696,9 +839,12 @@ void update_pbe(float * P_be_E, float * P_be_F,
     //while (relerr > 5e-2)
     //for (size_t iter = 0; iter < iterpbe; ++iter)
     //{
-        for (size_t i = 0; i < size2; ++i)
-        {
-            if (pixactivity[i]){
+    for (unsigned int k = 0; k < nbact; ++k)
+    {
+        int i = activepix[k];
+        //for (size_t i = 0; i < size2; ++i)
+        //{
+        //    if (pixactivity[i]){
                 float avA = 0;
                 float avB = 0;
                 float * cA = P_albe_A + i * sker2;
@@ -708,22 +854,40 @@ void update_pbe(float * P_be_E, float * P_be_F,
                     avA += cA[mu];
                     avB += cB[mu];
                 }
+                //if (avA < 1e-6) avA = 1e-6;
+                //avA /= sker2;
+                //avB /= sker2;
+
                 float PEt = avA  - (sker2 - 1) * P_be_E[i];
                 float PFt = avB  - (sker2 - 1) * P_be_F[i];
-                //if (PEt < thrA * 10) PEt = thrA * 10;
+                if (PEt < 1e-8) PEt = 1e-8;
                 if (PFt < 0) PFt = 0;
 
                 float fafc[2];
                 fafcfunc(fafc, 1 / PEt, PFt / PEt);
 
+                float prevPbE = P_be_E[i];
+                float prevPbF = P_be_F[i];
+
                 float invE = (1 - damp) / P_be_E[i] + damp * fafc[1];
                 //float invE = fafc[1];
                 P_be_E[i]= 1/ invE;
                 //P_be_E[i]= 1 / fafc[1];
-                P_be_F[i] = (1 - damp) * P_be_F[i] + damp * fafc[0] / fafc[1];
+                P_be_F[i] = (1 - damp) * P_be_F[i] / invE / prevPbE
+                            + damp * fafc[0] / invE;
                 //P_be_F[i] = fafc[0] / fafc[1];
+                /*
+    if (P_be_F[i] / P_be_E[i] > 1500){
+        printf("PbF PbE: %f %f %f\n", P_be_F[i], P_be_E[i], P_be_F[i] / P_be_E[i]);
+        printf("fafc: %f %f\n", fafc[0], fafc[1]);
+        printf("avB avA: %f %f %f\n", avB, avA, avB / avA);
+        printf("PFt PEt: %f %f %f\n", PFt, PEt, PFt / PEt);
+        printf("prevPbE prevPbF: %f %f %f\n", prevPbF, prevPbE, prevPbF / prevPbE);
+        exit(EXIT_FAILURE);
+    }
+    */
             }
-        }
+        //}
         /*
         relerr = update_Palbe(mu_beal_A, mu_beal_B,
                               P_albe_A, P_albe_B,
@@ -732,7 +896,7 @@ void update_pbe(float * P_be_E, float * P_be_F,
                               omegamu, vmu,
                               ker, ker2,
                               imgnoise, imgmes,
-                              pixactivity);
+                              nbact, activepix);
                               */
         //printf("relerr: %f\n", relerr);
     //}
@@ -753,6 +917,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     float * omegamu;
     float * vmu;
     int * pixactivity;
+    int * activepix;
 
 
     float * ker;
@@ -774,6 +939,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     posix_memalign((void **)&omegamu, 16, nbmes2 * sizeof(float));
     posix_memalign((void **)&vmu, 16, nbmes2 * sizeof(float));
     posix_memalign((void **)&pixactivity, 16, size2 * sizeof(int));
+    posix_memalign((void **)&activepix, 16, size2 * sizeof(int));
 
     posix_memalign((void **)&ker, 16, smes2 * sker2 * sizeof(float));
     posix_memalign((void **)&ker2, 16, smes2 * sker2 * sizeof(float));
@@ -782,6 +948,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
 
     /* Initialize kernels */
     init_kernels(ker, ker2, psf);
+    /*
     printf("Ker min, max: %f %f\n",                                            
            min(ker, smes2 * sker2),                                               
            max(ker, smes2 * sker2));
@@ -791,11 +958,11 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     printf("imgnoise min, max: %f %f\n",                                            
            min(imgnoise, nbmes2),                                               
            max(imgnoise, nbmes2));
-    //plot_image(smes * sker, smes * sker, ker, "kerint.png", plot_rescale);
+    plot_image(smes * sker, smes * sker, ker, "kerint.png", plot_rescale);
+    */
 
     //plot_image(sker, sker, ker + 32 * sker2, "kercent.png", plot_rescale);
 
-    float Ainit = 300.0 / (pixmean * pixmean);
     float Binit = rho * pixmean * Ainit;
     for (int i = 0; i < size2 * sker2; ++i) {
         mu_albe_A[i] = Ainit;
@@ -807,8 +974,9 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
         P_be_E[i] = Ainit;
         P_be_F[i] = Binit;
     }
-    printf("ABinit: %f %f\n", Ainit, Binit);
+    //printf("ABinit: %f %f\n", Ainit, Binit);
 
+    int nbact = 0;
     for (int i = 0; i < size2; ++i)
     {
         int ci = (i % sizey) / smes;
@@ -833,42 +1001,41 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
             P_be_F[i] = 0;
         } else {
             pixactivity[i] = 1;
+            activepix[nbact] = i;
+            nbact++;
         }
     }
 
-    int nbact = 0;
-    for (int i = 0; i < size2; ++i)
-    {
-        if (pixactivity[i]) nbact++;
-    }
-    printf("nbact: %i\n", nbact);
+    //printf("nbact: %i\n", nbact);
 
     /* Main loop */
     for (int iter = 0; iter < nbiter; ++iter)
     {
-        printf("iteration: %i\n", iter); 
+        //printf("iteration: %i\n", iter); 
         /* Internal loop */
-        double relerr = 1;
-        update_mubeal(vbeal, abeal,
-                mu_beal_A, mu_beal_B,
-                mu_albe_A, mu_albe_B,
-                P_be_E, P_be_F,
-                pixactivity);
+        for (unsigned int j = 0; j < nbintern; ++j)
+        {
+            double relerr = 1;
+            update_mubeal(vbeal, abeal,
+                    mu_beal_A, mu_beal_B,
+                    mu_albe_A, mu_albe_B,
+                    P_be_E, P_be_F,
+                    nbact, activepix);
 
-        relerr = update_mualbe(mu_albe_A, mu_albe_B,
-                mu_beal_A, mu_beal_B,
-                P_albe_A, P_albe_B,
-                abeal, vbeal,
-                P_be_E, P_be_F,
-                omegamu, vmu,
-                ker, ker2,
-                imgnoise, imgmes,
-                pixactivity);
-        printf("relerr: %f\n", relerr);
+            relerr = update_mualbe(mu_albe_A, mu_albe_B,
+                    mu_beal_A, mu_beal_B,
+                    P_albe_A, P_albe_B,
+                    abeal, vbeal,
+                    P_be_E, P_be_F,
+                    omegamu, vmu,
+                    ker, ker2,
+                    imgnoise, imgmes,
+                    nbact, activepix);
+            //printf("relerr: %f\n", relerr);
+        }
 
         /* External loop */
-        printf("updatePbe\n");
-        float damp = 0.1;
+        //printf("updatePbe\n");
         int iterpbe = 1;
 
         update_pbe(P_be_E, P_be_F,
@@ -878,28 +1045,53 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
                 mu_beal_A, mu_beal_B,
                 ker, ker2,
                 imgnoise, imgmes,
-                pixactivity,
-                damp, iterpbe);
-    /* Build result */
-        /*
-    for (int i = 0; i < size2; ++i)
-    {
-        res[i] = P_be_F[i] / P_be_E[i];
-    }
-    printf("res min, max: %f %f\n",                                            
-            min(res, size2),                                               
-            max(res, size2));
-            */
+                nbact, activepix,
+                iterpbe);
+
+        /* Build result */
+        if (printres){
+            for (int i = 0; i < size2; ++i)
+            {
+                res[i] = P_be_F[i] / P_be_E[i];
+            }
+            printf("res min, max: %f %f\n",                                            
+                    min(res, size2),                                               
+                    max(res, size2));
+            plot_overlay(imgmes, res, "overlay.png");
+        }
     }
 
     /* Build result */
+    //for (int i = 0; i < size2; ++i)
+    //{
+    //    res[i] = 1 / P_be_E[i];
+    //}
+    //printf("var min, max: %f %f\n",                                            
+    //        min(res, size2),                                               
+    //        max(res, size2));
+    //plot_image(sizex, sizey, res, "var.png", plot_rescale);
+    //printf("Brecs, frame, xnano, ynano, znano, intensity\n");
+    int nbfluo = 1;
     for (int i = 0; i < size2; ++i)
     {
+        int c = i % sizey;
+        int l = i / sizey;
         res[i] = P_be_F[i] / P_be_E[i];
+        if (res[i] > thrpoint){
+            printf("%i %i %.2f %.2f %.2f %.2f\n",
+                   nbfluo,
+                   nbframe,
+                   c * spix + spix / 2,
+                   //l * spix + 64 * 8 * spix + spix / 2,
+                   l * spix + spix / 2,
+                   0.00,
+                   res[i]);
+            nbfluo++;
+        }
     }
-    printf("res min, max: %f %f\n",                                            
-            min(res, size2),                                               
-            max(res, size2));
+    //printf("res min, max: %f %f\n",                                            
+    //        min(res, size2),                                               
+    //        max(res, size2));
 
     free(mu_albe_A);
     free(mu_albe_B);
@@ -965,14 +1157,58 @@ float minra(float * num, float * den, int size)
     return min;
 }
 
-const int width = 329;
-const int height = 199;
+uint16_t * opentiff(const char * fname, int sx, int sy)
+{
+    uint16_t * img = malloc(sx * sy * sizeof(uint16_t));
 
-const float meanback = 110;
+    TIFF * tif = TIFFOpen(fname, "r");
+    if (tif) {
+        uint32 imagelength;
+        tsize_t scanline;
+        tdata_t buf;
+        uint32 row;
+        uint32 col;
+
+        TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &imagelength);
+        if (imagelength != sx) exit(EXIT_FAILURE);
+        scanline = TIFFScanlineSize(tif);
+        if (scanline / 2 != sy) exit(EXIT_FAILURE);
+        //printf("image length: %i\n", imagelength);
+        //printf("scanline: %li\n", scanline);
+        buf = _TIFFmalloc(scanline);
+        for (row = 0; row < imagelength; row++)
+        {
+            TIFFReadScanline(tif, buf, row, 0);
+            for (col = 0; col < scanline / 2; col++)
+                img[col + row * scanline / 2] = ((uint16 *)buf)[col];
+        }
+        _TIFFfree(buf);
+        TIFFClose(tif);
+    } else {
+        exit(EXIT_FAILURE);
+    }
+
+    return img;
+}
+
+float valuearound(float * img, int sx, int sy, int x, int y , float rad2)
+{
+    float sum = 0;
+    for (unsigned int i = 0; i < sx; ++i)
+    {
+        for (unsigned int j = 0; j < sy; ++j)
+        {
+            float r2 = (i - x) * (i - x) + (j - y) * (j - y);
+            if (r2 < rad2) sum += img[j + i * sy];
+        }
+    }
+
+    return sum;
+}
 
 int main(int argc, char ** argv)
 {
-    FILE * fimg;
+    //FILE * fimg;
     uint16_t * img;
     float * imgmes;
     float * imgker;
@@ -980,53 +1216,74 @@ int main(int argc, char ** argv)
     float * imgnoise;
     float * imgrecons;
 
+_MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
+
     /* Command line parser */
     if (cmdline_parser(argc, argv, & bstorm_args) != 0)
         exit(EXIT_FAILURE);
+
+    nbframe = bstorm_args.frame_arg;
+    char fname[100];
+    snprintf(fname, 100, "%05i.tif", nbframe);
+    //printf("%s\n", fname);
+
+    img = opentiff(fname,
+                   bstorm_args.size_arg, bstorm_args.size_arg);
     
     /* enable floating point exceptions */
     //feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
-    img = malloc(width * height * sizeof(uint16_t));
+    //img = malloc(width * height * sizeof(uint16_t));
     posix_memalign((void **)&imgmes, 16, nbmes2 * sizeof(float));
     posix_memalign((void **)&imgnoise, 16, nbmes2 * sizeof(float));
 
     imgker = malloc(size2 * sizeof(float));
     
-
-    fimg = fopen(bstorm_args.file_arg, "rb");
+    //fimg = fopen(fname, "rb");
 
     long int offset = bstorm_args.picnb_arg;
-    fseek(fimg, width * height * 2 * offset, SEEK_SET);
-    fread(img, 2, width * height, fimg);
-    fclose(fimg);
+    //fseek(fimg, width * height * 2 * offset, SEEK_SET);
+    //fread(img, 2, width * height, fimg);
+    //fclose(fimg);
 
     for (unsigned int i = 0; i < nbmes2; ++i)
     {
-        imgnoise[i] = 1e5;
+        //imgnoise[i] = 990;
+        imgnoise[i] = noiseback;
         imgmes[i] = 0;
     }
     for (unsigned int i = 0; i < width; ++i) {
         for (unsigned int j = 0; j < height; ++j){
-            float val = (img[i + j * width] - 300) / 18.8;
+            float val = (img[i + j * width]);
 
-            imgnoise[i + sker / 2 + (j + sker / 2) * nbmesy] = val;
+            //imgnoise[i + j * nbmesy] = val + 2;
             float pixmes = val - meanback;
-            if (pixmes < 0) pixmes = 0;
-            imgmes[i + sker / 2 + (j + sker / 2) * nbmesy] = pixmes;
+            //if (pixmes < 0) pixmes = 0;
+            imgmes[i + j * nbmesy] = pixmes;
+            //printf("%f\n", pixmes);
         }
     }
 
-    plot_image(height, width, imgmes, "imgtry.png", plot_rescale);
+    //plot_image(height, width, imgmes, "imgtry.png", plot_rescale);
+
+    //printf("valuearound: %f\n", valuearound(imgmes, nbmesx, nbmesy, 130, 31 , 10));
+    //printf("valuearound: %f\n", valuearound(imgmes, nbmesx, nbmesy, 154, 61 , 10));
+    //printf("valuearound: %f\n", valuearound(imgmes, nbmesx, nbmesy, 168, 106 , 10));
+    //printf("valuearound: %f\n", valuearound(imgmes, nbmesx, nbmesy, 170, 120 , 10));
+    //printf("valuearound: %f\n", valuearound(imgmes, nbmesx, nbmesy, 50, 50 , 10));
+    //printf("valuearound: %f\n", valuearound(imgmes, nbmesx, nbmesy, 200, 200 , 10));
+    //printf("valuearound: %f\n", valuearound(imgmes, nbmesx, nbmesy, 100, 100 , 10));
 
     gaussker(imgker);
+    /*
     float sum = 0;
     for (unsigned int i = 0; i < size2; ++i)
     {
         sum += imgker[i];
     }
     printf("%f\n", sum);
-    plot_image(sizex, sizey, imgker, "gaussker.png", plot_rescale);
+    */
+    //plot_image(sizex, sizey, imgker, "gaussker.png", plot_rescale);
     
     plot_image(nbmesx, nbmesy, imgmes, "imgmesfull.png", plot_rescale);
 
@@ -1036,9 +1293,9 @@ int main(int argc, char ** argv)
     plot_image(sizex, sizey, imgrecons, "recons.png", plot_rescale);
     plot_overlay(imgmes, imgrecons, "overlay.png");
     
-    char fname[100];
-    snprintf(fname, 100, "img-%i.dat.bz2", offset);
-    saveimage(imgrecons, size2, fname);
+    //char fname[100];
+    //snprintf(fname, 100, "img-%li.dat.bz2", offset);
+    //saveimage(imgrecons, size2, fname);
 
     free(img);
     free(imgker);
