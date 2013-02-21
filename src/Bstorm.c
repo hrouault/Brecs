@@ -96,7 +96,7 @@ struct gengetopt_args_info bstorm_args;
 //const float noiseback = 1200;
 //
 ///* Properties of the psf */
-//const float sigpsf = 1.376 * 8; /* size of a pixel in unit of lambda */
+//const float sigpsf = 0.732 * 8 * 1.14; /* the 1.14 is for defocus */
 ///* the 0.86 is due to defocus */
 //const float numap = 1.0;
 //
@@ -111,56 +111,123 @@ struct gengetopt_args_info bstorm_args;
 
 
 
-// DATASET 2 (snow)
+//// DATASET 2 (snow)
+///* signal noise properties */
+//
+//const float beta = 2.0;
+//const float pixmean = 5000;
+//float pixstd = 2000;
+//float rho = 0.001;
+//float thrA = 0.1 / (10 * 1000 * 1000);
+//
+//const float pixthr = 40;
+//
+//const float thrpoint = 800;
+//
+///* Sizes of the images */
+//const int smes = 8;
+//const int smes2 = 8 * 8;
+//const int sizex = 128 * 8;
+//const int sizey = 128 * 8;
+//const int size2 = 128 * 8 * 128 * 8;
+//const int sker = 12; /* has to be a multiple of 4 to use sse */
+//const int sker2 = 12 * 12;
+//
+//const float spix = 100.0 / 8;
+//
+//const int width = 128;
+//const int height = 128;
+//
+//const int nbmesx = 128;
+//const int nbmesy = 128;
+//const int nbmes2 = 128 * 128;
+//
+//const int plot_no_rescale = 0;
+//const int plot_rescale = 1;
+//
+//const int nbintern = 1;
+//
+//const float damp = 0.01;
+//
+//const int printres = 1;
+//
+//float noiseback = 8 * 8;
+//const float meanback = 20;
+//
+///* Properties of the psf */
+//const float sigpsf = 1.0638 * 8 * 1.1; /* The 1.2 is for defocus */
+////const float sigpsf = 1.376 * 8 * 1.5;
+//const float numap = 1.0;
+//
+//const float Ainit = 10.0 / (4800 * 4800);
+//
+//const int nbiter = 6000;
+
+// DATASET  contest 1 (HD1)
 /* signal noise properties */
+
+//#if DATASET == HD1
+const float beta = 2.0;
 const float pixmean = 5000;
-const double pixstd = 2000;
-const double rho = 0.001;
+float pixstd = 2000;
+float rho = 0.001;
 float thrA = 0.1 / (10 * 1000 * 1000);
 
-const float pixthr = 40;
+const float pixthr = 70;
 
 const float thrpoint = 300;
 
 /* Sizes of the images */
 const int smes = 8;
 const int smes2 = 8 * 8;
-const int sizex = 128 * 8;
-const int sizey = 128 * 8;
-const int size2 = 128 * 8 * 128 * 8;
-const int sker = 12; /* has to be a multiple of 4 to use sse */
-const int sker2 = 12 * 12;
+const int sker = 8; /* has to be a multiple of 4 to use sse */
+const int sker2 = 8 * 8;
+const int sizex = (128 + 8) * 8;
+const int sizey = (128 + 8) * 8;
+const int size2 = (128 + 8) * 8 * (128 + 8) * 8;
 
 const float spix = 100.0 / 8;
 
 const int width = 128;
 const int height = 128;
 
-const int nbmesx = 128;
-const int nbmesy = 128;
-const int nbmes2 = 128 * 128;
+const int nbmesx = 128 + 8;
+const int nbmesy = 128 + 8;
+const int nbmes2 = (128 + 8) * (128 + 8);
 
 const int plot_no_rescale = 0;
 const int plot_rescale = 1;
 
 const int nbintern = 1;
 
-const float damp = 0.02;
+const float damp = 0.06;
 
 const int printres = 1;
 
-const float noiseback = 18;
-const float meanback = 34;
+float noiseback = 5620;
+const float meanback = 200;
 
 /* Properties of the psf */
-const float sigpsf = 1.376 * 8 * 1.5;
+const float sigpsf = 0.9545 * 8 * 1.1; /* The 1.2 is for defocus */
 const float numap = 1.0;
 
 const float Ainit = 10.0 / (4800 * 4800);
 
-const int nbiter = 10;
+const int nbiter = 600;
+
+//#endif
 
 int nbframe;
+
+void updatetemp(double b)
+{
+    double c = pow(rho, b);
+    rho = c / (1 + c);
+
+    noiseback = noiseback / b;
+    pixstd = pixstd / sqrt(b);
+}
+
 
 void gaussker(float * ker)
 {
@@ -395,6 +462,9 @@ void fafcfunc(float * out, float sig2, float r)
     //if (out[1] < 1) out[1] = 1;
     if (out[0] < 0) out[0] = 0;
     //if (out[0] > 1500) out[0] = 1500;
+    if (out[0] > 665000){
+        printf("%f %f %f %f %f %f %f\n", sig2, r, exprgauss, den1, num1, den2, num2);
+    }
 }
 
 void init_kernels(float * ker, float * ker2,
@@ -842,51 +912,58 @@ void update_pbe(float * P_be_E, float * P_be_F,
     for (unsigned int k = 0; k < nbact; ++k)
     {
         int i = activepix[k];
-        //for (size_t i = 0; i < size2; ++i)
-        //{
-        //    if (pixactivity[i]){
-                float avA = 0;
-                float avB = 0;
-                float * cA = P_albe_A + i * sker2;
-                float * cB = P_albe_B + i * sker2;
-                for (size_t mu = 0; mu < sker2; ++mu)
-                {
-                    avA += cA[mu];
-                    avB += cB[mu];
-                }
-                //if (avA < 1e-6) avA = 1e-6;
-                //avA /= sker2;
-                //avB /= sker2;
+        float avA = 0;
+        float avB = 0;
+        float * cA = P_albe_A + i * sker2;
+        float * cB = P_albe_B + i * sker2;
+        for (size_t mu = 0; mu < sker2; ++mu)
+        {
+            avA += cA[mu];
+            avB += cB[mu];
+        }
+        //if (avA < 1e-6) avA = 1e-6;
+        //avA /= sker2;
+        //avB /= sker2;
 
-                float PEt = avA  - (sker2 - 1) * P_be_E[i];
-                float PFt = avB  - (sker2 - 1) * P_be_F[i];
-                if (PEt < 1e-8) PEt = 1e-8;
-                if (PFt < 0) PFt = 0;
+        float PEt = avA  - (sker2 - 1) * P_be_E[i];
+        float PFt = avB  - (sker2 - 1) * P_be_F[i];
+        if (PEt < 1e-8){
+            PFt = PFt * 1e-8 / PEt;
+            PEt = 1e-8;
+            if (PFt / PEt > 1e4) PFt = 1e4 * PEt;
+        }
+        if (PFt < 0) PFt = 0;
 
-                float fafc[2];
-                fafcfunc(fafc, 1 / PEt, PFt / PEt);
+        float prevPbE = P_be_E[i];
+        float prevPbF = P_be_F[i];
 
-                float prevPbE = P_be_E[i];
-                float prevPbF = P_be_F[i];
+        if (PEt / prevPbE < 1e-3){
+        //    printf("bigchange!\n");
+            PEt = prevPbE * 1e-2;
+        }
 
-                float invE = (1 - damp) / P_be_E[i] + damp * fafc[1];
-                //float invE = fafc[1];
-                P_be_E[i]= 1/ invE;
-                //P_be_E[i]= 1 / fafc[1];
-                P_be_F[i] = (1 - damp) * P_be_F[i] / invE / prevPbE
-                            + damp * fafc[0] / invE;
-                //P_be_F[i] = fafc[0] / fafc[1];
-                /*
-    if (P_be_F[i] / P_be_E[i] > 1500){
-        printf("PbF PbE: %f %f %f\n", P_be_F[i], P_be_E[i], P_be_F[i] / P_be_E[i]);
-        printf("fafc: %f %f\n", fafc[0], fafc[1]);
-        printf("avB avA: %f %f %f\n", avB, avA, avB / avA);
-        printf("PFt PEt: %f %f %f\n", PFt, PEt, PFt / PEt);
-        printf("prevPbE prevPbF: %f %f %f\n", prevPbF, prevPbE, prevPbF / prevPbE);
-        exit(EXIT_FAILURE);
+        float fafc[2];
+        fafcfunc(fafc, 1 / PEt, PFt / PEt);
+
+
+        float invE = (1 - damp) / P_be_E[i] + damp * fafc[1];
+        //float invE = fafc[1];
+        P_be_E[i]= 1/ invE;
+        //P_be_E[i]= 1 / fafc[1];
+        P_be_F[i] = (1 - damp) * P_be_F[i] / invE / prevPbE
+            + damp * fafc[0] / invE;
+        //P_be_F[i] = fafc[0] / fafc[1];
+        /*
+        if (P_be_F[i] / P_be_E[i] > 45){
+            printf("PbF PbE: %f %f %f\n", P_be_F[i], P_be_E[i], P_be_F[i] / P_be_E[i]);
+            printf("fafc: %f %f\n", fafc[0], fafc[1]);
+            printf("avB avA: %f %f %f\n", avB, avA, avB / avA);
+            printf("PFt PEt: %f %f %f\n", PFt, PEt, PFt / PEt);
+            printf("prevPbF prevPbE: %f %f %f\n", prevPbF, prevPbE, prevPbF / prevPbE);
+            exit(EXIT_FAILURE);
+        }
+        */
     }
-    */
-            }
         //}
         /*
         relerr = update_Palbe(mu_beal_A, mu_beal_B,
@@ -952,14 +1029,14 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     printf("Ker min, max: %f %f\n",                                            
            min(ker, smes2 * sker2),                                               
            max(ker, smes2 * sker2));
+    */
+    plot_image(smes * sker, smes * sker, ker, "kerint.png", plot_rescale);
     printf("imgmes min, max: %f %f\n",                                            
            min(imgmes, nbmes2),                                               
            max(imgmes, nbmes2));
     printf("imgnoise min, max: %f %f\n",                                            
            min(imgnoise, nbmes2),                                               
            max(imgnoise, nbmes2));
-    plot_image(smes * sker, smes * sker, ker, "kerint.png", plot_rescale);
-    */
 
     //plot_image(sker, sker, ker + 32 * sker2, "kercent.png", plot_rescale);
 
@@ -1053,11 +1130,14 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
             for (int i = 0; i < size2; ++i)
             {
                 res[i] = P_be_F[i] / P_be_E[i];
+                //if (res[i] > 45){
+                //    printf("%f %f\n", P_be_F[i], P_be_E[i]);
+                //}
             }
             printf("res min, max: %f %f\n",                                            
                     min(res, size2),                                               
                     max(res, size2));
-            plot_overlay(imgmes, res, "overlay.png");
+            //plot_overlay(imgmes, res, "overlay.png");
         }
     }
 
@@ -1216,11 +1296,13 @@ int main(int argc, char ** argv)
     float * imgnoise;
     float * imgrecons;
 
-_MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
+    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
 
     /* Command line parser */
     if (cmdline_parser(argc, argv, & bstorm_args) != 0)
         exit(EXIT_FAILURE);
+
+    updatetemp(beta);
 
     nbframe = bstorm_args.frame_arg;
     char fname[100];
@@ -1259,7 +1341,7 @@ _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
             //imgnoise[i + j * nbmesy] = val + 2;
             float pixmes = val - meanback;
             //if (pixmes < 0) pixmes = 0;
-            imgmes[i + j * nbmesy] = pixmes;
+            imgmes[i + sker / 2 - 1 + (j + sker / 2 - 1) * nbmesy] = pixmes;
             //printf("%f\n", pixmes);
         }
     }
