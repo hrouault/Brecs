@@ -32,6 +32,3 @@ option "picnb" n "Picture number in the file"
 
 option "frame" f "Frame number where the picture is included"
            int typestr="int" required
-
-option "size" s "Size of the image (assumed square)"
-           int typestr="int" required
