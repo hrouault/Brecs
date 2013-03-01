@@ -3,9 +3,9 @@ AC_INIT([Bstorm],
         [rouaulth@janelia.hhmi.org])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 
-AC_PROG_CC_C
-#AC_PROG_CC_C99
+AC_PROG_CC
 AM_PROG_CC_C_O
+AC_PROG_CC_C99
 
 AC_CHECK_LIB([m],[cos])
 AC_CHECK_LIB([bz2],[BZ2_bzWriteOpen])
