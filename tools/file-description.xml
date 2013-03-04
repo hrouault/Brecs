@@ -1,0 +1,15 @@
+<description>
+	<firstrow>0</firstrow>
+	<frame>1</frame>
+	<xnano>2</xnano>
+	<ynano>3</ynano>
+	<znano>4</znano>
+	<intensity>5</intensity>
+	<separator>space</separator>
+	<xshift>0</xshift>
+	<yshift>0</yshift>
+	<zshift>0</zshift>
+	<unitshift>pixel</unitshift>
+	<unitlocation>nm</unitlocation>
+	<frameshift>0</frameshift>
+</description>
