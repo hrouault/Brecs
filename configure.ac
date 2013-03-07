@@ -13,6 +13,7 @@ AC_CHECK_LIB([bz2],[BZ2_bzWriteOpen])
 # Checks for libraries with pkg-config
 PKG_CHECK_MODULES(LIBPNG, libpng, [], [AC_MSG_ERROR([libpng library required.])])
 PKG_CHECK_MODULES(LIBTIFF, libtiff-4, [], [AC_MSG_ERROR([libtiff library required.])])
+PKG_CHECK_MODULES(FFTWF, fftw3f, [], [AC_MSG_ERROR([fftw3f library required.])])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([

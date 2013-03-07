@@ -1,7 +1,8 @@
-/* Copyright (c) , Herve Rouault
+/* Copyright (c) , Herve Rouault <rouaulth@janelia.hhmi.org>,
+ * Howard Hughes Medical Institute.
  * All rights reserved.
  * 
- * This file is part of Bstorm.
+ * This file is part of Brecs.
  * 
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -10,7 +11,7 @@
  *     * Redistributions in binary form must reproduce the above copyright
  *       notice, this list of conditions and the following disclaimer in the
  *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the <organization> nor the
+ *     * Neither the name of the Howard Hughes Medical Institute nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
  * 
@@ -32,9 +33,9 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <math.h>
-#include <gsl/gsl_sf_bessel.h>
 #include <png.h>
 #include <tiffio.h>
+#include <fftw3.h>
 
 #include <cpuid.h> /* __get_cpuid_max, __get_cpuid */
 #include <mmintrin.h> /* MMX instrinsics  __m64 integer type  */
@@ -144,26 +145,29 @@ struct gengetopt_args_info bstorm_args;
 #  define KERNEL 2
 #  define GIBSSIZE 257
 #  define GIBSFRAME 3
-#elif DATASET == 5
-#  define PIXMEAN 1620
-#  define PIXSTD 320
+#elif DATASET == 5 // LS1
+#  define PIXMEAN 5200
+#  define PIXSTD 500
 #  define RHO 0.001
 #  define SKER 8 /* has to be a multiple of 4 to use sse */
 #  define SMES 8
-#  define NBMESX 64
-#  define NBMESY 64
+#  define NBMESX 128
+#  define NBMESY 128
 #  define SIZEPIX 100.0
 #  define DAMP 0.1
-#  define NOISEBACK 300.0
-#  define MEANBACK 143.0
-#  define SIGPSF 1.097
+#  define NOISEBACK 5000
+#  define MEANBACK 0
+#  define SIGPSF 0.9545
 #  define DEFOCUS 1.0 /* the 1.1 is for defocus */
 #  define AINITPFACT 10.0
-#  define NBITER 700
-#  define THRPOINT 200
+#  define NBITER 200
+#  define THRPOINT 2000
 #  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 25
+#  define PIXTHR 120
 #  define THRCONV 1e-3
+#  define KERNEL 1
+#  define SMOOTHEN 1
+#  define SIZESMOOTH 0
 #  endif
 
 /* signal noise properties */
@@ -1103,7 +1107,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
            min(ker, smes2 * sker2),                                               
            max(ker, smes2 * sker2));
     */
-    plot_image(smes * sker, smes * sker, ker, "kerint.png", plot_rescale);
+    //plot_image(smes * sker, smes * sker, ker, "kerint.png", plot_rescale);
     /*
     printf("imgmes min, max: %f %f\n",                                            
            min(imgmes, nbmes2),                                               
@@ -1415,6 +1419,155 @@ float valuearound(float * img, int sx, int sy, int x, int y , float rad2)
     return sum;
 }
 
+#ifdef SMOOTHEN
+void gausskersmoo(float * ker)
+{
+    for (int x = -nbmesx / 2; x < nbmesx / 2 ; ++x)
+    {
+        float dx2 = x * x;
+        for (int y = -nbmesy / 2; y < nbmesy / 2; ++y)
+        {
+            float dy2 = y * y;
+            float radius2 = dx2 + dy2;
+            float val = exp(-radius2 / 2 / 70.0)
+                        / (2 * M_PI * 70.0);
+            int line = x;
+            int col = y;
+            if (x < 0) line += nbmesx + SIZESMOOTH;
+            if (y < 0) col += nbmesy + SIZESMOOTH;
+            
+            ker[col + line * (nbmesy + SIZESMOOTH)] = val;
+        }
+    }
+}
+
+void shiftimg(float * img, float * img2)
+{
+    for (unsigned int i = 0; i < nbmesx * nbmesy; ++i)
+    {
+        img2[i] = 0;
+    }
+    for (unsigned int i = 0; i < nbmesx; ++i)
+    {
+        for (unsigned int j = 0; j < nbmesy; ++j)
+        {
+            int ind = j + SIZESMOOTH / 2
+                      + (i + SIZESMOOTH / 2) * (nbmesy + SIZESMOOTH);
+            float val = img[j + i * nbmesy];
+            if (val > 500) val = 200;
+            img2[ind] = val;
+        }
+    }
+}
+
+void smoothen(float * img)
+{
+    fftwf_complex * out1, * out2;
+    fftwf_plan pforw1, pforw2, pbackw;
+
+    int sxsmoo = nbmesx + SIZESMOOTH;
+    int sysmoo = nbmesy + SIZESMOOTH;
+
+    float * img2 = fftwf_alloc_real(sxsmoo * sysmoo);
+    float * img3 = fftwf_alloc_real(sxsmoo * sysmoo);
+    float * imgmean = fftwf_alloc_real(sxsmoo * sysmoo);
+    float * imgker = fftwf_alloc_real(sxsmoo * sysmoo);
+
+    out1 = fftwf_alloc_complex(sxsmoo * (sysmoo / 2 + 1));
+    out2 = fftwf_alloc_complex(sxsmoo * (sysmoo / 2 + 1));
+
+    pforw1 = fftwf_plan_dft_r2c_2d(sxsmoo, sysmoo,
+                                  img2, out1,
+                                  FFTW_PRESERVE_INPUT);
+    pforw2 = fftwf_plan_dft_r2c_2d(sxsmoo, sysmoo,
+                                  imgker, out2,
+                                  FFTW_PRESERVE_INPUT);
+
+    pbackw = fftwf_plan_dft_c2r_2d(sxsmoo, sysmoo,
+                                  out1, img2,
+                                  0);
+
+    //plot_image(nbmesx, nbmesy, img, "imgmes.png", plot_rescale);
+    shiftimg(img, img2);
+    //plot_image(sxsmoo, sysmoo, img2, "bsmooth.png", plot_rescale);
+
+    gausskersmoo(imgker);
+    //plot_image(sxsmoo, sysmoo, imgker, "gausssmooth.png", plot_rescale);
+
+    fftwf_execute(pforw1);
+    fftwf_execute(pforw2);
+
+    for (unsigned int i = 0; i < sxsmoo * (sysmoo / 2 + 1); ++i)
+    {
+        fftwf_complex c1, c2;
+        c1[0] = out1[i][0];
+        c1[1] = out1[i][1];
+        c2[0] = out2[i][0];
+        c2[1] = out2[i][1];
+
+        out1[i][0] = (c1[0] * c2[0] - c1[1] * c2[1]) / (sxsmoo * sysmoo);
+        out1[i][1] = (c1[0] * c2[1] + c1[1] * c2[0]) / (sxsmoo * sysmoo);
+    }
+
+    fftwf_execute(pbackw);
+
+    //plot_image(sxsmoo, sysmoo, img2, "asmooth.png", plot_rescale);
+
+    for (unsigned int i = 0; i < sysmoo * sxsmoo; ++i)
+    {
+        imgmean[i] = img[i] - img2[i];
+    }
+    //plot_image(sxsmoo, sysmoo, imgmean, "remmean.png", plot_rescale);
+    /*
+    for (unsigned int i = 0; i < sysmoo * sxsmoo; ++i)
+    {
+        img2[i] = img[i] - img2[i];
+        if (img2[i] > 200) img2[i] = 0;
+    }
+
+    for (unsigned int i = 0; i < sysmoo * sxsmoo; ++i) {
+        img2[i] = img2[i] * img2[i];
+    }
+    //plot_image(sxsmoo, sysmoo, img2, "varbsmooth.png", plot_rescale);
+
+    fftwf_execute(pforw1);
+    for (unsigned int i = 0; i < sxsmoo * (sysmoo / 2 + 1); ++i)
+    {
+        fftwf_complex c1, c2;
+        c1[0] = out1[i][0];
+        c1[1] = out1[i][1];
+        c2[0] = out2[i][0];
+        c2[1] = out2[i][1];
+
+        out1[i][0] = (c1[0] * c2[0] - c1[1] * c2[1]) / (sxsmoo * sysmoo);
+        out1[i][1] = (c1[0] * c2[1] + c1[1] * c2[0]) / (sxsmoo * sysmoo);
+    }
+
+    fftwf_execute(pbackw);
+    */
+
+    //plot_image(sxsmoo, sysmoo, img2, "varsmooth.png", plot_rescale);
+
+    fftwf_free(out1);
+    fftwf_free(out2);
+    fftwf_free(img2);
+    fftwf_free(img3);
+    fftwf_free(imgmean);
+    fftwf_free(imgker);
+
+    for (unsigned int i = 0; i < NBMESY; ++i) {
+        for (unsigned int j = 0; j < NBMESX; ++j){
+            int ind = i + sker / 2 + (j + sker / 2) * nbmesy;
+            img[ind] = imgmean[ind];
+        }
+    }
+    //plot_image(sxsmoo, sysmoo, img, "retimg.png", plot_rescale);
+    //        printf("img min, max: %f %f\n",
+    //                min(img, nbmes2),                                               
+    //                max(img, nbmes2));
+}
+#endif // SMOOTHEN
+
 int main(int argc, char ** argv)
 {
     uint16_t * img;
@@ -1439,7 +1592,7 @@ int main(int argc, char ** argv)
     //printf("%s\n", fname);
 
     img = opentiff(fname, NBMESX, NBMESY);
-    
+
     /* enable floating point exceptions (does not work with sse) */
     //feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
@@ -1447,7 +1600,7 @@ int main(int argc, char ** argv)
     posix_memalign((void **)&imgmes, 32, nbmes2 * sizeof(float));
     posix_memalign((void **)&imgnoise, 32, nbmes2 * sizeof(float));
 
-    imgker = malloc(size2 * sizeof(float));
+    posix_memalign((void **)&imgker, 32, size2 * sizeof(float));
     
     //fimg = fopen(fname, "rb");
 
@@ -1472,24 +1625,24 @@ int main(int argc, char ** argv)
             //if (pixmes < 0) pixmes = 0;
             int ind = i + sker / 2 + (j + sker / 2) * nbmesy;
             imgmes[ind] = pixmes;
-            imgnoise[ind] = noiseback + 1.0 * val;
+            imgnoise[ind] = noiseback;// + 1.0 * val;
             //printf("%f\n", val);
         }
     }
     updatetemp(beta, imgnoise);
 
+    smoothen(imgmes);
+
     //printf("valuearound: %f\n", valuearound(imgmes, nbmesx, nbmesy, 130, 31 , 10));
 
 #if KERNEL == 1
     gaussker(imgker);
+    //plot_image(sizex, sizey, imgker, "kernel.png", plot_rescale);
 #elif KERNEL == 2
     loadgibson(imgker);
 #else
     exit(EXIT_FAILURE);
 #endif
-    plot_image(sizex, sizey, imgker, "kernel.png", plot_rescale);
-    
-    //plot_image(nbmesx, nbmesy, imgmes, "imgmesfull.png", plot_rescale);
 
     imgrecons = reconssparse(imgmes, imgnoise, imgker);
 

@@ -1,6 +1,6 @@
 bin_PROGRAMS = Bstorm
 
 Bstorm_SOURCES = Bstorm.c Bstorm.h cmdline.c cmdline.h
-Bstorm_CPPFLAGS = $(LIBPNG_CFLAGS) $(LIBTIFF_CFLAGS)
+Bstorm_CPPFLAGS = $(LIBPNG_CFLAGS) $(LIBTIFF_CFLAGS) $(FFTWF_CFLAGS)
 Bstorm_CFLAGS = -msse3
-Bstorm_LDADD = $(LIBPNG_LIBS) $(LIBTIFF_LIBS)
+Bstorm_LDADD = $(LIBPNG_LIBS) $(LIBTIFF_LIBS) $(FFTWF_LIBS)
