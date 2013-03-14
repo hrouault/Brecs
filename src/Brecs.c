@@ -53,145 +53,14 @@
 #include <bzlib.h>
 
 #include "cmdline.h"
-#include "Bstorm.h"
+#include "Brecs.h"
 
 /* Command line variable */
 struct gengetopt_args_info bstorm_args;
 
 /* Constant definitions */
 
-
-// DATASET 1 (eye 2)
-#if DATASET == 1
-#  define PIXMEAN 4800
-#  define PIXSTD 400
-#  define RHO 0.001
-#  define SKER 8 /* has to be a multiple of 4 to use sse */
-#  define SMES 8
-#  define NBMESX 256
-#  define NBMESY 256
-#  define SIZEPIX 150.0
-#  define DAMP 0.2
-#  define NOISEBACK 2000
-#  define MEANBACK 100
-#  define SIGPSF 0.732
-#  define DEFOCUS 1.0 /* the 1.1 is for defocus */
-#  define AINITPFACT 10.0
-#  define NBITER 200
-#  define THRPOINT 2000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 500
-#  define THRCONV 1e-3
-// DATASET 2 (HD1)
-#elif DATASET == 2
-#  define PIXMEAN 5500
-#  define PIXSTD 500
-#  define RHO 0.001
-#  define SKER 8 /* has to be a multiple of 4 to use sse */
-#  define SMES 8
-#  define NBMESX 128
-#  define NBMESY 128
-#  define SIZEPIX 100.0
-#  define DAMP 0.1
-#  define NOISEBACK 5620
-#  define MEANBACK 200
-#  define SIGPSF 0.9545
-#  define DEFOCUS 1.0 /* the 1.1 is for defocus */
-#  define AINITPFACT 10.0
-#  define NBITER 600
-#  define THRPOINT 2000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 70
-#  define THRCONV 1e-3
-#  define KERNEL 1
-// DATASET 3 (HD2)
-#elif DATASET == 3
-#  define PIXMEAN 5000
-#  define PIXSTD 500
-#  define RHO 0.001
-#  define SKER 12 /* has to be a multiple of 4 to use sse */
-#  define SMES 8
-#  define NBMESX 128
-#  define NBMESY 128
-#  define SIZEPIX 150.0
-#  define DAMP 0.1
-#  define NOISEBACK 5000
-#  define MEANBACK 200.0
-#  define AINITPFACT 10.0
-#  define NBITER 600
-#  define THRPOINT 1000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 300
-#  define THRCONV 1e-3
-#  define KERNEL 2
-#elif DATASET == 4
-#  define PIXMEAN 5000
-#  define PIXSTD 1000
-#  define RHO 0.001
-#  define SKER 16 /* has to be a multiple of 4 to use sse */
-#  define SMES 4
-#  define NBMESX 200
-#  define NBMESY 200
-#  define SIZEPIX 100.0
-#  define DAMP 0.05
-#  define NOISEBACK 1000 // should be 160
-#  define MEANBACK 114
-#  define AINITPFACT 10.0
-#  define NBITER 600
-#  define THRPOINT 1000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 50
-#  define THRCONV 1e-3
-#  define KERNEL 2
-#  define GIBSSIZE 257
-#  define GIBSFRAME 3
-#elif DATASET == 5 // LS1
-#  define PIXMEAN 5200
-#  define PIXSTD 500
-#  define RHO 0.001
-#  define SKER 8 /* has to be a multiple of 4 to use sse */
-#  define SMES 8
-#  define NBMESX 128
-#  define NBMESY 128
-#  define SIZEPIX 100.0
-#  define DAMP 0.1
-#  define NOISEBACK 5000
-#  define MEANBACK 0
-#  define SIGPSF 0.9545
-#  define DEFOCUS 1.0 /* the 1.1 is for defocus */
-#  define AINITPFACT 10.0
-#  define NBITER 200
-#  define THRPOINT 2000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 120
-#  define THRCONV 1e-3
-#  define KERNEL 1
-#  define SMOOTHEN 1
-#  define SIZESMOOTH 0
-#elif DATASET == 7
-#  define PIXMEAN 5000
-#  define PIXSTD 500
-#  define RHO 0.001
-#  define SKER 16 /* has to be a multiple of 4 to use sse */
-#  define SMES 4
-#  define NBMESX 200
-#  define NBMESY 200
-#  define SIZEPIX 100.0
-#  define DAMP 0.05
-#  define NOISEBACK 1000
-#  define MEANBACK 0.0
-#  define AINITPFACT 10.0
-#  define NBITER 300
-#  define THRPOINT 1000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 300
-#  define THRCONV 1e-3
-#  define KERNEL 2
-#  define SMOOTHEN 1
-#  define SIZESMOOTH 0
-#  define GIBSSIZE 257
-#  define GIBSFRAME 6
-#  endif
+#include "parameters.h"
 
 /* signal noise properties */
 const float pixmean = PIXMEAN;
@@ -205,9 +74,12 @@ const float pixthr = PIXTHR;
 
 const int smes = SMES;
 const int smes2 = SMES * SMES;
+const int smes3 = SIZEZ * SMES * SMES;
 const int sizex = (NBMESX + SKER) * SMES;
 const int sizey = (NBMESY + SKER) * SMES;
+const int sizez = SIZEZ;
 const int size2 = (NBMESX + SKER) * SMES * (NBMESY + SKER) * SMES;
+const int size3 = (NBMESX + SKER) * SMES * (NBMESY + SKER) * SMES * SIZEZ;
 const int sker = SKER;
 const int sker2 = SKER * SKER;
 
@@ -417,44 +289,48 @@ void loadgibson(float * ker)
 {
     float * img;
 
-    posix_memalign((void **)&img, 32, gibssize2 * sizeof(float));
+    float sum[SIZEZ];
+
+    posix_memalign((void **)&img, 32, sizez * gibssize2 * sizeof(float));
     FILE * fimg = fopen("gibson.raw", "rb");
+    if (!fimg) exit(EXIT_FAILURE);
 
-    unsigned int offset = (gibsframe - 1) * gibssize2 * sizeof(float);
-
-    fseek(fimg, offset, SEEK_SET);
-    fread(img, 4, gibssize2, fimg);
+    fseek(fimg, 0, SEEK_SET);
+    fread(img, 4, gibssize2 * sizez, fimg);
     fclose(fimg);
 
-    float sum = 0;
+    for (unsigned int z = 0; z < sizez; ++z) {
+        sum[z] = 0;
 
-    for (unsigned int i = 0; i < gibssize2; ++i)
-    {
-        sum += img[i];
+        for (unsigned int i = 0; i < gibssize2; ++i) {
+            sum[z] += img[i + gibssize2 * z];
+        }
     }
 
-    for (unsigned int i = 0; i < size2; ++i)
+    for (unsigned int i = 0; i < size3; ++i)
     {
         ker[i] = 0;
     }
-    plot_image(gibssize, gibssize, img, "imgfromstack.png", plot_rescale);
+    //plot_image(gibssize, gibssize, img, "imgfromstack.png", plot_rescale);
 
-    for (int x = 0; x < gibssize ; ++x)
-    {
-        for (int y = 0; y < gibssize; ++y)
+    for (unsigned int z = 0; z < sizez; ++z) {
+        for (int x = 0; x < gibssize ; ++x)
         {
-            float val = img[y + x * gibssize] / sum;
-            int line = x - gibssize / 2;
-            int col = y - gibssize / 2;
-            if (line < 0) line += sizex;
-            if (col < 0) col += sizey;
-            
-            ker[col + line * sizey] = val;
+            for (int y = 0; y < gibssize; ++y)
+            {
+                float val = img[y + x * gibssize + z * gibssize2] / sum[z];
+                int line = x - gibssize / 2;
+                int col = y - gibssize / 2;
+                if (line < 0) line += sizex;
+                if (col < 0) col += sizey;
+
+                ker[col + line * sizey + size2 * z] = val;
+            }
         }
     }
     free(img);
 }
-#endif
+#endif // KERNEL == 2
 
 
 void plot_overlay(float * mes,
@@ -615,32 +491,34 @@ void fafcfunc(float * out, float sig2, float r)
 void init_kernels(float * ker, float * ker2,
                   float * psf)
 {
-    for (int k = 0; k < sker2 * smes2; ++k) {
+    for (int k = 0; k < sker2 * smes3; ++k) {
         ker[k] = 0;
         ker2[k] = 0;
     }
 
     for (int i = 0; i < smes; i++) {
         for (int j = 0; j < smes; j++) {
-            for (int x = -sker / 2; x < sker / 2; ++x) {
-                for (int y = -sker / 2; y < sker / 2; ++y) {
-                    float sum = 0;
-                    for (int k = 0; k < smes; k++) {
-                        for (int l = 0; l < smes; l++) {
-                            int li = -i + k + smes * x;
-                            if (li < 0) li += sizex;
-                            int c = -j + l + smes * y;
-                            if (c < 0) c += sizey;
+            for (int z = 0; z < sizez; z++) {
+                int indi = j + smes * i + z * smes2;
+                for (int x = -sker / 2; x < sker / 2; ++x) {
+                    for (int y = -sker / 2; y < sker / 2; ++y) {
+                        float sum = 0;
+                        for (int k = 0; k < smes; k++) {
+                            for (int l = 0; l < smes; l++) {
+                                int li = -i + k + smes * x;
+                                if (li < 0) li += sizex;
+                                int c = -j + l + smes * y;
+                                if (c < 0) c += sizey;
 
-                            sum += psf[c + sizey * li];
+                                sum += psf[c + sizey * li + z * size2];
+                            }
                         }
+                        int cker = y + sker / 2;
+                        int lker = x + sker / 2;
+                        int indmu = cker + sker * lker;
+                        ker[indmu + indi * sker2] = sum;
+                        ker2[indmu + indi * sker2] = sum * sum;
                     }
-                    int cker = y + sker / 2;
-                    int lker = x + sker / 2;
-                    int indi = j + smes * i;
-                    int indmu = cker + sker * lker;
-                    ker[indmu + indi * sker2] = sum;
-                    ker2[indmu + indi * sker2] = sum * sum;
                 }
             }
         }
@@ -666,9 +544,10 @@ void update_omegavmu(float * omegamu, float * vmu,
         float * cvbeal = vbeal + k * sker2;
 
 
-        int ci = (i % sizey) % smes;
-        int li = (i / sizey) % smes;
-        int ikeri = ci + li * smes;
+        int z = i / size2;
+        int ci = ((i % size2) % sizey) % smes;
+        int li = ((i % size2) / sizey) % smes;
+        int ikeri = ci + li * smes + z * smes2;
 
         float * cker = ker + ikeri * sker2;
         float * cker2 = ker2 + ikeri * sker2;
@@ -678,8 +557,8 @@ void update_omegavmu(float * omegamu, float * vmu,
             int dcmu = mu % sker - sker / 2;
             int dlmu = mu / sker - sker / 2;
 
-            int cmu = (i % sizey) / smes + dcmu;
-            int lmu = (i / sizey) / smes + dlmu;
+            int cmu = ((i % size2) % sizey) / smes + dcmu;
+            int lmu = ((i % size2) / sizey) / smes + dlmu;
             int imu = cmu + lmu * nbmesy;
 
             vecfloat ck = VFUNC(load_ps) (cker + mu);
@@ -747,9 +626,10 @@ float update_Palbe(float * mu_beal_A, float * mu_beal_B,
         float * cPB = P_albe_B + k * sker2;
 
 
-        int ci = (i % sizey) % smes;
-        int li = (i / sizey) % smes;
-        int ikeri = ci + li * smes;
+        int z = i / size2;
+        int ci = ((i % size2) % sizey) % smes;
+        int li = ((i % size2) / sizey) % smes;
+        int ikeri = ci + li * smes + z * smes2;
 
         float * cker = ker + ikeri * sker2;
         float * cker2 = ker2 + ikeri * sker2;
@@ -762,8 +642,8 @@ float update_Palbe(float * mu_beal_A, float * mu_beal_B,
             int dcmu = mu % sker - sker / 2;
             int dlmu = mu / sker - sker / 2;
 
-            int cmu = (i % sizey) / smes + dcmu;
-            int lmu = (i / sizey) / smes + dlmu;
+            int cmu = ((i % size2) % sizey) / smes + dcmu;
+            int lmu = ((i % size2) / sizey) / smes + dlmu;
             int imu = cmu + lmu * nbmesy;
 
             vecfloat den = VFUNC(loadu_ps) (imgnoise + imu);
@@ -1100,7 +980,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
             nbact++;
         }
     }
-    nbact *= smes2;
+    nbact *= smes3;
     //printf("nbact: %i\n", nbact);
 
     /* Memory allocation */
@@ -1118,8 +998,8 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     posix_memalign((void **)&vmu, 32, nbmes2 * sizeof(float));
     posix_memalign((void **)&activepix, 32, nbact * sizeof(int));
 
-    posix_memalign((void **)&ker, 32, smes2 * sker2 * sizeof(float));
-    posix_memalign((void **)&ker2, 32, smes2 * sker2 * sizeof(float));
+    posix_memalign((void **)&ker, 32, smes3 * sker2 * sizeof(float));
+    posix_memalign((void **)&ker2, 32, smes3 * sker2 * sizeof(float));
 
     //posix_memalign((void **)&res, 32, size2 * sizeof(float));
 
@@ -1129,7 +1009,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     printf("Ker min, max: %f %f\n",                                            
            min(ker, smes2 * sker2),                                               
            max(ker, smes2 * sker2));
-    */
+           */
     //plot_image(smes * sker, smes * sker, ker, "kerint.png", plot_rescale);
     /*
     printf("imgmes min, max: %f %f\n",                                            
@@ -1176,7 +1056,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     {
         float valpix = imgmes[i];
         if (valpix > pixthr){
-            for (int j = 0; j < smes2; ++j)
+            for (int j = 0; j < smes3; ++j)
             {
                 for (size_t mu = 0; mu < sker2; ++mu)
                 {
@@ -1190,9 +1070,10 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
                 P_be_F[cact] = Binit;
                 int ci = i % nbmesy;
                 int li = i / nbmesy;
-                int cj = j % smes;
-                int lj = j / smes;
-                int k = ci * smes + cj + (li * smes + lj) * sizey;
+                int cz = j / smes2;
+                int cj = (j % smes2) % smes;
+                int lj = (j % smes2) / smes;
+                int k = ci * smes + cj + (li * smes + lj) * sizey + cz * size2;
                 activepix[cact] = k;
                 cact++;
             }
@@ -1254,7 +1135,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
             for (int k = 0; k < nbact; ++k)
             {
                 float val = P_be_F[k] / P_be_E[k];
-                res[activepix[k]] = val;
+                res[activepix[k] % size2] += val;
             }
             printf("res min, max: %f %f\n",                                            
                     min(res, size2),                                               
@@ -1280,8 +1161,9 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     for (unsigned int k = 0; k < nbact; ++k)
     {
         int i = activepix[k];
-        int c = i % sizey;
-        int l = i / sizey;
+        int c = (i % size2) % sizey;
+        int l = (i % size2) / sizey;
+        int z = i / size2;
 
         float val = P_be_F[k] / P_be_E[k];
         if (val > thrpoint){
@@ -1290,7 +1172,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
                    nbframe,
                    (c - sker / 2 * smes) * spix + spix / 2,
                    (l - sker / 2 * smes) * spix + spix / 2,
-                   0.00,
+                   z * SIZEPIXZ,
                    val);
             nbfluo++;
         }
@@ -1623,7 +1505,7 @@ int main(int argc, char ** argv)
     posix_memalign((void **)&imgmes, 32, nbmes2 * sizeof(float));
     posix_memalign((void **)&imgnoise, 32, nbmes2 * sizeof(float));
 
-    posix_memalign((void **)&imgker, 32, size2 * sizeof(float));
+    posix_memalign((void **)&imgker, 32, size3 * sizeof(float));
     
     //fimg = fopen(fname, "rb");
 
@@ -1654,7 +1536,12 @@ int main(int argc, char ** argv)
     }
     updatetemp(beta, imgnoise);
 
+    //plot_image(nbmesx, nbmesy, imgmes, "imgsource.png", plot_rescale);
+
+#if SMOOTHEN
     smoothen(imgmes);
+    printf("smoothing\n");
+#endif // SMOOTHEN
 
     //printf("valuearound: %f\n", valuearound(imgmes, nbmesx, nbmesy, 130, 31 , 10));
 
