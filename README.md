@@ -2,7 +2,7 @@ Overview
 ========
 
 **Brecs** is a software able to reconstruct superresolution images at
-intermediate densitiesof active fluorophores. Active fluorophores must be
+intermediate densities of active fluorophores. Active fluorophores must be
 sparse but their response on the camera can overlap. The theoretical limit for
 accurate reconstruction is one fluorophore per pixel on the camera, at higher
 densities, the acuracy quickly drops.
