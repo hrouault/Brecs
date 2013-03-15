@@ -68,21 +68,6 @@
  * ** Statistics of the background **
  */
 
-#  define NOISEBACK 200
-#  define MEANBACK 109.0
-#  define AINITPFACT 10.0
-#  define NBITER 300
-#  define THRPOINT 1000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 20
-#  define THRCONV 1e-3
-#  define KERNEL 2
-#  define SMOOTHEN 0
-#  define SIZESMOOTH 0
-#  define GIBSSIZE 129
-#  define GIBSFRAME 6
-#  define SIZEZ 4
-
 // DATASET 1 (eye 2 in ISBI contest)
 #if DATASET == 1
 #  define PIXMEAN 4800
@@ -246,6 +231,37 @@
 #  define GIBSSIZE 129
 #  define GIBSFRAME 6
 #  define SIZEZ 4
+// DATASET 10 (Clathrin coated pits)
+#elif DATASET == 10
+#  define PIXMEAN 4500
+#  define PIXSTD 1000
+#  define RHO 0.001
+#  define SKER 12 /* has to be a multiple of 4 to use sse */
+#  define SMES 12
+#  define NBMESX 199
+#  define NBMESY 329
+#  define SIZEPIX 133.0
+#  define SIZEPIXZ 333.0
+#  define DAMP 0.05
+#  define NOISEBACK 100.0
+#  define MEANBACK 85.0
+#  define AINITPFACT 10.0
+#  define NBITER 600
+#  define THRPOINT 1000
+#  define BETA 2 /* inverse temperature for inference */
+#  define PIXTHR 100
+#  define THRCONV 1e-3
+#  define KERNEL 1
+#  define SIGPSF 1.04
+#  define DEFOCUS 1.0 /* the 1.1 is for defocus */
+#  define SMOOTHEN 0
+#  define SIZESMOOTH 0
+#  define GIBSSIZE 129
+#  define GIBSFRAME 6
+#  define SIZEZ 1
+#  define RESCALEINPUT
+#  define RESCALEOFFSET 300
+#  define RESCALESLOPE 18.8
 #  endif
 
 #endif /* end of include guard: PARAMETERS_H */

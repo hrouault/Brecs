@@ -1,4 +1,4 @@
-AC_INIT([Bstorm],
+AC_INIT([Brecs],
         m4_esyscmd([tools/git-version-gen .tarball-version]),
         [rouaulth@janelia.hhmi.org])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])

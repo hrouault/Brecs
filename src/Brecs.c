@@ -32,6 +32,7 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <math.h>
 #include <png.h>
 #include <tiffio.h>
@@ -43,23 +44,17 @@
 #include <pmmintrin.h>
 #include <immintrin.h>
 
-/* Floating point control (does not work with SSE) */
-/*
-#define __USE_GNU
-#define _GNU_SOURCE
-#include <fenv.h>
-*/
-
 #include <bzlib.h>
+
+#include "config.h"
 
 #include "cmdline.h"
 #include "Brecs.h"
 
 /* Command line variable */
-struct gengetopt_args_info bstorm_args;
+struct gengetopt_args_info brecs_args;
 
 /* Constant definitions */
-
 #include "parameters.h"
 
 /* signal noise properties */
@@ -93,11 +88,8 @@ const int plot_no_rescale = 0;
 const int plot_rescale = 1;
 
 const int nbintern = 1;
-
 const float damp = DAMP;
-
-const int printres = 0;
-
+const int printres = 1;
 float noiseback = NOISEBACK;
 
 /* Properties of the psf */
@@ -106,13 +98,9 @@ const float sigpsf = SIGPSF * SMES * DEFOCUS;
 #endif
 
 const float Ainit = AINITPFACT / (PIXMEAN * PIXMEAN);
-
 const int nbiter = NBITER;
-
 const float meanback = MEANBACK;
-
 const float thrpoint = THRPOINT;
-
 const float beta = BETA;
 
 #ifdef __AVX__
@@ -124,63 +112,6 @@ const float beta = BETA;
 #  define VFUNC(name) _mm_ ## name
    typedef __m128 vecfloat;
 #endif
-
-//// DATASET 2 (snow)
-///* signal noise properties */
-//
-//const float beta = 2.0;
-//const float pixmean = 5000;
-//float pixstd = 2000;
-//float rho = 0.001;
-//float thrA = 0.1 / (10 * 1000 * 1000);
-//
-//const float pixthr = 40;
-//
-//const float thrpoint = 800;
-//
-///* Sizes of the images */
-//const int smes = 8;
-//const int smes2 = 8 * 8;
-//const int sizex = 128 * 8;
-//const int sizey = 128 * 8;
-//const int size2 = 128 * 8 * 128 * 8;
-//const int sker = 12; /* has to be a multiple of 4 to use sse */
-//const int sker2 = 12 * 12;
-//
-//const float spix = 100.0 / 8;
-//
-//const int width = 128;
-//const int height = 128;
-//
-//const int nbmesx = 128;
-//const int nbmesy = 128;
-//const int nbmes2 = 128 * 128;
-//
-//const int plot_no_rescale = 0;
-//const int plot_rescale = 1;
-//
-//const int nbintern = 1;
-//
-//const float damp = 0.01;
-//
-//const int printres = 1;
-//
-//float noiseback = 8 * 8;
-//const float meanback = 20;
-//
-///* Properties of the psf */
-//const float sigpsf = 1.0638 * 8 * 1.1; /* The 1.2 is for defocus */
-////const float sigpsf = 1.376 * 8 * 1.5;
-//const float numap = 1.0;
-//
-//const float Ainit = 10.0 / (4800 * 4800);
-//
-//const int nbiter = 6000;
-
-// DATASET  contest 1 (HD1)
-/* signal noise properties */
-
-//#endif
 
 int nbframe;
 
@@ -1010,7 +941,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
            min(ker, smes2 * sker2),                                               
            max(ker, smes2 * sker2));
            */
-    //plot_image(smes * sker, smes * sker, ker, "kerint.png", plot_rescale);
+    plot_image(smes * sker, smes * sker, ker, "kerint.png", plot_rescale);
     /*
     printf("imgmes min, max: %f %f\n",                                            
            min(imgmes, nbmes2),                                               
@@ -1473,6 +1404,51 @@ void smoothen(float * img)
 }
 #endif // SMOOTHEN
 
+int loadimg(uint16_t ** img)
+{
+    char * fname = brecs_args.filename_arg;
+    char * dot = strrchr(fname, '/');
+    dot = strrchr(fname, '.');
+    if (!dot || dot == fname || !strcmp(dot,".dat")){
+        /* Assume a raw image file */
+        if (!brecs_args.frame_given){
+            fprintf(stderr, "%s: Frame number not provided of a raw image.\n",
+                    PACKAGE_NAME);
+            exit(EXIT_FAILURE);
+        }
+        long int offset = brecs_args.frame_arg;
+
+        errno = 0;
+        FILE * fimg = fopen(fname, "rb");
+        if (!fimg) {
+            fprintf(stderr, "%s: Couldn't open file %s: %s\n",
+                    PACKAGE_NAME, fname, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+
+        if (fseek(fimg, NBMESY * NBMESX * 2 * offset, SEEK_SET) == -1){
+            fprintf(stderr, "%s: Error reading input file: %s\n",
+                    PACKAGE_NAME, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        *img = malloc(NBMESX * NBMESY * sizeof(uint16_t));
+        if (fread(*img, 2, NBMESX * NBMESY, fimg) == -1){
+            fprintf(stderr, "%s: Error reading input file: %s\n",
+                    PACKAGE_NAME, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        fclose(fimg);
+    } else if (!strcmp(dot,".tif") || !strcmp(dot,".tiff")){
+        *img = opentiff(fname, NBMESX, NBMESY);
+    } else {
+        fprintf(stderr, "%s: File format not supported\n",
+                PACKAGE_NAME);
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
+
 int main(int argc, char ** argv)
 {
     uint16_t * img;
@@ -1487,37 +1463,18 @@ int main(int argc, char ** argv)
 #endif
 
     /* Command line parser */
-    if (cmdline_parser(argc, argv, & bstorm_args) != 0)
+    if (cmdline_parser(argc, argv, & brecs_args) != 0)
         exit(EXIT_FAILURE);
 
+    loadimg(&img);
 
-    nbframe = bstorm_args.frame_arg;
-    char fname[100];
-    snprintf(fname, 100, "%05i.tif", nbframe);
-    //printf("%s\n", fname);
-
-    img = opentiff(fname, NBMESX, NBMESY);
-
-    /* enable floating point exceptions (does not work with sse) */
-    //feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
-
-    //img = malloc(width * height * sizeof(uint16_t));
     posix_memalign((void **)&imgmes, 32, nbmes2 * sizeof(float));
     posix_memalign((void **)&imgnoise, 32, nbmes2 * sizeof(float));
 
     posix_memalign((void **)&imgker, 32, size3 * sizeof(float));
     
-    //fimg = fopen(fname, "rb");
-
-    //long int offset = bstorm_args.picnb_arg;
-
-    //fseek(fimg, width * height * 2 * offset, SEEK_SET);
-    //fread(img, 2, width * height, fimg);
-    //fclose(fimg);
-
     for (unsigned int i = 0; i < nbmes2; ++i)
     {
-        //imgnoise[i] = 990;
         imgnoise[i] = 1e8;
         imgmes[i] = 0;
     }
@@ -1525,12 +1482,16 @@ int main(int argc, char ** argv)
         for (unsigned int j = 0; j < NBMESX; ++j){
             float val = (img[i + j * NBMESY]);
 
+#ifdef RESCALEINPUT
+            val = (val - RESCALEOFFSET) / RESCALESLOPE;
+#endif // RESCALEINPUT
+
             //imgnoise[i + j * nbmesy] = val + 2;
             float pixmes = val - meanback;
             //if (pixmes < 0) pixmes = 0;
             int ind = i + sker / 2 + (j + sker / 2) * nbmesy;
             imgmes[ind] = pixmes;
-            imgnoise[ind] = noiseback;// + 1.0 * val;
+            imgnoise[ind] = noiseback + 1.0 * val;
             //printf("%f\n", val);
         }
     }
@@ -1540,7 +1501,6 @@ int main(int argc, char ** argv)
 
 #if SMOOTHEN
     smoothen(imgmes);
-    printf("smoothing\n");
 #endif // SMOOTHEN
 
     //printf("valuearound: %f\n", valuearound(imgmes, nbmesx, nbmesy, 130, 31 , 10));
