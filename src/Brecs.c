@@ -422,36 +422,27 @@ void fafcfunc(float * out, float sig2, float r)
 void init_kernels(float * ker, float * ker2,
                   float * psf)
 {
-    for (int k = 0; k < sker2 * smes3; ++k) {
-        ker[k] = 0;
-        ker2[k] = 0;
-    }
+    for (int i = 0; i < smes3; ++i) {
+        int ci = (i % smes2) % smes;
+        int li = (i % smes2) / smes;
+        int z  = i / smes2;
+        for (int j = 0; j < sker2; ++j) {
+            int kerc = j % sker - sker / 2;
+            int kerl = j / sker - sker / 2;
+            float sum = 0;
+            for (int k = 0; k < smes2; ++k) {
+                int cli = -li + k / smes + smes * kerl;
+                if (cli < 0) cli += sizex;
+                int cci = -ci + k % smes + smes * kerc;
+                if (cci < 0) cci += sizey;
 
-    for (int i = 0; i < smes; i++) {
-        for (int j = 0; j < smes; j++) {
-            for (int z = 0; z < sizez; z++) {
-                int indi = j + smes * i + z * smes2;
-                for (int x = -sker / 2; x < sker / 2; ++x) {
-                    for (int y = -sker / 2; y < sker / 2; ++y) {
-                        float sum = 0;
-                        for (int k = 0; k < smes; k++) {
-                            for (int l = 0; l < smes; l++) {
-                                int li = -i + k + smes * x;
-                                if (li < 0) li += sizex;
-                                int c = -j + l + smes * y;
-                                if (c < 0) c += sizey;
-
-                                sum += psf[c + sizey * li + z * size2];
-                            }
-                        }
-                        int cker = y + sker / 2;
-                        int lker = x + sker / 2;
-                        int indmu = cker + sker * lker;
-                        ker[indmu + indi * sker2] = sum;
-                        ker2[indmu + indi * sker2] = sum * sum;
-                    }
-                }
+                sum += psf[cci + sizey * cli + z * size2];
             }
+            int cker = j % smes;
+            int lker = j / smes;
+            int indmu = cker + sker * lker;
+            ker[indmu + i * sker2] = sum;
+            ker2[indmu + i * sker2] = sum * sum;
         }
     }
 }
@@ -1449,6 +1440,55 @@ int loadimg(uint16_t ** img)
     return 0;
 }
 
+
+void refinedker(float * ker0, float * ker2, float * ker4)
+{
+    for (int x = -sizex / 2; x < sizex / 2 ; ++x)
+    {
+        float dx2 = x * x;
+        for (int y = -sizey / 2; y < sizey / 2; ++y)
+        {
+            float dy2 = y * y;
+            float radius2 = dx2 + dy2;
+            float val0 = exp(-radius2 / 2 / (sigpsf * sigpsf))
+                         / (2 * M_PI * sigpsf * sigpsf);
+            float val2 = radius2
+                         * exp(-radius2 / 2 / (sigpsf * sigpsf))
+                         / (2 * M_PI * sigpsf * sigpsf);
+            float val4 = radius2 * radius2
+                         * exp(-radius2 / 2 / (sigpsf * sigpsf))
+                         / (2 * M_PI * sigpsf * sigpsf);
+            int line = x;
+            int col = y;
+            if (x < 0) line += sizex;
+            if (y < 0) col += sizey;
+            
+            ker0[col + line * sizey] = val0;
+            ker2[col + line * sizey] = val2;
+            ker4[col + line * sizey] = val4;
+        }
+    }
+}
+
+/*
+double h(float * param, float * coefs, float * pix, float * pixnoise, int size)
+{
+    for (unsigned int i = 0; i < size; ++i)
+    {
+        float hpt = 0;
+        for (unsigned int j = 0; j < sker2; ++j)
+        {
+            float diff = (coefs[i] * (ker0[i][j]
+                                      + param[0] * ker2[i][j]
+                                      + param[1] * ker4[i][j])
+                          - pix[i][j]);
+            h += diff * diff / pixnoise[i][j];
+        }
+    }
+    return h;
+}
+*/
+
 int main(int argc, char ** argv)
 {
     uint16_t * img;
@@ -1480,19 +1520,30 @@ int main(int argc, char ** argv)
     }
     for (unsigned int i = 0; i < NBMESY; ++i) {
         for (unsigned int j = 0; j < NBMESX; ++j){
-            float val = (img[i + j * NBMESY]);
+
+            if ((i > 3500 / 12 && i < 3700 / 12
+                 && j < NBMESX - 750 / 12 && j > NBMESX - 950 / 12)
+                || (i > 3350 / 12 && i < 3550 / 12
+                    && j < NBMESX - 980 / 12 && j > NBMESX - 1180 / 12)
+                || (i > 3550 / 12 && i < 3750 / 12
+                    && j < NBMESX - 1350 / 12 && j > NBMESX - 1550 / 12)
+                || (i > 1500 / 12 && i < 1700 / 12
+                    && j < NBMESX - 1470 / 12 && j > NBMESX - 1670 / 12)
+                || (i > 1600 / 12 && i < 1800 / 12
+                    && j < NBMESX - 1650 / 12 && j > NBMESX - 1850 / 12)){
+
+                float val = (img[i + j * NBMESY]);
 
 #ifdef RESCALEINPUT
-            val = (val - RESCALEOFFSET) / RESCALESLOPE;
+                val = (val - RESCALEOFFSET) / RESCALESLOPE;
 #endif // RESCALEINPUT
 
-            //imgnoise[i + j * nbmesy] = val + 2;
-            float pixmes = val - meanback;
-            //if (pixmes < 0) pixmes = 0;
-            int ind = i + sker / 2 + (j + sker / 2) * nbmesy;
-            imgmes[ind] = pixmes;
-            imgnoise[ind] = noiseback + 1.0 * val;
-            //printf("%f\n", val);
+                float pixmes = val - meanback;
+                int ind = i + sker / 2 + (j + sker / 2) * nbmesy;
+                imgmes[ind] = pixmes;
+                imgnoise[ind] = noiseback + 1.0 * val;
+                printf("%f\n", val);
+            }
         }
     }
     updatetemp(beta, imgnoise);

@@ -233,8 +233,8 @@
 #  define SIZEZ 4
 // DATASET 10 (Clathrin coated pits)
 #elif DATASET == 10
-#  define PIXMEAN 4500
-#  define PIXSTD 1000
+#  define PIXMEAN 6000
+#  define PIXSTD 1500
 #  define RHO 0.001
 #  define SKER 12 /* has to be a multiple of 4 to use sse */
 #  define SMES 12
@@ -243,13 +243,13 @@
 #  define SIZEPIX 133.0
 #  define SIZEPIXZ 333.0
 #  define DAMP 0.05
-#  define NOISEBACK 100.0
-#  define MEANBACK 85.0
-#  define AINITPFACT 10.0
+#  define NOISEBACK 150.0
+#  define MEANBACK 80.0
+#  define AINITPFACT 1.0
 #  define NBITER 600
 #  define THRPOINT 1000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 100
+#  define BETA 1 /* inverse temperature for inference */
+#  define PIXTHR 200
 #  define THRCONV 1e-3
 #  define KERNEL 1
 #  define SIGPSF 1.04
