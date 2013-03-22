@@ -61,7 +61,7 @@ struct gengetopt_args_info brecs_args;
 const float pixmean = PIXMEAN;
 double pixstd = PIXSTD;
 double rho = RHO;
-float thrA = 0.1 / (10 * 1000 * 1000);
+float thrA = AINITPFACT / (PIXMEAN * PIXMEAN);
 
 const float pixthr = PIXTHR;
 
@@ -89,11 +89,11 @@ const int plot_rescale = 1;
 
 const int nbintern = 1;
 const float damp = DAMP;
-const int printres = 1;
+const int printres = 0;
 float noiseback = NOISEBACK;
 
 /* Properties of the psf */
-#if KERNEL == 1
+#if KERNEL == 1 || KERNEL == 3
 const float sigpsf = SIGPSF * SMES * DEFOCUS;
 #endif
 
@@ -141,6 +141,32 @@ void gaussker(float * ker)
             float radius2 = dx2 + dy2;
             float val = exp(-radius2 / 2 / (sigpsf * sigpsf))
                         / (2 * M_PI * sigpsf * sigpsf);
+            int line = x;
+            int col = y;
+            if (x < 0) line += sizex;
+            if (y < 0) col += sizey;
+            
+            ker[col + line * sizey] = val;
+        }
+    }
+}
+#endif
+
+#if KERNEL == 3
+void refinedker(float * ker)
+{
+    for (int x = -sizex / 2; x < sizex / 2 ; ++x)
+    {
+        float dx2 = x * x;
+        for (int y = -sizey / 2; y < sizey / 2; ++y)
+        {
+            float dy2 = y * y;
+            float radius2 = dx2 + dy2;
+            float r2 = radius2 / 2 / (sigpsf * sigpsf);
+            float val = (1.0 + KERC2 * r2 + KERC4 * r2 * r2
+                         + KERC6 * r2 * r2 * r2 + KERC8 * r2 * r2 * r2 * r2
+                         + KERC10 * r2 * r2 * r2 * r2 * r2)
+                        * exp(-r2) / (2 * M_PI * sigpsf * sigpsf);
             int line = x;
             int col = y;
             if (x < 0) line += sizex;
@@ -891,7 +917,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     float * ker;
     float * ker2;
 
-    //float * res;
+    float * res;
 
     /* Determine the number of active pixels */
     int nbact = 0;
@@ -923,7 +949,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     posix_memalign((void **)&ker, 32, smes3 * sker2 * sizeof(float));
     posix_memalign((void **)&ker2, 32, smes3 * sker2 * sizeof(float));
 
-    //posix_memalign((void **)&res, 32, size2 * sizeof(float));
+    posix_memalign((void **)&res, 32, size2 * sizeof(float));
 
     /* Initialize kernels */
     init_kernels(ker, ker2, psf);
@@ -1079,6 +1105,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     //        max(res, size2));
     //plot_image(sizex, sizey, res, "var.png", plot_rescale);
     //printf("Brecs, frame, xnano, ynano, znano, intensity\n");
+    /*
     int nbfluo = 1;
     for (unsigned int k = 0; k < nbact; ++k)
     {
@@ -1099,17 +1126,25 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
             nbfluo++;
         }
     }
-    /*
+    */
+
+    for (int i = 0; i < size2; ++i) {
+        res[i] = 0;
+    }
+    for (unsigned int k = 0; k < nbact; ++k)
+    {
+        int i = activepix[k];
+        int ixy = activepix[k] % size2;
+        int z = i / size2;
+
+        float val = P_be_F[k] / P_be_E[k];
+        res[ixy] += val;
+    }
+    int nbfluo = 1;
     for (int i = 0; i < size2; ++i)
     {
         int c = i % sizey;
         int l = i / sizey;
-        if (pixactivity[i]){
-            res[i] = P_be_F[k] / P_be_E[k];
-            k++;
-        } else {
-            res[i] = 0;
-        }
         if (res[i] > thrpoint){
             printf("%i %i %.2f %.2f %.2f %.2f\n",
                    nbfluo,
@@ -1119,10 +1154,10 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
                    (l - (sker / 2 - 1) * smes) * spix + spix / 2,
                    0.00,
                    res[i]);
-            //nbfluo++;
+            nbfluo++;
         }
     }
-    */
+    plot_overlay(imgmes, res, "overlay.png");
     /*
     printf("res min, max: %f %f\n",                                            
             min(res, size2),                                               
@@ -1145,8 +1180,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     free(ker);
     free(ker2);
 
-    //return res;
-    return NULL;
+    return res;
 }
 
 float max(float * img, int size)
@@ -1441,7 +1475,8 @@ int loadimg(uint16_t ** img)
 }
 
 
-void refinedker(float * ker0, float * ker2, float * ker4)
+void refinedkerfit(float * ker0, float * ker2, float * ker4, float * ker6,
+                   float * ker8, float * ker10)
 {
     for (int x = -sizex / 2; x < sizex / 2 ; ++x)
     {
@@ -1450,13 +1485,18 @@ void refinedker(float * ker0, float * ker2, float * ker4)
         {
             float dy2 = y * y;
             float radius2 = dx2 + dy2;
-            float val0 = exp(-radius2 / 2 / (sigpsf * sigpsf))
+            float r2 = radius2 / 2 / (sigpsf * sigpsf);
+            float val0 = exp(-r2)
                          / (2 * M_PI * sigpsf * sigpsf);
-            float val2 = radius2
-                         * exp(-radius2 / 2 / (sigpsf * sigpsf))
+            float val2 = r2 * exp(-r2)
                          / (2 * M_PI * sigpsf * sigpsf);
-            float val4 = radius2 * radius2
-                         * exp(-radius2 / 2 / (sigpsf * sigpsf))
+            float val4 = r2 * r2 * exp(-r2)
+                         / (2 * M_PI * sigpsf * sigpsf);
+            float val6 = r2 * r2 * r2 * exp(-r2)
+                         / (2 * M_PI * sigpsf * sigpsf);
+            float val8 = r2 * r2 * r2 * r2 * exp(-r2)
+                         / (2 * M_PI * sigpsf * sigpsf);
+            float val10 = r2 * r2 * r2 * r2 * r2 * exp(-r2)
                          / (2 * M_PI * sigpsf * sigpsf);
             int line = x;
             int col = y;
@@ -1466,28 +1506,56 @@ void refinedker(float * ker0, float * ker2, float * ker4)
             ker0[col + line * sizey] = val0;
             ker2[col + line * sizey] = val2;
             ker4[col + line * sizey] = val4;
+            ker6[col + line * sizey] = val6;
+            ker8[col + line * sizey] = val8;
+            ker10[col + line * sizey] = val10;
         }
     }
 }
 
-/*
-double h(float * param, float * coefs, float * pix, float * pixnoise, int size)
+void init_refinedkersfit(float * pix0, float * pix2, float * pix4,
+                         float * pix6, float * pix8, float * pix10,
+                         float * ker0, float * ker2, float * ker4,
+                         float * ker6, float * ker8, float * ker10)
 {
-    for (unsigned int i = 0; i < size; ++i)
-    {
-        float hpt = 0;
-        for (unsigned int j = 0; j < sker2; ++j)
-        {
-            float diff = (coefs[i] * (ker0[i][j]
-                                      + param[0] * ker2[i][j]
-                                      + param[1] * ker4[i][j])
-                          - pix[i][j]);
-            h += diff * diff / pixnoise[i][j];
+    for (int i = 0; i < smes2; ++i) {
+        int ci = (i % smes2) % smes;
+        int li = (i % smes2) / smes;
+        int z  = i / smes2;
+        for (int j = 0; j < sker2; ++j) {
+            int kerc = j % sker - sker / 2;
+            int kerl = j / sker - sker / 2;
+            float sum0 = 0;
+            float sum2 = 0;
+            float sum4 = 0;
+            float sum6 = 0;
+            float sum8 = 0;
+            float sum10 = 0;
+            for (int k = 0; k < smes2; ++k) {
+                int cli = -li + k / smes + smes * kerl;
+                if (cli < 0) cli += sizex;
+                int cci = -ci + k % smes + smes * kerc;
+                if (cci < 0) cci += sizey;
+
+                sum0 += ker0[cci + sizey * cli + z * size2];
+                sum2 += ker2[cci + sizey * cli + z * size2];
+                sum4 += ker4[cci + sizey * cli + z * size2];
+                sum6 += ker6[cci + sizey * cli + z * size2];
+                sum8 += ker8[cci + sizey * cli + z * size2];
+                sum10 += ker10[cci + sizey * cli + z * size2];
+            }
+            int cker = j % smes;
+            int lker = j / smes;
+            int indmu = cker + sker * lker;
+            pix0[indmu + i * sker2] = sum0;
+            pix2[indmu + i * sker2] = sum2;
+            pix4[indmu + i * sker2] = sum4;
+            pix6[indmu + i * sker2] = sum6;
+            pix8[indmu + i * sker2] = sum8;
+            pix10[indmu + i * sker2] = sum10;
         }
     }
-    return h;
 }
-*/
 
 int main(int argc, char ** argv)
 {
@@ -1500,6 +1568,10 @@ int main(int argc, char ** argv)
 
 #ifdef __DEBUG__
     _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
+#endif
+
+#ifdef __AVX__
+    printf("AVX supported\n");
 #endif
 
     /* Command line parser */
@@ -1521,8 +1593,10 @@ int main(int argc, char ** argv)
     for (unsigned int i = 0; i < NBMESY; ++i) {
         for (unsigned int j = 0; j < NBMESX; ++j){
 
-            if ((i > 3500 / 12 && i < 3700 / 12
-                 && j < NBMESX - 750 / 12 && j > NBMESX - 950 / 12)
+            /*
+            if (
+                    (i > 3500 / 12 && i < 3700 / 12
+                     && j < NBMESX - 750 / 12 && j > NBMESX - 950 / 12)
                 || (i > 3350 / 12 && i < 3550 / 12
                     && j < NBMESX - 980 / 12 && j > NBMESX - 1180 / 12)
                 || (i > 3550 / 12 && i < 3750 / 12
@@ -1531,6 +1605,7 @@ int main(int argc, char ** argv)
                     && j < NBMESX - 1470 / 12 && j > NBMESX - 1670 / 12)
                 || (i > 1600 / 12 && i < 1800 / 12
                     && j < NBMESX - 1650 / 12 && j > NBMESX - 1850 / 12)){
+                    */
 
                 float val = (img[i + j * NBMESY]);
 
@@ -1542,8 +1617,8 @@ int main(int argc, char ** argv)
                 int ind = i + sker / 2 + (j + sker / 2) * nbmesy;
                 imgmes[ind] = pixmes;
                 imgnoise[ind] = noiseback + 1.0 * val;
-                printf("%f\n", val);
-            }
+                //printf("%f\n", val);
+//            }
         }
     }
     updatetemp(beta, imgnoise);
@@ -1561,11 +1636,98 @@ int main(int argc, char ** argv)
     //plot_image(sizex, sizey, imgker, "kernel.png", plot_rescale);
 #elif KERNEL == 2
     loadgibson(imgker);
+#elif KERNEL == 3
+    refinedker(imgker);
 #else
     exit(EXIT_FAILURE);
 #endif
 
     imgrecons = reconssparse(imgmes, imgnoise, imgker);
+
+    /*
+    float * ker0;
+    float * ker2;
+    float * ker4;
+    float * ker6;
+    float * ker8;
+    float * ker10;
+    float * pix0;
+    float * pix2;
+    float * pix4;
+    float * pix6;
+    float * pix8;
+    float * pix10;
+    posix_memalign((void **)&ker0, 32, size3 * sizeof(float));
+    posix_memalign((void **)&ker2, 32, size3 * sizeof(float));
+    posix_memalign((void **)&ker4, 32, size3 * sizeof(float));
+    posix_memalign((void **)&ker6, 32, size3 * sizeof(float));
+    posix_memalign((void **)&ker8, 32, size3 * sizeof(float));
+    posix_memalign((void **)&ker10, 32, size3 * sizeof(float));
+
+    refinedker(ker0, ker2, ker4, ker6, ker8, ker10);
+
+    posix_memalign((void **)&pix0, 32, smes3 * sker2 * sizeof(float));
+    posix_memalign((void **)&pix2, 32, smes3 * sker2 * sizeof(float));
+    posix_memalign((void **)&pix4, 32, smes3 * sker2 * sizeof(float));
+    posix_memalign((void **)&pix6, 32, smes3 * sker2 * sizeof(float));
+    posix_memalign((void **)&pix8, 32, smes3 * sker2 * sizeof(float));
+    posix_memalign((void **)&pix10, 32, smes3 * sker2 * sizeof(float));
+
+    init_refinedkers(pix0, pix2, pix4, pix6, pix8, pix10, ker0, ker2, ker4, ker6, ker8, ker10);
+
+    plot_image(sizex, sizey, ker0, "ker0.png", plot_rescale);
+    plot_image(sizex, sizey, ker2, "ker2.png", plot_rescale);
+    plot_image(sizex, sizey, ker4, "ker4.png", plot_rescale);
+    plot_image(sizex, sizey, ker6, "ker6.png", plot_rescale);
+    plot_image(sizex, sizey, ker8, "ker6.png", plot_rescale);
+    plot_image(sizex, sizey, ker10, "ker6.png", plot_rescale);
+
+    free(ker0);
+    free(ker2);
+    free(ker4);
+    free(ker6);
+    free(ker8);
+    free(ker10);
+
+
+    for (unsigned int i = 0; i < size2; ++i)
+    {
+        if (imgrecons[i] > thrpoint){
+            int ci = (i % sizey) % smes;
+            int li = (i / sizey) % smes;
+            int ikeri = ci + li * smes;
+
+            for (unsigned int j = 0; j < sker2; ++j) {
+                int dcmu = j % sker - sker / 2;
+                int dlmu = j / sker - sker / 2;
+
+                int cmu = (i % sizey) / smes + dcmu;
+                int lmu = (i / sizey) / smes + dlmu;
+                int imu = cmu + lmu * nbmesy;
+
+                printf("%f ", imgmes[imu]);
+            }
+            for (unsigned int j = 0; j < sker2; ++j) {
+                printf("%f ", pix0[j + ikeri * sker2]);
+            }
+            for (unsigned int j = 0; j < sker2; ++j) {
+                printf("%f ", pix2[j + ikeri * sker2]);
+            }
+            for (unsigned int j = 0; j < sker2; ++j) {
+                printf("%f ", pix4[j + ikeri * sker2]);
+            }
+            for (unsigned int j = 0; j < sker2; ++j) {
+                printf("%f ", pix6[j + ikeri * sker2]);
+            }
+            for (unsigned int j = 0; j < sker2; ++j) {
+                printf("%f ", pix8[j + ikeri * sker2]);
+            }
+            for (unsigned int j = 0; j < sker2; ++j) {
+                printf("%f ", pix10[j + ikeri * sker2]);
+            }
+            printf("\n");
+        }
+    }
 
     //plot_image(sizex, sizey, imgrecons, "recons.png", plot_rescale);
     //plot_overlay(imgmes, imgrecons, "overlay.png");
@@ -1573,11 +1735,14 @@ int main(int argc, char ** argv)
     //char fname[100];
     //snprintf(fname, 100, "img-%li.dat.bz2", offset);
     //saveimage(imgrecons, size2, fname);
+    */
+
 
     free(img);
     free(imgker);
     free(imgmes);
     free(imgnoise);
+    free(imgrecons);
     
     return EXIT_SUCCESS;
 }
