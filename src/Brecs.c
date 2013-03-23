@@ -105,12 +105,16 @@ const float beta = BETA;
 
 #ifdef __AVX__
 #  define SHIFT 8
+#  define ALIGNSIZE 32
 #  define VFUNC(name) _mm256_ ## name
    typedef __m256 vecfloat;
+   typedef float afloat __attribute__ ((__aligned__(32)));
 #else
 #  define SHIFT 4
+#  define ALIGNSIZE 16
 #  define VFUNC(name) _mm_ ## name
    typedef __m128 vecfloat;
+   typedef float afloat __attribute__ ((__aligned__(16)));
 #endif
 
 int nbframe;
@@ -248,7 +252,7 @@ void loadgibson(float * ker)
 
     float sum[SIZEZ];
 
-    posix_memalign((void **)&img, 32, sizez * gibssize2 * sizeof(float));
+    posix_memalign((void **)&img, ALIGNSIZE, sizez * gibssize2 * sizeof(float));
     FILE * fimg = fopen("gibson.raw", "rb");
     if (!fimg) exit(EXIT_FAILURE);
 
@@ -547,13 +551,13 @@ static inline vecfloat sumh_ps(vecfloat x) {
     return tmp;
 }
 
-float update_Palbe(float * mu_beal_A, float * mu_beal_B,
-                   float * P_albe_A, float * P_albe_B,
-                   float * abeal, float * vbeal,
-                   float * P_be_E, float * P_be_F,
-                   float * omegamu, float * vmu,
-                   float * ker, float * ker2,
-                   float * imgnoise, float * imgmes,
+float update_Palbe(afloat * restrict mu_beal_A, afloat * restrict mu_beal_B,
+                   afloat * restrict P_albe_A, afloat * restrict P_albe_B,
+                   afloat * restrict abeal, afloat * restrict vbeal,
+                   afloat * restrict P_be_E, afloat * restrict P_be_F,
+                   afloat * restrict omegamu, afloat * restrict vmu,
+                   afloat * restrict ker, afloat * restrict ker2,
+                   afloat * restrict imgnoise, afloat * restrict imgmes,
                    int nbact, int * activepix)
 {
     float rat = ((float)sker2 - 1) / sker2;
@@ -825,6 +829,7 @@ float update_pbe(float * P_be_E, float * P_be_F,
     int nberr = 0;
     float errmeantot = 0;
     float errvartot = 0;
+    int posprob = -1;
     for (unsigned int k = 0; k < nbact; ++k)
     {
         float avA = 0;
@@ -881,6 +886,7 @@ float update_pbe(float * P_be_E, float * P_be_F,
         }
         if (errmean > relerr){
             relerr = errmean;
+            posprob = k;
         }
         if (errvar > errvartot){
             errvartot = errvar;
@@ -891,11 +897,104 @@ float update_pbe(float * P_be_E, float * P_be_F,
         if (errvar > 0.05 || errmean > 0.05){
             nberr++;
         }
-        //printf("%f\n", relerr);
+        //printf("%f %f %f\n", relerr, errmeantot, errvartot);
     }
-    //printf("nberr, errmean, errvar: %i %f %f\n", nberr, errmeantot, errvartot);
+    printf("nberr, errmean, errvar: %i %f %f\n", nberr, errmeantot, errvartot);
+    if (nberr == 2){
+        printf("%i %i\n", activepix[posprob] % sizey, activepix[posprob] / sizey);
+        exit(EXIT_FAILURE);
+    }
     return relerr;
 }
+
+float * gausskerpar(int sx, int sy, float radius)
+{
+    float * out;
+    posix_memalign((void **)&out, ALIGNSIZE, sx * sy * sizeof(float));
+
+    float sig2 = radius * radius;
+    for (int x = -sx / 2; x < sx / 2 ; ++x)
+    {
+        float dx2 = x * x;
+        for (int y = -sy / 2; y < sy / 2; ++y)
+        {
+            float dy2 = y * y;
+            float r2 = dx2 + dy2;
+            float val = exp(-r2 / 2 / sig2)
+                        / (2 * M_PI * sig2);
+            int line = x;
+            int col = y;
+            if (x < 0) line += sx;
+            if (y < 0) col += sy;
+            
+            out[col + line * sy] = val;
+        }
+    }
+
+    return out;
+}
+
+
+void smoothen(float * img, float radius)
+{
+    fftwf_complex * out1, * out2;
+    fftwf_plan pforw1, pforw2, pbackw;
+
+    float * img2 = fftwf_alloc_real(size2);
+    float * img3 = fftwf_alloc_real(size2);
+    float * imgmean = fftwf_alloc_real(size2);
+    float * imgker;
+
+    imgker = gausskerpar(sizex, sizey, smes);
+    plot_image(sizex, sizey, imgker, "kersmoo.png", plot_rescale);
+
+    out1 = fftwf_alloc_complex(sizex * (sizey / 2 + 1));
+    out2 = fftwf_alloc_complex(sizex * (sizey / 2 + 1));
+
+    pforw1 = fftwf_plan_dft_r2c_2d(sizex, sizey,
+                                  img, out1,
+                                  FFTW_PRESERVE_INPUT);
+    pforw2 = fftwf_plan_dft_r2c_2d(sizex, sizey,
+                                  imgker, out2,
+                                  FFTW_PRESERVE_INPUT);
+
+    pbackw = fftwf_plan_dft_c2r_2d(sizex, sizey,
+                                  out1, img2,
+                                  0);
+
+    fftwf_execute(pforw1);
+    fftwf_execute(pforw2);
+
+    for (unsigned int i = 0; i < sizex * (sizey / 2 + 1); ++i)
+    {
+        fftwf_complex c1, c2;
+        c1[0] = out1[i][0];
+        c1[1] = out1[i][1];
+        c2[0] = out2[i][0];
+        c2[1] = out2[i][1];
+
+        out1[i][0] = (c1[0] * c2[0] - c1[1] * c2[1]) / size2;
+        out1[i][1] = (c1[0] * c2[1] + c1[1] * c2[0]) / size2;
+    }
+
+
+    fftwf_execute(pbackw);
+
+    for (unsigned int i = 0; i < sizey * sizex; ++i)
+    {
+        img[i] = img2[i];
+        if (img2[i] < 50) img2[i] = 0;
+        else img2[i] = 1;
+    }
+
+    fftwf_free(out1);
+    fftwf_free(out2);
+    fftwf_free(img2);
+    fftwf_free(img3);
+    fftwf_free(imgmean);
+    fftwf_free(imgker);
+}
+
 
 float * reconssparse(float * imgmes, float * imgnoise, float * psf)
 {
@@ -919,7 +1018,37 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
 
     float * res;
 
+    float * imgsmoores;
+    posix_memalign((void **)&imgsmoores, ALIGNSIZE, size2 * sizeof(float));
+    for (unsigned int i = 0; i < nbmes2; ++i)
+    {
+        int ci = i % nbmesy;
+        int li = i / nbmesy;
+        for (unsigned int j = 0; j < smes2; ++j)
+        {
+            int ind = ci * smes + j % smes + sizey * (li * smes + j / smes);
+            imgsmoores[ind] = imgmes[i];
+            
+        }
+    }
+    smoothen(imgsmoores, smes);
+    plot_image(sizex, sizey, imgsmoores, "messmoo.png", plot_rescale);
+
+    int nbact = 0;
+    for (int i = 0; i < size2; ++i)
+    {
+        float valpix = imgsmoores[i];
+        if (valpix > pixthr
+            && i % sizey > (sker / 2) * smes - 1
+            && i % sizey < sizey - (sker / 2 - 1) * smes
+            && i / sizey > (sker / 2) * smes - 1
+            && i / sizey < sizex - (sker / 2 - 1) * smes){
+
+            nbact++;
+        }
+    }
     /* Determine the number of active pixels */
+    /*
     int nbact = 0;
     for (int i = 0; i < nbmes2; ++i)
     {
@@ -928,28 +1057,29 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
             nbact++;
         }
     }
-    nbact *= smes3;
-    //printf("nbact: %i\n", nbact);
+    */
+    nbact *= sizez;
+    printf("nbact: %i\n", nbact);
 
     /* Memory allocation */
-    posix_memalign((void **)&mu_albe_A, 32, nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&mu_albe_B, 32, nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&mu_beal_A, 32, nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&mu_beal_B, 32, nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&P_albe_A, 32, nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&P_albe_B, 32, nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&abeal, 32, nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&vbeal, 32, nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&P_be_E, 32, nbact * sizeof(float));
-    posix_memalign((void **)&P_be_F, 32, nbact * sizeof(float));
-    posix_memalign((void **)&omegamu, 32, nbmes2 * sizeof(float));
-    posix_memalign((void **)&vmu, 32, nbmes2 * sizeof(float));
-    posix_memalign((void **)&activepix, 32, nbact * sizeof(int));
+    posix_memalign((void **)&mu_albe_A, ALIGNSIZE, nbact * sker2 * sizeof(float));
+    posix_memalign((void **)&mu_albe_B, ALIGNSIZE, nbact * sker2 * sizeof(float));
+    posix_memalign((void **)&mu_beal_A, ALIGNSIZE, nbact * sker2 * sizeof(float));
+    posix_memalign((void **)&mu_beal_B, ALIGNSIZE, nbact * sker2 * sizeof(float));
+    posix_memalign((void **)&P_albe_A, ALIGNSIZE, nbact * sker2 * sizeof(float));
+    posix_memalign((void **)&P_albe_B, ALIGNSIZE, nbact * sker2 * sizeof(float));
+    posix_memalign((void **)&abeal, ALIGNSIZE, nbact * sker2 * sizeof(float));
+    posix_memalign((void **)&vbeal, ALIGNSIZE, nbact * sker2 * sizeof(float));
+    posix_memalign((void **)&P_be_E, ALIGNSIZE, nbact * sizeof(float));
+    posix_memalign((void **)&P_be_F, ALIGNSIZE, nbact * sizeof(float));
+    posix_memalign((void **)&omegamu, ALIGNSIZE, nbmes2 * sizeof(float));
+    posix_memalign((void **)&vmu, ALIGNSIZE, nbmes2 * sizeof(float));
+    posix_memalign((void **)&activepix, ALIGNSIZE, nbact * sizeof(int));
 
-    posix_memalign((void **)&ker, 32, smes3 * sker2 * sizeof(float));
-    posix_memalign((void **)&ker2, 32, smes3 * sker2 * sizeof(float));
+    posix_memalign((void **)&ker, ALIGNSIZE, smes3 * sker2 * sizeof(float));
+    posix_memalign((void **)&ker2, ALIGNSIZE, smes3 * sker2 * sizeof(float));
 
-    posix_memalign((void **)&res, 32, size2 * sizeof(float));
+    posix_memalign((void **)&res, ALIGNSIZE, size2 * sizeof(float));
 
     /* Initialize kernels */
     init_kernels(ker, ker2, psf);
@@ -999,6 +1129,43 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
         }
     }
     */
+
+    int cact = 0;
+    for (int i = 0; i < size2; ++i)
+    {
+        float valpix = imgsmoores[i];
+        if (valpix > pixthr
+            && i % sizey > (sker / 2) * smes - 1
+            && i % sizey < sizey - (sker / 2 - 1) * smes
+            && i / sizey > (sker / 2) * smes - 1
+            && i / sizey < sizex - (sker / 2 - 1) * smes){
+
+            for (size_t mu = 0; mu < sker2; ++mu)
+            {
+                int ind = mu + cact * sker2;
+                mu_albe_A[ind] = Ainit;
+                mu_albe_B[ind] = Binit;
+                P_albe_A[ind] = Ainit;
+                P_albe_B[ind] = Binit;
+            }
+            P_be_E[cact] = Ainit;
+            P_be_F[cact] = Binit;
+            activepix[cact] = i;
+            cact++;
+        }
+    }
+
+    for (unsigned int i = 0; i < size2; ++i)
+    {
+        imgsmoores[i] = 0;
+    }
+    for (unsigned int i = 0; i < cact; ++i)
+    {
+        imgsmoores[activepix[i]] = 1;
+    }
+    plot_image(sizex, sizey, imgsmoores, "messmoo.png", plot_rescale);
+
+    /*
     int cact = 0;
     for (int i = 0; i < nbmes2; ++i)
     {
@@ -1027,6 +1194,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
             }
         }
     }
+    */
 
     /* Main loop */
     float relerr = 1.0;
@@ -1070,12 +1238,12 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
                             imgnoise, imgmes,
                             nbact, activepix,
                             iterpbe);
-        //printf("%f\n", relerr);
+        printf("%f\n", relerr);
 
         /* Build result */
         if (printres){
             float * res;
-            posix_memalign((void **)&res, 32, size2 * sizeof(float));
+            posix_memalign((void **)&res, ALIGNSIZE, size2 * sizeof(float));
             for (int i = 0; i < size2; ++i)
             {
                 res[i] = 0;
@@ -1281,27 +1449,6 @@ float valuearound(float * img, int sx, int sy, int x, int y , float rad2)
 }
 
 #ifdef SMOOTHEN
-void gausskersmoo(float * ker)
-{
-    for (int x = -nbmesx / 2; x < nbmesx / 2 ; ++x)
-    {
-        float dx2 = x * x;
-        for (int y = -nbmesy / 2; y < nbmesy / 2; ++y)
-        {
-            float dy2 = y * y;
-            float radius2 = dx2 + dy2;
-            float val = exp(-radius2 / 2 / 70.0)
-                        / (2 * M_PI * 70.0);
-            int line = x;
-            int col = y;
-            if (x < 0) line += nbmesx + SIZESMOOTH;
-            if (y < 0) col += nbmesy + SIZESMOOTH;
-            
-            ker[col + line * (nbmesy + SIZESMOOTH)] = val;
-        }
-    }
-}
-
 void shiftimg(float * img, float * img2)
 {
     for (unsigned int i = 0; i < nbmesx * nbmesy; ++i)
@@ -1321,7 +1468,7 @@ void shiftimg(float * img, float * img2)
     }
 }
 
-void smoothen(float * img)
+void smoothen(float * img, int radi)
 {
     fftwf_complex * out1, * out2;
     fftwf_plan pforw1, pforw2, pbackw;
@@ -1561,6 +1708,7 @@ int main(int argc, char ** argv)
 {
     uint16_t * img;
     float * imgmes;
+    float * imgmessmooth;
     float * imgker;
 
     float * imgnoise;
@@ -1570,20 +1718,17 @@ int main(int argc, char ** argv)
     _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
 #endif
 
-#ifdef __AVX__
-    printf("AVX supported\n");
-#endif
-
     /* Command line parser */
     if (cmdline_parser(argc, argv, & brecs_args) != 0)
         exit(EXIT_FAILURE);
 
     loadimg(&img);
 
-    posix_memalign((void **)&imgmes, 32, nbmes2 * sizeof(float));
-    posix_memalign((void **)&imgnoise, 32, nbmes2 * sizeof(float));
+    posix_memalign((void **)&imgmes, ALIGNSIZE, nbmes2 * sizeof(float));
+    posix_memalign((void **)&imgmessmooth, ALIGNSIZE, nbmes2 * sizeof(float));
+    posix_memalign((void **)&imgnoise, ALIGNSIZE, nbmes2 * sizeof(float));
 
-    posix_memalign((void **)&imgker, 32, size3 * sizeof(float));
+    posix_memalign((void **)&imgker, ALIGNSIZE, size3 * sizeof(float));
     
     for (unsigned int i = 0; i < nbmes2; ++i)
     {

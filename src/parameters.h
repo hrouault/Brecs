@@ -236,20 +236,20 @@
 #  define PIXMEAN 3000
 #  define PIXSTD 1000
 #  define RHO 0.001
-#  define SKER 12 /* has to be a multiple of 4 to use sse */
-#  define SMES 12
+#  define SKER 8 /* has to be a multiple of 4 to use sse */
+#  define SMES 8
 #  define NBMESX 199
 #  define NBMESY 329
 #  define SIZEPIX 133.0
 #  define SIZEPIXZ 333.0
-#  define DAMP 0.05
-#  define NOISEBACK 120.0
+#  define DAMP 0.1
+#  define NOISEBACK 80.0
 #  define MEANBACK 85.0
 #  define AINITPFACT 1.0
-#  define NBITER 1200
+#  define NBITER 5000
 #  define THRPOINT 1000
 #  define BETA 1 /* inverse temperature for inference */
-#  define PIXTHR 120
+#  define PIXTHR 50
 #  define THRCONV 1e-3
 #  define KERNEL 3
 #  define SIGPSF 1.04
@@ -259,7 +259,6 @@
 #  define KERC8 4.033e-03
 #  define KERC10 -7.628e-04
 #  define DEFOCUS 1.0 /* the 1.1 is for defocus */
-#  define SMOOTHEN 0
 #  define SIZESMOOTH 0
 #  define SIZEZ 1
 #  define RESCALEINPUT
