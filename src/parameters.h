@@ -68,6 +68,14 @@
  * ** Statistics of the background **
  */
 
+/* General parameters for display */
+#define DISPLAY_OVERLAY_ITER 0
+#define DISPLAY_OVERLAY 0
+#define DISPLAY_PLOTS 0
+#define PRINT_ERRS 0
+#define OVERLAY_MAX_INT 10000.0
+#define OVERLAY_MIN_INT 10.0
+
 // DATASET 1 (eye 2 in ISBI contest)
 #if DATASET == 1
 #  define PIXMEAN 4800
@@ -96,21 +104,26 @@
 #  define RHO 0.001
 #  define SKER 8 /* has to be a multiple of 4 to use sse */
 #  define SMES 8
+#  define SIZEZ 1
 #  define NBMESX 128
 #  define NBMESY 128
 #  define SIZEPIX 100.0
 #  define DAMP 0.1
-#  define NOISEBACK 5620
-#  define MEANBACK 200
+#  define NOISEBACK 4000
+#  define MEANBACK 150
 #  define SIGPSF 0.9545
 #  define DEFOCUS 1.0 /* the 1.1 is for defocus */
 #  define AINITPFACT 10.0
 #  define NBITER 600
 #  define THRPOINT 2000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 70
-#  define THRCONV 1e-3
+#  define BETA 1.0 /* inverse temperature for inference */
+#  define PIXTHR 200
+#  define THRCONV 1e-4
 #  define KERNEL 1
+#  define SMOOTHEN 1
+#  define SMOOTHEN_RAD 8
+#  define SMOOTHEN_THR 200
+#  define SIZESMOOTH 0
 // DATASET 3 (HD_2 in ISBI contest)
 #elif DATASET == 3
 #  define PIXMEAN 5000
