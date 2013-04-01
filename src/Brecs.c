@@ -584,12 +584,12 @@ static inline vecfloat sumh_ps(vecfloat x) {
     return tmp;
 }
 
-void update_Palbe(afloat * restrict mu_beal_A, afloat * restrict mu_beal_B,
-                  afloat * restrict P_albe_A, afloat * restrict P_albe_B,
-                  afloat * restrict abeal, afloat * restrict vbeal,
-                  afloat * restrict omegamu, afloat * restrict vmu,
-                  afloat * restrict ker, afloat * restrict ker2,
-                  afloat * restrict imgnoise, afloat * restrict imgmes,
+void update_Palbe(afloat * mu_beal_A, afloat * mu_beal_B,
+                  afloat * P_albe_A, afloat * P_albe_B,
+                  afloat * abeal, afloat * vbeal,
+                  afloat * omegamu, afloat * vmu,
+                  afloat * ker, afloat * ker2,
+                  afloat * imgnoise, afloat * imgmes,
                   int nbact, int * activepix)
 {
     const vecfloat zero = VFUNC(set1_ps) (0);
@@ -935,10 +935,12 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                    nbact * sker2 * sizeof(float));
     posix_memalign((void **)&mu_beal_B, ALIGNSIZE,
                    nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&P_albe_A, ALIGNSIZE,
-                   nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&P_albe_B, ALIGNSIZE,
-                   nbact * sker2 * sizeof(float));
+    P_albe_A = mu_beal_A; 
+    P_albe_B = mu_beal_B; 
+    //posix_memalign((void **)&P_albe_A, ALIGNSIZE,
+    //               nbact * sker2 * sizeof(float));
+    //posix_memalign((void **)&P_albe_B, ALIGNSIZE,
+    //               nbact * sker2 * sizeof(float));
     posix_memalign((void **)&abeal, ALIGNSIZE, nbact * sker2 * sizeof(float));
     posix_memalign((void **)&vbeal, ALIGNSIZE, nbact * sker2 * sizeof(float));
     posix_memalign((void **)&P_be_E, ALIGNSIZE, nbact * sizeof(float));
@@ -1055,7 +1057,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
         int c = i % sizey;
         int l = i / sizey;
         if (res[i] > thrpoint){
-            printf("%i %i %.2f %.2f %.2f %.2f\n",
+            printf("%d %d %.2f %.2f %.2f %.2f\n",
                    nbfluo,
                    nbframe,
                    (c - sker / 2 * smes) * spix + spix / 2,
@@ -1078,8 +1080,8 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     free(mu_albe_B);
     free(mu_beal_A);
     free(mu_beal_B);
-    free(P_albe_A);
-    free(P_albe_B);
+    //free(P_albe_A);
+    //free(P_albe_B);
     free(abeal);
     free(vbeal);
     free(P_be_E);
@@ -1121,6 +1123,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     }
     free(ccdec.nbact);
     free(ccdec.coordcomp);
+    free(ccdec.activepixcomp);
     free(ccdec.imglab);
 
     if (brecs_args.output_given){
@@ -1475,6 +1478,9 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     int syfft = pow(2, (int)log2(sizey) + 1);
 
     float * imgsmoo = fftwf_alloc_real(sxfft * syfft);
+    for (unsigned int i = 0; i < sxfft * syfft; ++i){
+        imgsmoo[i] = 0;
+    }
     for (unsigned int i = 0; i < nbmes2; ++i)
     {
         float val = imgmes[i];
@@ -1527,6 +1533,10 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
 
     fftwf_execute(pbackw);
 
+    fftwf_destroy_plan(pforw1);
+    fftwf_destroy_plan(pforw2);
+    fftwf_destroy_plan(pbackw);
+
 #if DISPLAY_PLOTS == 1
     plot_image(sxfft, syfft, imgsmoo, "smoothimg.png", PLOT_RESCALE);
 #endif // DISPLAY_PLOTS == 1
@@ -1542,6 +1552,7 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
                 imgccmpf[j + i * sizey] = 1;
             } else {
                 imgccmp[j + i * sizey] = 0;
+                imgccmpf[j + i * sizey] = 0;
             }
         }
     }
@@ -1553,9 +1564,13 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     ccomp_dec ccdec = aggregate(imgccmp, imgdil, sizey, sizex);
 
     free(imgdil);
+    free(imgccmp);
+    free(imgccmpf);
     fftwf_free(out1);
     fftwf_free(out2);
     fftwf_free(imgsmoo);
+
+    fftwf_cleanup();
 
     return ccdec;
 }
@@ -1590,7 +1605,6 @@ void smoothen_noise(float * img)
     int sysmoo = nbmesy + SIZESMOOTH;
 
     float * img2 = fftwf_alloc_real(sxsmoo * sysmoo);
-    float * img3 = fftwf_alloc_real(sxsmoo * sysmoo);
     float * imgmean = fftwf_alloc_real(sxsmoo * sysmoo);
     float * imgker;
 
@@ -1636,6 +1650,10 @@ void smoothen_noise(float * img)
 
     fftwf_execute(pbackw);
 
+    fftwf_destroy_plan(pforw1);
+    fftwf_destroy_plan(pforw2);
+    fftwf_destroy_plan(pbackw);
+
 #if DISPLAY_PLOTS == 1
     plot_image(sxsmoo, sysmoo, img2, "asmooth.png", PLOT_RESCALE);
 #endif // DISPLAY_PLOTS == 1
@@ -1651,16 +1669,16 @@ void smoothen_noise(float * img)
     fftwf_free(out1);
     fftwf_free(out2);
     fftwf_free(img2);
-    fftwf_free(img3);
-    fftwf_free(imgmean);
     fftwf_free(imgker);
 
-    for (unsigned int i = 0; i < NBMESY; ++i) {
-        for (unsigned int j = 0; j < NBMESX; ++j){
-            int ind = i + sker / 2 + (j + sker / 2) * nbmesy;
+    for (unsigned int i = 0; i < NBMESX; ++i) {
+        for (unsigned int j = 0; j < NBMESY; ++j){
+            int ind = j + sker / 2 + (i + sker / 2) * nbmesy;
             img[ind] = imgmean[ind];
         }
     }
+    fftwf_free(imgmean);
+    fftwf_cleanup();
 }
 #endif // SMOOTHEN
 
@@ -1983,7 +2001,7 @@ int main(int argc, char ** argv)
     free(imgker);
     free(imgmes);
     free(imgnoise);
-    free(imgrecons);
+    //free(imgrecons);
     
     return EXIT_SUCCESS;
 }
