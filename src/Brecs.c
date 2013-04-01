@@ -748,8 +748,7 @@ void update_mubeal(float * vbeal, float * abeal,
         /* Compute P_beta */
         vecfloat P_be_A = zero;
         vecfloat P_be_B = zero;
-        for (size_t mu = 0; mu < sker2; mu += SHIFT)
-        {
+        for (size_t mu = 0; mu < sker2; mu += SHIFT) {
             vecfloat a = VFUNC(load_ps) (caA + mu);
             P_be_A = VFUNC(add_ps) (P_be_A, a);
             vecfloat b = VFUNC(load_ps) (caB + mu);
@@ -765,8 +764,7 @@ void update_mubeal(float * vbeal, float * abeal,
         const vecfloat rPF = VFUNC(set1_ps) (rat * P_be_F[k]);
 
         /* Compute mu_beal */
-        for (size_t mu = 0; mu < sker2; mu += SHIFT)
-        {
+        for (size_t mu = 0; mu < sker2; mu += SHIFT) {
             vecfloat cC = VFUNC(load_ps) (caA + mu);
             cC = VFUNC(sub_ps) (P_be_A, cC);
             vecfloat cD = VFUNC(load_ps) (caB + mu);
@@ -774,9 +772,6 @@ void update_mubeal(float * vbeal, float * abeal,
 
             VFUNC(store_ps) (cbA + mu, cC);
             VFUNC(store_ps) (cbB + mu, cD);
-
-            vecfloat maA = VFUNC(load_ps) (caA + mu);
-            vecfloat maB = VFUNC(load_ps) (caB + mu);
 
             cC = VFUNC(add_ps) (rPE, cC);
             cC = VFUNC(div_ps) (one, cC);
@@ -806,15 +801,25 @@ float update_pbe(float * P_be_E, float * P_be_F,
     float errvartot = 0;
     for (unsigned int k = 0; k < nbact; ++k)
     {
-        float PEt = 0;
-        float PFt = 0;
         float * cA = P_albe_A + k * sker2;
         float * cB = P_albe_B + k * sker2;
-        for (size_t mu = 0; mu < sker2; ++mu)
+
+        vecfloat vPEt = VFUNC(set1_ps) (0);
+        vecfloat vPFt = VFUNC(set1_ps) (0);
+        for (size_t mu = 0; mu < sker2; mu += SHIFT)
         {
-            PEt += cA[mu];
-            PFt += cB[mu];
+            vecfloat e = VFUNC(load_ps) (cA + mu);
+            vPEt = VFUNC(add_ps) (vPEt, e);
+            vecfloat f = VFUNC(load_ps) (cB + mu);
+            vPFt = VFUNC(add_ps) (vPFt, f);
         }
+        vPEt = sumh_ps(vPEt);
+        vPFt = sumh_ps(vPFt);
+        float tmp[SHIFT];
+        VFUNC(storeu_ps) (tmp, vPEt);
+        float PEt = tmp[0];
+        VFUNC(storeu_ps) (tmp, vPFt);
+        float PFt = tmp[0];
 
         if (PFt < 0) PFt = 0;
 
