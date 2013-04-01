@@ -108,17 +108,17 @@
 #  define NBMESX 128
 #  define NBMESY 128
 #  define SIZEPIX 100.0
-#  define DAMP 0.1
-#  define NOISEBACK 4000
+#  define DAMP 0.020
+#  define NOISEBACK 5000
 #  define MEANBACK 150
 #  define SIGPSF 0.9545
 #  define DEFOCUS 1.0 /* the 1.1 is for defocus */
 #  define AINITPFACT 10.0
-#  define NBITER 600
+#  define NBITER 1000
 #  define THRPOINT 2000
 #  define BETA 1.0 /* inverse temperature for inference */
 #  define PIXTHR 200
-#  define THRCONV 1e-4
+#  define THRCONV 1e-3
 #  define KERNEL 1
 #  define SMOOTHEN 1
 #  define SMOOTHEN_RAD 8

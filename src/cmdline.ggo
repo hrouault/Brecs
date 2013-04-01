@@ -34,3 +34,6 @@ option "frame" n "Picture number in the file (for raw images)"
 
 option "filename" f "Filename of the image"
            string typestr="str" required
+
+option "output" o "Raw output image"
+           string typestr="str" optional

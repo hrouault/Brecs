@@ -61,7 +61,6 @@ struct gengetopt_args_info brecs_args;
 const float pixmean = PIXMEAN;
 double pixstd = PIXSTD;
 double rho = RHO;
-float thrA = AINITPFACT / (PIXMEAN * PIXMEAN);
 
 const float pixthr = PIXTHR;
 
@@ -85,7 +84,7 @@ const int nbmesy = NBMESY + SKER;
 const int nbmes2 = (NBMESX + SKER) * (NBMESY + SKER);
 
 const int nbintern = 1;
-const float damp = DAMP;
+float damp = DAMP;
 float noiseback = NOISEBACK;
 
 /* Properties of the psf */
@@ -585,19 +584,16 @@ static inline vecfloat sumh_ps(vecfloat x) {
     return tmp;
 }
 
-float update_Palbe(afloat * restrict mu_beal_A, afloat * restrict mu_beal_B,
-                   afloat * restrict P_albe_A, afloat * restrict P_albe_B,
-                   afloat * restrict abeal, afloat * restrict vbeal,
-                   afloat * restrict P_be_E, afloat * restrict P_be_F,
-                   afloat * restrict omegamu, afloat * restrict vmu,
-                   afloat * restrict ker, afloat * restrict ker2,
-                   afloat * restrict imgnoise, afloat * restrict imgmes,
-                   int nbact, int * activepix)
+void update_Palbe(afloat * restrict mu_beal_A, afloat * restrict mu_beal_B,
+                  afloat * restrict P_albe_A, afloat * restrict P_albe_B,
+                  afloat * restrict abeal, afloat * restrict vbeal,
+                  afloat * restrict omegamu, afloat * restrict vmu,
+                  afloat * restrict ker, afloat * restrict ker2,
+                  afloat * restrict imgnoise, afloat * restrict imgmes,
+                  int nbact, int * activepix)
 {
-    float rat = ((float)sker2 - 1) / sker2;
     const vecfloat zero = VFUNC(set1_ps) (0);
     const vecfloat one = VFUNC(set1_ps) (1.0);
-    vecfloat relerr = zero;
 
     update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, nbact, activepix);
 
@@ -622,9 +618,6 @@ float update_Palbe(afloat * restrict mu_beal_A, afloat * restrict mu_beal_B,
 
         float * cker = ker + ikeri * sker2;
         float * cker2 = ker2 + ikeri * sker2;
-
-        const vecfloat rPE = VFUNC(set1_ps) (rat * P_be_E[k]);
-        const vecfloat rPF = VFUNC(set1_ps) (rat * P_be_F[k]);
 
         for (int mu = 0; mu < sker2; mu += SHIFT)
         {
@@ -656,77 +649,42 @@ float update_Palbe(afloat * restrict mu_beal_A, afloat * restrict mu_beal_B,
             bnum = VFUNC(mul_ps) (bnum, k);
 
             vecfloat valA = VFUNC(mul_ps) (k2, den);
-            valA = VFUNC(add_ps) (valA, rPE);
             vecfloat ibA = VFUNC(load_ps) (cbA + mu);
             valA = VFUNC(add_ps) (valA, ibA);
-
-            /*
-               vecfloat c = VFUNC(load_ps) (cPA + mu);
-               vecfloat n = VFUNC(sub_ps) (valA, c);
-               vecfloat d = VFUNC(add_ps) (valA, c);
-               n = VFUNC(div_ps) (n, d);
-               vecfloat errt = abs_ps(n);
-               relerr = VFUNC(max_ps) (relerr, errt);
-               */
 
             VFUNC(store_ps) (cPA + mu, valA);
 
             vecfloat valB = VFUNC(mul_ps) (bnum, den);
-            valB = VFUNC(add_ps) (valB, rPF);
             vecfloat ibB = VFUNC(load_ps) (cbB + mu);
             valB = VFUNC(add_ps) (valB, ibB);
-
-            /*
-               c = VFUNC(load_ps) (cPB + mu);
-               d = VFUNC(add_ps) (valB, c);
-               d = VFUNC(max_ps) (epserr, n);
-               n = VFUNC(sub_ps) (valB, c);
-               errt = VFUNC(div_ps) (n, d);
-               errt = abs_ps(errt);
-               relerr = VFUNC(max_ps) (relerr, errt);
-               */
-
-            valB = VFUNC(max_ps) (zero, valB);
 
             VFUNC(store_ps) (cPB + mu, valB);
         }
     }
-    /*
-    float relerrf4[4] __attribute__ ((aligned (16)));
-    _mm_store_ps(relerrf4, relerr);
-    if (relerrf4[1] > relerrf4[0]) relerrf4[0] = relerrf4[1];
-    if (relerrf4[2] > relerrf4[0]) relerrf4[0] = relerrf4[2];
-    if (relerrf4[3] > relerrf4[0]) relerrf4[0] = relerrf4[3];
-    */
-
-    return 0;
 }
 
-double update_mualbe(float * mu_albe_A, float * mu_albe_B,
-                     float * mu_beal_A, float * mu_beal_B,
-                     float * P_albe_A, float * P_albe_B,
-                     float * abeal, float * vbeal,
-                     float * P_be_E, float * P_be_F,
-                     float * omegamu, float * vmu,
-                     float * ker, float * ker2,
-                     float * imgnoise, float * imgmes,
-                     int nbact, int * activepix)
+void update_mualbe(float * mu_albe_A, float * mu_albe_B,
+                   float * mu_beal_A, float * mu_beal_B,
+                   float * P_albe_A, float * P_albe_B,
+                   float * abeal, float * vbeal,
+                   float * omegamu, float * vmu,
+                   float * ker, float * ker2,
+                   float * imgnoise, float * imgmes,
+                   int nbact, int * activepix)
 {
-    float relerr = update_Palbe(mu_beal_A, mu_beal_B,
-                                P_albe_A, P_albe_B,
-                                abeal, vbeal,
-                                P_be_E, P_be_F,
-                                omegamu, vmu,
-                                ker, ker2,
-                                imgnoise, imgmes,
-                                nbact, activepix);
+    update_Palbe(mu_beal_A, mu_beal_B,
+                 P_albe_A, P_albe_B,
+                 abeal, vbeal,
+                 omegamu, vmu,
+                 ker, ker2,
+                 imgnoise, imgmes,
+                 nbact, activepix);
 
+    const vecfloat zero = VFUNC(set1_ps) (0);
+    const vecfloat thrB = VFUNC(set1_ps) (1e2);
+    const vecfloat oneosk = VFUNC(set1_ps) (1.0f / sker2);
     for (unsigned int k = 0; k < nbact; ++k)
     {
-        const vecfloat zero = VFUNC(set1_ps) (0);
-        const vecfloat vthr = VFUNC(set1_ps) (thrA);
-        const vecfloat vthr2 = VFUNC(set1_ps) (1e2);
-        const vecfloat oneosk = VFUNC(set1_ps) (1.0f / sker2);
         vecfloat PAt = VFUNC(set1_ps) (0);
         vecfloat PBt = VFUNC(set1_ps) (0);
 
@@ -748,8 +706,6 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
         PAt = VFUNC(mul_ps ) (PAt, oneosk);
         PBt = VFUNC(mul_ps ) (PBt, oneosk);
 
-        PBt = VFUNC(max_ps) (zero, PBt);
-
         for (int mu = 0; mu < sker2; mu += SHIFT)
         {
             vecfloat A = VFUNC(load_ps) (cPA + mu);
@@ -763,16 +719,10 @@ double update_mualbe(float * mu_albe_A, float * mu_albe_B,
             A = VFUNC(add_ps) (A, maA);
             B = VFUNC(add_ps) (B, maB);
 
-            B = VFUNC(max_ps) (vthr, A);
-            B = VFUNC(min_ps) (vthr2, B);
-            B = VFUNC(max_ps) (zero, B);
-
             VFUNC(store_ps) (caA + mu, A);
             VFUNC(store_ps) (caB + mu, B);
         }
     }
-
-    return relerr;
 }
 
 void update_mubeal(float * vbeal, float * abeal,
@@ -811,8 +761,6 @@ void update_mubeal(float * vbeal, float * abeal,
         P_be_A = VFUNC(mul_ps ) (P_be_A, oneosk);
         P_be_B = VFUNC(mul_ps ) (P_be_B, oneosk);
 
-        P_be_B = VFUNC(max_ps ) (P_be_B, zero);
-
         const vecfloat rPE = VFUNC(set1_ps) (rat * P_be_E[k]);
         const vecfloat rPF = VFUNC(set1_ps) (rat * P_be_F[k]);
 
@@ -823,8 +771,6 @@ void update_mubeal(float * vbeal, float * abeal,
             cC = VFUNC(sub_ps) (P_be_A, cC);
             vecfloat cD = VFUNC(load_ps) (caB + mu);
             cD = VFUNC(sub_ps) (P_be_B, cD);
-
-            cD = VFUNC(max_ps) (zero, cD);
 
             VFUNC(store_ps) (cbA + mu, cC);
             VFUNC(store_ps) (cbB + mu, cD);
@@ -846,11 +792,6 @@ void update_mubeal(float * vbeal, float * abeal,
 
 float update_pbe(float * P_be_E, float * P_be_F,
                  float * P_albe_A, float * P_albe_B,
-                 float * abeal, float * vbeal,
-                 float * omegamu, float * vmu,
-                 float * mu_beal_A, float * mu_beal_B,
-                 float * ker, float * ker2,
-                 float * imgnoise, float * imgmes,
                  int nbact, int * activepix,
                  int iterpbe)
 {
@@ -860,81 +801,67 @@ float update_pbe(float * P_be_E, float * P_be_F,
      * should not make a difference at convergence.
      */
     float relerr = 0.0;
-    //while (relerr > 5e-2)
-    //for (size_t iter = 0; iter < iterpbe; ++iter)
-    //{
     int nberr = 0;
     float errmeantot = 0;
     float errvartot = 0;
-    int posprob = -1;
     for (unsigned int k = 0; k < nbact; ++k)
     {
-        float avA = 0;
-        float avB = 0;
+        float PEt = 0;
+        float PFt = 0;
         float * cA = P_albe_A + k * sker2;
         float * cB = P_albe_B + k * sker2;
         for (size_t mu = 0; mu < sker2; ++mu)
         {
-            avA += cA[mu];
-            avB += cB[mu];
+            PEt += cA[mu];
+            PFt += cB[mu];
         }
 
-        float PEt = avA  - (sker2 - 1) * P_be_E[k];
-        float PFt = avB  - (sker2 - 1) * P_be_F[k];
-        if (PEt < 1e-8){
-            PEt = 1e-8;
-            PFt = 0;
-        }
         if (PFt < 0) PFt = 0;
 
+        if (P_be_E[k] < 1e-7) P_be_E[k] = 1e-7;
         float prevPbE = P_be_E[k];
         float prevPbF = P_be_F[k];
-
-        if (PEt / prevPbE < 0.01){
-            //printf("bigchange! PEt prevPEt: %f %f\n", PEt, prevPbE);
-            PEt = prevPbE * 0.01;
-            /*
-            printf("avA, sker2 PBE: %f %f\n", avA, (sker2 - 1) * P_be_E[k]);
-            for (size_t mu = 0; mu < sker2; ++mu)
-            {
-                printf("%f\n", cA[mu]);
-            }
-            exit(EXIT_FAILURE);
-            */
-        }
 
         float fafc[2];
         fafcfunc(fafc, 1 / PEt, PFt / PEt);
 
+        //if (fafc[1] > 1 && fafc[1] * prevPbE > 1.2) fafc[1] = 1.2 / prevPbE;
+        //if (fafc[1] > 1 && fafc[1] * prevPbE < 0.2) fafc[1] = 0.2 / prevPbE;
+        //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF > 1.2) fafc[0] = 1.2 * prevPbF / prevPbE;
+        //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF < 0.2) fafc[0] = 0.2 * prevPbF / prevPbE;
 
+        damp = 0.05;
         float invE = (1 - damp) / P_be_E[k] + damp * fafc[1];
-        P_be_E[k]= 1/ invE;
+        P_be_E[k]= 1 / invE;
+        damp = 0.15;
         P_be_F[k] = (1 - damp) * P_be_F[k] / invE / prevPbE
             + damp * fafc[0] / invE;
 
         float var = invE;
         float mean = P_be_F[k] * invE;
         float oldvar = 1 / prevPbE;
-        float errvar = fabsf(var - oldvar) / (var + oldvar);
-        float errmean = fabsf(P_be_F[k] - prevPbF) / (P_be_F[k] + prevPbF);
-        if (errvar > relerr){
+        float errvar = fabsf(fafc[1] - 1 / prevPbE) / (fafc[1] + 1 / prevPbE);
+        float errmean = fabsf(fafc[0] - prevPbF / prevPbE) / (fafc[0] + prevPbF / prevPbE);
+        if (errvar > relerr && fafc[1] > 10){
             relerr = errvar;
         }
         if (errmean > relerr && fafc[0] > 1){
             relerr = errmean;
-            posprob = k;
         }
-        if (errvar > errvartot && fafc[1] > 1){
+        if (errvar > errvartot && fafc[1] > 10){
             errvartot = errvar;
         }
-        if (errmean > errmeantot && fafc[0] > 10){
+        if (errmean > errmeantot && fafc[0] > 1){
             errmeantot = errmean;
         }
-        if ((errvar > 0.05 && fafc[1] > 1) || (errmean > 0.05 && fafc[0] > 10)){
+        if ((errvar > 0.05 && fafc[1] > 1) || (errmean > 0.05 && fafc[0] > 1)){
             nberr++;
         }
         //printf("%f %f %f\n", relerr, errmeantot, errvartot);
     }
+    //if (relerr < 0.05) damp = 0.1;
+    //else damp = DAMP;
+
 #if PRINT_ERRS == 1
     printf("nberr, errmean, errvar: %i %f %f\n", nberr, errmeantot, errvartot);
 #endif // PRINT_ERRS
@@ -965,10 +892,10 @@ float * gausskerpar(int sx, int sy, float radius)
             out[col + line * sy] = val;
         }
     }
-
     return out;
 }
 
+int nbconv;
 
 float * recons_ccomp(float * imgmes, float * imgnoise,
                      int * activepix, int nbact,
@@ -1017,8 +944,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     posix_memalign((void **)&ker, ALIGNSIZE, smes3 * sker2 * sizeof(float));
     posix_memalign((void **)&ker2, ALIGNSIZE, smes3 * sker2 * sizeof(float));
 
-    posix_memalign((void **)&res, ALIGNSIZE, size2 * sizeof(float));
-
     /* Initialize kernels */
     init_kernels(ker, ker2, psf);
     /*
@@ -1065,7 +990,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                     mu_beal_A, mu_beal_B,
                     P_albe_A, P_albe_B,
                     abeal, vbeal,
-                    P_be_E, P_be_F,
                     omegamu, vmu,
                     ker, ker2,
                     imgnoise, imgmes,
@@ -1079,17 +1003,11 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
 
         relerr = update_pbe(P_be_E, P_be_F,
                             P_albe_A, P_albe_B,
-                            abeal, vbeal,
-                            omegamu, vmu,
-                            mu_beal_A, mu_beal_B,
-                            ker, ker2,
-                            imgnoise, imgmes,
                             nbact, activepix,
                             iterpbe);
 
 #if DISPLAY_OVERLAY_ITER == 1
         /* Build result */
-        float * res;
         posix_memalign((void **)&res, ALIGNSIZE, size2 * sizeof(float));
         for (int i = 0; i < size2; ++i)
         {
@@ -1110,6 +1028,9 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
 #endif // DISPLAY_OVERLAY_ITER
         //printf("iteration, relerr: %i, %f\n", iter, relerr); 
     }
+    if (relerr < 1.1 * THRCONV) nbconv++;
+
+    posix_memalign((void **)&res, ALIGNSIZE, size2 * sizeof(float));
 
     for (int i = 0; i < size2; ++i) {
         res[i] = 0;
@@ -1133,7 +1054,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                    nbfluo,
                    nbframe,
                    (c - sker / 2 * smes) * spix + spix / 2,
-                   //l * spix + 64 * 8 * spix + spix / 2,
                    (l - sker / 2 * smes) * spix + spix / 2,
                    0.00,
                    res[i]);
@@ -1172,11 +1092,23 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
 {
     ccomp_dec ccdec = connectcomp_decomp(imgmes, smes);
 
+    nbconv = 0;
+
+    float * reconspic = malloc(size2 * sizeof(float));
+    for (unsigned int i = 0; i < size2; ++i) {
+        reconspic[i] = 0;
+    }
+
     for (unsigned int i = 0; i < ccdec.nbcomp; ++i)
     {
-        recons_ccomp(imgmes, imgnoise,
-                     ccdec.activepixcomp[i], ccdec.nbact[i],
-                     psf);
+        float * rectmp = recons_ccomp(imgmes, imgnoise,
+                                      ccdec.activepixcomp[i], ccdec.nbact[i],
+                                      psf);
+        for (unsigned int i = 0; i < size2; ++i)
+        {
+            reconspic[i] += rectmp[i];
+        }
+        free(rectmp);
     }
     for (unsigned int i = 0; i < ccdec.nbcomp; ++i)
     {
@@ -1185,6 +1117,21 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     free(ccdec.nbact);
     free(ccdec.coordcomp);
     free(ccdec.imglab);
+
+    if (brecs_args.output_given){
+        FILE * fout = fopen(brecs_args.output_arg, "wb");
+        if (!fout) {
+            fprintf(stderr, "%s: Couldn't open file %s: %s\n",
+                    prog_name, brecs_args.output_arg, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        fwrite(reconspic, sizeof(float), size2, fout);
+        fclose(fout);
+    }
+
+    free(reconspic);
+    //printf("Converged: %i / %i\n", nbconv, ccdec.nbcomp);
+
     return NULL;
 }
 
@@ -1518,6 +1465,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
 
 ccomp_dec connectcomp_decomp(float * imgmes, float radius)
 {
+    damp = DAMP;
     int sxfft = pow(2, (int)log2(sizex) + 1);
     int syfft = pow(2, (int)log2(sizey) + 1);
 
@@ -1558,6 +1506,7 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
 
     fftwf_execute(pforw1);
     fftwf_execute(pforw2);
+    fftwf_free(imgker);
 
     for (unsigned int i = 0; i < sxfft * (syfft / 2 + 1); ++i)
     {
@@ -1602,7 +1551,6 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     fftwf_free(out1);
     fftwf_free(out2);
     fftwf_free(imgsmoo);
-    fftwf_free(imgker);
 
     return ccdec;
 }
