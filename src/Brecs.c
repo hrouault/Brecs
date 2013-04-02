@@ -584,9 +584,9 @@ static inline vecfloat sumh_ps(vecfloat x) {
     return tmp;
 }
 
-void update_Palbe(afloat * mu_beal_A, afloat * mu_beal_B,
-                  afloat * P_albe_A, afloat * P_albe_B,
+void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
                   afloat * abeal, afloat * vbeal,
+                  float * sum_mualbe_A, float * sum_mualbe_B,
                   afloat * omegamu, afloat * vmu,
                   afloat * ker, afloat * ker2,
                   afloat * imgnoise, afloat * imgmes,
@@ -594,19 +594,17 @@ void update_Palbe(afloat * mu_beal_A, afloat * mu_beal_B,
 {
     const vecfloat zero = VFUNC(set1_ps) (0);
     const vecfloat one = VFUNC(set1_ps) (1.0);
+    const vecfloat oneosk = VFUNC(set1_ps) (1.0 / sker2);
 
     update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, nbact, activepix);
 
     for (unsigned int k = 0; k < nbact; ++k)
     {
         int i = activepix[k];
-        float * cbA = mu_beal_A + k * sker2;
-        float * cbB = mu_beal_B + k * sker2;
+        float * caA = mu_albe_A + k * sker2;
+        float * caB = mu_albe_B + k * sker2;
         float * cabeal = abeal + k * sker2;
         float * cvbeal = vbeal + k * sker2;
-        float * cPA = P_albe_A + k * sker2;
-        float * cPB = P_albe_B + k * sker2;
-
 
         int z = i / size2;
         int ci = ((i % size2) % sizey) % smes;
@@ -618,6 +616,12 @@ void update_Palbe(afloat * mu_beal_A, afloat * mu_beal_B,
 
         float * cker = ker + ikeri * sker2;
         float * cker2 = ker2 + ikeri * sker2;
+
+        vecfloat sumvmualA = VFUNC(load_ps) (sum_mualbe_A + k * SHIFT);
+        vecfloat sumvmualB = VFUNC(load_ps) (sum_mualbe_B + k * SHIFT);
+
+        vecfloat sumA = zero;
+        vecfloat sumB = zero;
 
         for (int mu = 0; mu < sker2; mu += SHIFT)
         {
@@ -649,23 +653,32 @@ void update_Palbe(afloat * mu_beal_A, afloat * mu_beal_B,
             bnum = VFUNC(mul_ps) (bnum, k);
 
             vecfloat valA = VFUNC(mul_ps) (k2, den);
-            vecfloat ibA = VFUNC(load_ps) (cbA + mu);
+            vecfloat ibA = VFUNC(load_ps) (caA + mu);
+            ibA = VFUNC(sub_ps) (sumvmualA, ibA);
             valA = VFUNC(add_ps) (valA, ibA);
 
-            VFUNC(store_ps) (cPA + mu, valA);
+            sumA = VFUNC(add_ps) (sumA, valA);
+            VFUNC(store_ps) (cvbeal + mu, valA);
 
             vecfloat valB = VFUNC(mul_ps) (bnum, den);
-            vecfloat ibB = VFUNC(load_ps) (cbB + mu);
+            vecfloat ibB = VFUNC(load_ps) (caB + mu);
+            ibB = VFUNC(sub_ps) (sumvmualB, ibB);
             valB = VFUNC(add_ps) (valB, ibB);
 
-            VFUNC(store_ps) (cPB + mu, valB);
+            sumB = VFUNC(add_ps) (sumB, valB);
+            VFUNC(store_ps) (cabeal + mu, valB);
         }
+        sumA = sumh_ps(sumA);
+        sumB = sumh_ps(sumB);
+        sumA = VFUNC(mul_ps ) (sumA, oneosk);
+        sumB = VFUNC(mul_ps ) (sumB, oneosk);
+
+        VFUNC(store_ps) (sum_mualbe_A + k * SHIFT, sumA);
+        VFUNC(store_ps) (sum_mualbe_B + k * SHIFT, sumB);
     }
 }
 
 void update_mualbe(float * mu_albe_A, float * mu_albe_B,
-                   float * mu_beal_A, float * mu_beal_B,
-                   float * P_albe_A, float * P_albe_B,
                    float * sum_mualbe_A, float * sum_mualbe_B,
                    float * abeal, float * vbeal,
                    float * omegamu, float * vmu,
@@ -673,39 +686,25 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
                    float * imgnoise, float * imgmes,
                    int nbact, int * activepix)
 {
-    update_Palbe(mu_beal_A, mu_beal_B,
-                 P_albe_A, P_albe_B,
+    update_Palbe(mu_albe_A, mu_albe_B,
                  abeal, vbeal,
+                 sum_mualbe_A, sum_mualbe_B,
                  omegamu, vmu,
                  ker, ker2,
                  imgnoise, imgmes,
                  nbact, activepix);
 
     const vecfloat zero = VFUNC(set1_ps) (0);
-    const vecfloat thrB = VFUNC(set1_ps) (1e2);
     const vecfloat oneosk = VFUNC(set1_ps) (1.0f / sker2);
     for (unsigned int k = 0; k < nbact; ++k)
     {
-        vecfloat PAt = VFUNC(set1_ps) (0);
-        vecfloat PBt = VFUNC(set1_ps) (0);
-
         float * caA = mu_albe_A + k * sker2;
         float * caB = mu_albe_B + k * sker2;
-        float * cPA = P_albe_A + k * sker2;
-        float * cPB = P_albe_B + k * sker2;
+        float * cPA = vbeal + k * sker2;
+        float * cPB = abeal + k * sker2;
 
-        for (int mu = 0; mu < sker2; mu += SHIFT)
-        {
-            vecfloat v = VFUNC(load_ps) (cPA + mu);
-            PAt = VFUNC(add_ps) (PAt, v);
-            v = VFUNC(load_ps) (cPB + mu);
-            PBt = VFUNC(add_ps) (PBt, v);
-        }
-        PAt = sumh_ps(PAt);
-        PBt = sumh_ps(PBt);
-
-        PAt = VFUNC(mul_ps ) (PAt, oneosk);
-        PBt = VFUNC(mul_ps ) (PBt, oneosk);
+        vecfloat PAt = VFUNC(load_ps) (sum_mualbe_A + k * SHIFT);
+        vecfloat PBt = VFUNC(load_ps) (sum_mualbe_B + k * SHIFT);
 
         vecfloat sumA = zero;
         vecfloat sumB = zero;
@@ -739,7 +738,6 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
 }
 
 void update_mubeal(float * vbeal, float * abeal,
-                   float * mu_beal_A, float * mu_beal_B,
                    float * mu_albe_A, float * mu_albe_B,
                    float * P_be_E, float * P_be_F,
                    float * sum_mualbe_A, float * sum_mualbe_B,
@@ -752,8 +750,6 @@ void update_mubeal(float * vbeal, float * abeal,
     {
         float * caA = mu_albe_A + k * sker2;
         float * caB = mu_albe_B + k * sker2;
-        float * cbA = mu_beal_A + k * sker2;
-        float * cbB = mu_beal_B + k * sker2;
         float * cabeal = abeal + k * sker2;
         float * cvbeal = vbeal + k * sker2;
 
@@ -770,9 +766,6 @@ void update_mubeal(float * vbeal, float * abeal,
             cC = VFUNC(sub_ps) (P_be_A, cC);
             vecfloat cD = VFUNC(load_ps) (caB + mu);
             cD = VFUNC(sub_ps) (P_be_B, cD);
-
-            VFUNC(store_ps) (cbA + mu, cC);
-            VFUNC(store_ps) (cbB + mu, cD);
 
             cC = VFUNC(add_ps) (rPE, cC);
             cC = VFUNC(div_ps) (one, cC);
@@ -843,9 +836,6 @@ float update_pbe(float * P_be_E, float * P_be_F,
         P_be_F[k] = (1 - damp) * P_be_F[k] / invE / prevPbE
             + damp * fafc[0] / invE;
 
-        float var = invE;
-        float mean = P_be_F[k] * invE;
-        float oldvar = 1 / prevPbE;
         float errvar = fabsf(fafc[1] - 1 / prevPbE) / (fafc[1] + 1 / prevPbE);
         float errmean = fabsf(fafc[0] - prevPbF / prevPbE) / (fafc[0] + prevPbF / prevPbE);
         if (errvar > relerr && fafc[1] > 10){
@@ -911,8 +901,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     float * mu_albe_B;
     float * mu_beal_A;
     float * mu_beal_B;
-    float * P_albe_A;
-    float * P_albe_B;
     float * sum_mualbe_A;
     float * sum_mualbe_B;
     float * abeal;
@@ -938,14 +926,14 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                    nbact * sker2 * sizeof(float));
     posix_memalign((void **)&mu_beal_B, ALIGNSIZE,
                    nbact * sker2 * sizeof(float));
-    P_albe_A = mu_beal_A; 
-    P_albe_B = mu_beal_B; 
+    vbeal = mu_beal_A; 
+    abeal = mu_beal_B; 
     //posix_memalign((void **)&P_albe_A, ALIGNSIZE,
     //               nbact * sker2 * sizeof(float));
     //posix_memalign((void **)&P_albe_B, ALIGNSIZE,
     //               nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&abeal, ALIGNSIZE, nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&vbeal, ALIGNSIZE, nbact * sker2 * sizeof(float));
+    //posix_memalign((void **)&abeal, ALIGNSIZE, nbact * sker2 * sizeof(float));
+    //posix_memalign((void **)&vbeal, ALIGNSIZE, nbact * sker2 * sizeof(float));
     posix_memalign((void **)&P_be_E, ALIGNSIZE, nbact * sizeof(float));
     posix_memalign((void **)&P_be_F, ALIGNSIZE, nbact * sizeof(float));
     posix_memalign((void **)&sum_mualbe_A, ALIGNSIZE, nbact * SHIFT * sizeof(float));
@@ -972,8 +960,8 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     for (unsigned int i = 0; i < nbact * sker2; ++i) {
         mu_albe_A[i] = Ainit;
         mu_albe_B[i] = Binit;
-        P_albe_A[i] = Ainit;
-        P_albe_B[i] = Binit;
+        vbeal[i] = Ainit;
+        abeal[i] = Binit;
     }
     vecfloat vAinit = VFUNC(set1_ps) (Ainit);
     vecfloat vBinit = VFUNC(set1_ps) (Binit);
@@ -998,15 +986,12 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
         for (unsigned int j = 0; j < nbintern; ++j)
         {
             update_mubeal(vbeal, abeal,
-                    mu_beal_A, mu_beal_B,
                     mu_albe_A, mu_albe_B,
                     P_be_E, P_be_F,
                     sum_mualbe_A, sum_mualbe_B,
                     nbact, activepix);
 
             update_mualbe(mu_albe_A, mu_albe_B,
-                    mu_beal_A, mu_beal_B,
-                    P_albe_A, P_albe_B,
                     sum_mualbe_A, sum_mualbe_B,
                     abeal, vbeal,
                     omegamu, vmu,
@@ -1021,7 +1006,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
         int iterpbe = 1;
 
         relerr = update_pbe(P_be_E, P_be_F,
-                            P_albe_A, P_albe_B,
+                            vbeal, abeal,
                             nbact, activepix,
                             iterpbe);
 
@@ -1092,10 +1077,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     free(mu_albe_B);
     free(mu_beal_A);
     free(mu_beal_B);
-    //free(P_albe_A);
-    //free(P_albe_B);
-    free(abeal);
-    free(vbeal);
     free(P_be_E);
     free(P_be_F);
     free(sum_mualbe_A);
@@ -1263,11 +1244,11 @@ lab_t * roundker(int diam)
     lab_t * ker = malloc(diam * diam * sizeof(lab_t));
     for (size_t i = 0; i < diam; i++) {
         for (size_t j = 0; j < diam; j++) {
-            int x = j - diam / 2;
-            int y = i - diam / 2;
+            int x = j - center;
+            int y = i - center;
             float rad2 = x * x + y * y;
             int ind = j + i * diam;
-            if (rad2 < diam * diam / 4){
+            if (rad2 < center * center){
                 ker[ind] = 1;
             } else {
                 ker[ind] = 0;
@@ -1349,7 +1330,6 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
 {
     ccomp_dec ccdec;
     lab_t labs[MAX_LABEL];
-    lab_t neighblab[4];
 
     lab_t * imglabs = malloc(width * height * sizeof(lab_t));
     

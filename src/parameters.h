@@ -112,7 +112,7 @@
 #  define NOISEBACK 5000
 #  define MEANBACK 150
 #  define SIGPSF 0.9545
-#  define DEFOCUS 1.0 /* the 1.1 is for defocus */
+#  define DEFOCUS 1.1 /* the 1.1 is for defocus */
 #  define AINITPFACT 10.0
 #  define NBITER 1000
 #  define THRPOINT 2000
