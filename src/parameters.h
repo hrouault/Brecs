@@ -220,8 +220,8 @@
 #  define SIZEZ 4
 // DATASET 7 (LS_3 in ISBI contest)
 #elif DATASET == 7
-#  define PIXMEAN 3500
-#  define PIXSTD 250
+#  define PIXMEAN 2000
+#  define PIXSTD 200
 #  define RHO 0.001
 #  define SKER 16 /* has to be a multiple of 4 to use sse */
 #  define SMES 4
@@ -229,21 +229,23 @@
 #  define NBMESY 200
 #  define SIZEPIX 100.0
 #  define SIZEPIXZ 333.0
-#  define DAMP 0.05
-#  define NOISEBACK 200
-#  define MEANBACK 109.0
+#  define DAMP 0.01
+#  define NOISEBACK 150
+#  define MEANBACK 108.0
 #  define AINITPFACT 10.0
-#  define NBITER 300
+#  define NBITER 1500
 #  define THRPOINT 1000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 20
+#  define BETA 1 /* inverse temperature for inference */
+#  define PIXTHR 16
 #  define THRCONV 1e-3
 #  define KERNEL 2
-#  define SMOOTHEN 0
+#  define SMOOTHEN 1
+#  define SMOOTHEN_RAD 12
+#  define SMOOTHEN_THR 20
 #  define SIZESMOOTH 0
 #  define GIBSSIZE 129
-#  define GIBSFRAME 6
-#  define SIZEZ 4
+#  define GIBSFRAME 0
+#  define SIZEZ 11
 // DATASET 10 (Clathrin coated pits)
 #elif DATASET == 10
 #  define PIXMEAN 3000

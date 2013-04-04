@@ -277,7 +277,6 @@ void plot_imagergb(int sx, int sy,
 #if KERNEL == 2
 const int gibssize = GIBSSIZE;
 const int gibssize2 = GIBSSIZE * GIBSSIZE;
-const int gibsframe = GIBSFRAME;
 void loadgibson(float * ker)
 {
     float * img;
@@ -305,7 +304,9 @@ void loadgibson(float * ker)
     {
         ker[i] = 0;
     }
-    //plot_image(gibssize, gibssize, img, "imgfromstack.png", plot_rescale);
+#if DISPLAY_PLOTS == 1
+    plot_image(gibssize, gibssize, img, "imgfromstack.png", PLOT_RESCALE);
+#endif // DISPLAY_PLOTS
 
     for (unsigned int z = 0; z < sizez; ++z) {
         for (int x = 0; x < gibssize ; ++x)
@@ -498,8 +499,8 @@ void init_kernels(float * ker, float * ker2,
 
                 sum += psf[cci + sizey * cli + z * size2];
             }
-            int cker = j % smes;
-            int lker = j / smes;
+            int cker = j % sker;
+            int lker = j / sker;
             int indmu = cker + sker * lker;
             ker[indmu + i * sker2] = sum;
             ker2[indmu + i * sker2] = sum * sum;
@@ -829,10 +830,10 @@ float update_pbe(float * P_be_E, float * P_be_F,
         //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF > 1.2) fafc[0] = 1.2 * prevPbF / prevPbE;
         //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF < 0.2) fafc[0] = 0.2 * prevPbF / prevPbE;
 
-        damp = 0.05;
+        damp = 0.03;
         float invE = (1 - damp) / P_be_E[k] + damp * fafc[1];
         P_be_E[k]= 1 / invE;
-        damp = 0.15;
+        damp = 0.12;
         P_be_F[k] = (1 - damp) * P_be_F[k] / invE / prevPbE
             + damp * fafc[0] / invE;
 
@@ -1034,32 +1035,31 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     }
     if (relerr < 1.1 * THRCONV) nbconv++;
 
-    posix_memalign((void **)&res, ALIGNSIZE, size2 * sizeof(float));
+    posix_memalign((void **)&res, ALIGNSIZE, size3 * sizeof(float));
 
-    for (int i = 0; i < size2; ++i) {
+    for (int i = 0; i < size3; ++i) {
         res[i] = 0;
     }
-    for (unsigned int k = 0; k < nbact; ++k)
-    {
-        int i = activepix[k];
-        int ixy = activepix[k] % size2;
-        int z = i / size2;
-
-        float val = P_be_F[k] / P_be_E[k];
-        res[ixy] += val;
+    if (relerr < 1.1 * THRCONV){
+        for (unsigned int k = 0; k < nbact; ++k)
+        {
+            float val = P_be_F[k] / P_be_E[k];
+            res[activepix[k]] = val;
+        }
     }
     int nbfluo = 1;
-    for (int i = 0; i < size2; ++i)
+    for (int i = 0; i < size3; ++i)
     {
-        int c = i % sizey;
-        int l = i / sizey;
+        int c = (i % size2) % sizey;
+        int l = (i % size2) / sizey;
+        int z = i / size2;
         if (res[i] > thrpoint){
             printf("%d %d %.2f %.2f %.2f %.2f\n",
                    nbfluo,
                    nbframe,
                    (c - sker / 2 * smes) * spix + spix / 2,
                    (l - sker / 2 * smes) * spix + spix / 2,
-                   0.00,
+                   z * SIZEPIXZ,
                    res[i]);
             nbfluo++;
         }
@@ -1096,8 +1096,8 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
 
     nbconv = 0;
 
-    float * reconspic = malloc(size2 * sizeof(float));
-    for (unsigned int i = 0; i < size2; ++i) {
+    float * reconspic = malloc(size3 * sizeof(float));
+    for (unsigned int i = 0; i < size3; ++i) {
         reconspic[i] = 0;
     }
 
@@ -1106,14 +1106,12 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
         float * rectmp = recons_ccomp(imgmes, imgnoise,
                                       ccdec.activepixcomp[i], ccdec.nbact[i],
                                       psf);
-        for (unsigned int i = 0; i < size2; ++i)
-        {
+        for (unsigned int i = 0; i < size3; ++i) {
             reconspic[i] += rectmp[i];
         }
         free(rectmp);
     }
-    for (unsigned int i = 0; i < ccdec.nbcomp; ++i)
-    {
+    for (unsigned int i = 0; i < ccdec.nbcomp; ++i) {
         free(ccdec.activepixcomp[i]);
     }
     free(ccdec.nbact);
@@ -1128,7 +1126,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
                     prog_name, brecs_args.output_arg, strerror(errno));
             exit(EXIT_FAILURE);
         }
-        fwrite(reconspic, sizeof(float), size2, fout);
+        fwrite(reconspic, sizeof(float), size3, fout);
         fclose(fout);
     }
 
@@ -1391,8 +1389,8 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
     for (unsigned int i = 0; i < lastlab; ++i) {
         if (labs[i] > clab2){
             clab2 = labs[i];
-            labs[i] = clab;
             clab++;
+            labs[i] = clab;
         } else {
             labs[i] = labs[labs[i] - 1];
         }
@@ -1409,19 +1407,19 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
         ccdec.coordcomp[4 * i + 3] = 0;
         ccdec.nbact[i] = 0;
     }
-    for (int i = 1; i < height - 1; i++) {
-        for (int j = 1; j < width - 1; j++) {
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
             int ind = j + i * width;
 
             if (img[ind]){
                 lab_t lab = labs[imglabs[ind] - 1];
-                int * coord = ccdec.coordcomp + 4 * lab;
+                int * coord = ccdec.coordcomp + 4 * (lab - 1);
                 if (j < coord[0]) coord[0] = j;
                 if (j > coord[1]) coord[1] = j;
                 if (i < coord[2]) coord[2] = i;
                 if (i > coord[3]) coord[3] = i;
                 imglabs[ind] = lab;
-                ccdec.nbact[lab]++;
+                ccdec.nbact[lab - 1] += sizez;
             }
         }
     }
@@ -1429,20 +1427,23 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
         ccdec.activepixcomp[i] = malloc(ccdec.nbact[i] * sizeof(int));
         ccdec.nbact[i] = 0;
     }
-    for (int i = 1; i < height - 1; i++) {
-        for (int j = 1; j < width - 1; j++) {
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
             int ind = j + i * width;
 
             if (img[ind]){
                 lab_t lab = imglabs[ind];
-                ccdec.activepixcomp[lab][ccdec.nbact[lab]] = j + i * sizey;
-                ccdec.nbact[lab]++;
+                for (unsigned int z = 0; z < sizez; ++z) {
+                    ccdec.activepixcomp[lab - 1][ccdec.nbact[lab - 1] + z] =
+                        j + i * sizey + size2 * z;
+                }
+                ccdec.nbact[lab - 1] += sizez;
             }
         }
     }
 #if DISPLAY_PLOTS == 1
     png_byte * cols = genrandomcolo(clab);
-    png_byte * imgccmprgb = malloc(sizex * sizey * 3 * sizeof(png_byte));
+    png_byte * imgccmprgb = malloc(size2 * 3 * sizeof(png_byte));
 
     for (unsigned int i = 0; i < size2; ++i)
     {
@@ -1536,30 +1537,43 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
 #endif // DISPLAY_PLOTS == 1
 
     lab_t * imgccmp = malloc(size2 * sizeof(lab_t));
-    float * imgccmpf = malloc(size2 * sizeof(float));
     for (unsigned int i = 0; i < sizex; ++i)
     {
         for (unsigned int j = 0; j < sizey; ++j)
         {
             if (imgsmoo[j + i * syfft] > pixthr){
                 imgccmp[j + i * sizey] = 1;
-                imgccmpf[j + i * sizey] = 1;
             } else {
                 imgccmp[j + i * sizey] = 0;
-                imgccmpf[j + i * sizey] = 0;
             }
         }
     }
-    plot_image(sizex, sizey, imgccmpf, "sep1.png", PLOT_RESCALE);
 
     lab_t * rker = roundker(smes * sker / 2);
     lab_t * imgdil = dilate(imgccmp, sizey, sizex, rker, smes * sker / 2);
+
+    png_byte * imgdilrgb = malloc(3 * size2 * sizeof(png_byte));
+    for (unsigned int i = 0; i < sizex; ++i)
+    {
+        for (unsigned int j = 0; j < sizey; ++j)
+        {
+            if (imgdil[j + i * sizey]){
+                imgdilrgb[3 * (j + i * sizey)] = 255;
+                imgdilrgb[1 + 3 * (j + i * sizey)] = 255;
+                imgdilrgb[2 + 3 * (j + i * sizey)] = 255;
+            } else {
+                imgdilrgb[3 * (j + i * sizey)] = 0;
+                imgdilrgb[1 + 3 * (j + i * sizey)] = 0;
+                imgdilrgb[2 + 3 * (j + i * sizey)] = 0;
+            }
+        }
+    }
+    plot_imagergb(sizex, sizey, imgdilrgb, "imgdilrgb.png");
     free(rker);
     ccomp_dec ccdec = aggregate(imgccmp, imgdil, sizey, sizex);
 
     free(imgdil);
     free(imgccmp);
-    free(imgccmpf);
     fftwf_free(out1);
     fftwf_free(out2);
     fftwf_free(imgsmoo);
@@ -1722,6 +1736,7 @@ int loadimg(uint16_t ** img)
 }
 
 
+/*
 void refinedkerfit(float * ker0, float * ker2, float * ker4, float * ker6,
                    float * ker8, float * ker10)
 {
@@ -1759,6 +1774,7 @@ void refinedkerfit(float * ker0, float * ker2, float * ker4, float * ker6,
         }
     }
 }
+*/
 
 void init_refinedkersfit(float * pix0, float * pix2, float * pix4,
                          float * pix6, float * pix8, float * pix10,
@@ -1889,6 +1905,7 @@ int main(int argc, char ** argv)
     //plot_image(sizex, sizey, imgker, "kernel.png", plot_rescale);
 #elif KERNEL == 2
     loadgibson(imgker);
+    plot_image(sizex, sizey, imgker, "kernel.png", PLOT_RESCALE);
 #elif KERNEL == 3
     refinedker(imgker);
 #else
