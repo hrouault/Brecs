@@ -109,12 +109,12 @@
 #  define NBMESY 128
 #  define SIZEPIX 100.0
 #  define DAMP 0.020
-#  define NOISEBACK 5000
+#  define NOISEBACK 500
 #  define MEANBACK 150
 #  define SIGPSF 0.9545
 #  define DEFOCUS 1.1 /* the 1.1 is for defocus */
 #  define AINITPFACT 10.0
-#  define NBITER 1000
+#  define NBITER 10000
 #  define THRPOINT 2000
 #  define BETA 1.0 /* inverse temperature for inference */
 #  define PIXTHR 200
@@ -124,6 +124,7 @@
 #  define SMOOTHEN_RAD 8
 #  define SMOOTHEN_THR 200
 #  define SIZESMOOTH 0
+#  define SIZEPIXZ 333.0
 // DATASET 3 (HD_2 in ISBI contest)
 #elif DATASET == 3
 #  define PIXMEAN 5000

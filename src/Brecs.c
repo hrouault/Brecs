@@ -830,10 +830,10 @@ float update_pbe(float * P_be_E, float * P_be_F,
         //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF > 1.2) fafc[0] = 1.2 * prevPbF / prevPbE;
         //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF < 0.2) fafc[0] = 0.2 * prevPbF / prevPbE;
 
-        damp = 0.03;
+        damp = 0.015;
         float invE = (1 - damp) / P_be_E[k] + damp * fafc[1];
         P_be_E[k]= 1 / invE;
-        damp = 0.12;
+        damp = 0.02;
         P_be_F[k] = (1 - damp) * P_be_F[k] / invE / prevPbE
             + damp * fafc[0] / invE;
 
@@ -898,6 +898,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                      int * activepix, int nbact,
                      float * psf)
 {
+    float * imgnoisecp;
     float * mu_albe_A;
     float * mu_albe_B;
     float * mu_beal_A;
@@ -917,6 +918,12 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
 
     float * res;
 
+    posix_memalign((void **)&imgnoisecp, ALIGNSIZE, nbmes2 * sizeof(float));
+
+    for (unsigned int i = 0; i < nbmes2; ++i)
+    {
+        imgnoisecp[i] = imgnoise[i];
+    }
 
     /* Memory allocation */
     posix_memalign((void **)&mu_albe_A, ALIGNSIZE,
@@ -979,6 +986,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     float relerr = 1.0;
     int iter = 0;
     //printf("nbiter: %i\n", nbiter);
+    updatetemp(2.0, imgnoisecp);
     while (relerr > THRCONV && iter < nbiter)
     //for (int iter = 0; iter < nbiter; ++iter)
     {
@@ -997,7 +1005,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                     abeal, vbeal,
                     omegamu, vmu,
                     ker, ker2,
-                    imgnoise, imgmes,
+                    imgnoisecp, imgmes,
                     nbact, activepix);
             //printf("relerr: %f\n", relerr);
         }
@@ -1011,62 +1019,117 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                             nbact, activepix,
                             iterpbe);
 
-#if DISPLAY_OVERLAY_ITER == 1
-        /* Build result */
-        posix_memalign((void **)&res, ALIGNSIZE, size2 * sizeof(float));
-        for (int i = 0; i < size2; ++i)
-        {
-            res[i] = 0;
-        }
-        for (int k = 0; k < nbact; ++k)
-        {
-            float val = P_be_F[k] / P_be_E[k];
-            if (val < 0) val = 0;
-            res[activepix[k] % size2] += val;
-        }
-        printf("res min, max: %f %f\n",                                            
-                min(res, size2),                                               
-                max(res, size2));
-        plot_overlay(imgmes, res, "overlay.png");
-        plot_image(sizex, sizey, res, "recons.png", PLOT_RESCALE);
-        free(res);
-#endif // DISPLAY_OVERLAY_ITER
         //printf("iteration, relerr: %i, %f\n", iter, relerr); 
     }
-    if (relerr < 1.1 * THRCONV) nbconv++;
+//    updatetemp(2.0, imgnoisecp);
+//    iter = 0;
+//    relerr = 1.0;
+//    while (relerr > THRCONV && iter < nbiter)
+//    //for (int iter = 0; iter < nbiter; ++iter)
+//    {
+//        iter++;
+//        /* Internal loop */
+//        for (unsigned int j = 0; j < nbintern; ++j)
+//        {
+//            update_mubeal(vbeal, abeal,
+//                    mu_albe_A, mu_albe_B,
+//                    P_be_E, P_be_F,
+//                    sum_mualbe_A, sum_mualbe_B,
+//                    nbact, activepix);
+//
+//            update_mualbe(mu_albe_A, mu_albe_B,
+//                    sum_mualbe_A, sum_mualbe_B,
+//                    abeal, vbeal,
+//                    omegamu, vmu,
+//                    ker, ker2,
+//                    imgnoisecp, imgmes,
+//                    nbact, activepix);
+//            //printf("relerr: %f\n", relerr);
+//        }
+//
+//        /* External loop */
+//        //printf("updatePbe\n");
+//        int iterpbe = 1;
+//
+//        relerr = update_pbe(P_be_E, P_be_F,
+//                            vbeal, abeal,
+//                            nbact, activepix,
+//                            iterpbe);
+//
+//        //printf("iteration, relerr: %i, %f\n", iter, relerr); 
+//    }
+//
+//    for (unsigned int i = 0; i < nbmes2; ++i)
+//    {
+//        imgnoisecp[i] = imgnoise[i];
+//    }
+//    updatetemp(3.0, imgnoisecp);
+//    iter = 0;
+//    relerr = 1.0;
+//    while (relerr > THRCONV && iter < nbiter)
+//    {
+//        iter++;
+//        /* Internal loop */
+//        for (unsigned int j = 0; j < nbintern; ++j)
+//        {
+//            update_mubeal(vbeal, abeal,
+//                    mu_albe_A, mu_albe_B,
+//                    P_be_E, P_be_F,
+//                    sum_mualbe_A, sum_mualbe_B,
+//                    nbact, activepix);
+//
+//            update_mualbe(mu_albe_A, mu_albe_B,
+//                    sum_mualbe_A, sum_mualbe_B,
+//                    abeal, vbeal,
+//                    omegamu, vmu,
+//                    ker, ker2,
+//                    imgnoisecp, imgmes,
+//                    nbact, activepix);
+//            //printf("relerr: %f\n", relerr);
+//        }
+//
+//        /* External loop */
+//        //printf("updatePbe\n");
+//        int iterpbe = 1;
+//
+//        relerr = update_pbe(P_be_E, P_be_F,
+//                            vbeal, abeal,
+//                            nbact, activepix,
+//                            iterpbe);
+//
+//        //printf("iteration, relerr: %i, %f\n", iter, relerr); 
+//    }
+    if (relerr < 1.01 * THRCONV) nbconv++;
 
     posix_memalign((void **)&res, ALIGNSIZE, size3 * sizeof(float));
 
     for (int i = 0; i < size3; ++i) {
         res[i] = 0;
     }
-    if (relerr < 1.1 * THRCONV){
+    //if (relerr < 1.1 * THRCONV){
         for (unsigned int k = 0; k < nbact; ++k)
         {
             float val = P_be_F[k] / P_be_E[k];
             res[activepix[k]] = val;
         }
-    }
-    int nbfluo = 1;
-    for (int i = 0; i < size3; ++i)
-    {
-        int c = (i % size2) % sizey;
-        int l = (i % size2) / sizey;
-        int z = i / size2;
-        if (res[i] > thrpoint){
-            printf("%d %d %.2f %.2f %.2f %.2f\n",
-                   nbfluo,
-                   nbframe,
-                   (c - sker / 2 * smes) * spix + spix / 2,
-                   (l - sker / 2 * smes) * spix + spix / 2,
-                   z * SIZEPIXZ,
-                   res[i]);
-            nbfluo++;
+        int nbfluo = 1;
+        for (int i = 0; i < size3; ++i)
+        {
+            int c = (i % size2) % sizey;
+            int l = (i % size2) / sizey;
+            int z = i / size2;
+            if (res[i] > thrpoint){
+                printf("%d %d %.2f %.2f %.2f %.2f\n",
+                        nbfluo,
+                        nbframe,
+                        (c - sker / 2 * smes) * spix + spix / 2,
+                        (l - sker / 2 * smes) * spix + spix / 2,
+                        z * SIZEPIXZ,
+                        res[i]);
+                nbfluo++;
+            }
         }
-    }
-#if DISPLAY_OVERLAY == 1
-    plot_overlay(imgmes, res, "overlay.png");
-#endif // DISPLAY_OVERLAY
+    //}
     /*
     printf("res min, max: %f %f\n",                                            
             min(res, size2),                                               
@@ -1083,6 +1146,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     free(sum_mualbe_B);
     free(omegamu);
     free(vmu);
+    free(imgnoisecp);
 
     free(ker);
     free(ker2);
@@ -1119,6 +1183,9 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     free(ccdec.activepixcomp);
     free(ccdec.imglab);
 
+#if DISPLAY_OVERLAY == 1
+    plot_overlay(imgmes, reconspic, "overlay.png");
+#endif // DISPLAY_OVERLAY
     if (brecs_args.output_given){
         FILE * fout = fopen(brecs_args.output_arg, "wb");
         if (!fout) {
@@ -1131,7 +1198,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     }
 
     free(reconspic);
-    //printf("Converged: %i / %i\n", nbconv, ccdec.nbcomp);
+    printf("Converged: %i / %i\n", nbconv, ccdec.nbcomp);
 
     return NULL;
 }
