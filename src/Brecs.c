@@ -830,10 +830,10 @@ float update_pbe(float * P_be_E, float * P_be_F,
         //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF > 1.2) fafc[0] = 1.2 * prevPbF / prevPbE;
         //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF < 0.2) fafc[0] = 0.2 * prevPbF / prevPbE;
 
-        damp = 0.015;
+        damp = 0.01;
         float invE = (1 - damp) / P_be_E[k] + damp * fafc[1];
         P_be_E[k]= 1 / invE;
-        damp = 0.02;
+        damp = 0.015;
         P_be_F[k] = (1 - damp) * P_be_F[k] / invE / prevPbE
             + damp * fafc[0] / invE;
 
@@ -890,6 +890,23 @@ float * gausskerpar(int sx, int sy, float radius)
         }
     }
     return out;
+}
+
+int on_border(int i, int * activepix, int nbact)
+{
+    int p1 = i - sizey;
+    int p2 = i - 1;
+    int p3 = i + 1;
+    int p4 = i + sizey;
+    int count = 0;
+    for (unsigned int k = 0; k < nbact; ++k) {
+        int j = activepix[k];
+        if (j == p1 || j == p2 || j == p3 || j == p4){
+            count += 1;
+            if (count == 4) return 0;
+        }
+    }
+    return 1;
 }
 
 int nbconv;
@@ -986,7 +1003,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     float relerr = 1.0;
     int iter = 0;
     //printf("nbiter: %i\n", nbiter);
-    updatetemp(2.0, imgnoisecp);
+    updatetemp(2.5, imgnoisecp);
     while (relerr > THRCONV && iter < nbiter)
     //for (int iter = 0; iter < nbiter; ++iter)
     {
@@ -1018,6 +1035,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                             vbeal, abeal,
                             nbact, activepix,
                             iterpbe);
+        if (iter < 100) relerr = 1.0;
 
         //printf("iteration, relerr: %i, %f\n", iter, relerr); 
     }
@@ -1099,6 +1117,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
 //
 //        //printf("iteration, relerr: %i, %f\n", iter, relerr); 
 //    }
+
     if (relerr < 1.01 * THRCONV) nbconv++;
 
     posix_memalign((void **)&res, ALIGNSIZE, size3 * sizeof(float));
@@ -1112,16 +1131,16 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
             float val = P_be_F[k] / P_be_E[k];
             res[activepix[k]] = val;
         }
-        int nbfluo = 1;
+        static int nbfluo = 1;
         for (int i = 0; i < size3; ++i)
         {
             int c = (i % size2) % sizey;
             int l = (i % size2) / sizey;
             int z = i / size2;
-            if (res[i] > thrpoint){
-                printf("%d %d %.2f %.2f %.2f %.2f\n",
+            if (res[i] > thrpoint && !on_border(i, activepix, nbact)){
+                printf("%d %s %.2f %.2f %.2f %.2f\n",
                         nbfluo,
-                        nbframe,
+                        brecs_args.filename_arg,
                         (c - sker / 2 * smes) * spix + spix / 2,
                         (l - sker / 2 * smes) * spix + spix / 2,
                         z * SIZEPIXZ,
@@ -1619,6 +1638,7 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     lab_t * rker = roundker(smes * sker / 2);
     lab_t * imgdil = dilate(imgccmp, sizey, sizex, rker, smes * sker / 2);
 
+#if DISPLAY_PLOTS == 1
     png_byte * imgdilrgb = malloc(3 * size2 * sizeof(png_byte));
     for (unsigned int i = 0; i < sizex; ++i)
     {
@@ -1636,6 +1656,8 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
         }
     }
     plot_imagergb(sizex, sizey, imgdilrgb, "imgdilrgb.png");
+    free(imgdilrgb);
+#endif // DISPLAY_PLOTS == 1
     free(rker);
     ccomp_dec ccdec = aggregate(imgccmp, imgdil, sizey, sizex);
 

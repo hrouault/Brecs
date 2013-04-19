@@ -70,7 +70,7 @@
 
 /* General parameters for display */
 #define DISPLAY_OVERLAY_ITER 0
-#define DISPLAY_OVERLAY 0
+#define DISPLAY_OVERLAY 1
 #define DISPLAY_PLOTS 0
 #define PRINT_ERRS 0
 #define OVERLAY_MAX_INT 10000.0
@@ -109,14 +109,14 @@
 #  define NBMESY 128
 #  define SIZEPIX 100.0
 #  define DAMP 0.020
-#  define NOISEBACK 500
+#  define NOISEBACK 600
 #  define MEANBACK 150
 #  define SIGPSF 0.9545
-#  define DEFOCUS 1.1 /* the 1.1 is for defocus */
+#  define DEFOCUS 1.12 /* the 1.1 is for defocus */
 #  define AINITPFACT 10.0
-#  define NBITER 10000
+#  define NBITER 15000
 #  define THRPOINT 2000
-#  define BETA 1.0 /* inverse temperature for inference */
+#  define BETA 2.5 /* inverse temperature for inference */
 #  define PIXTHR 200
 #  define THRCONV 1e-3
 #  define KERNEL 1
