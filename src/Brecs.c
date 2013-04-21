@@ -451,9 +451,9 @@ void fafcfunc(float * out, float sig2, float r)
     float fra2 = fra1 / varr;
 
     float argexp = -r * r / 2 / sig2 + deltr / 2 / varr;
-    if (argexp > 15.0){
+    if (argexp > 30.0){
         out[0] = 0;
-        out[1] = 1e-6;
+        out[1] = 1e-2;
         return;
     }
     float exprgauss = exp(argexp);
@@ -636,7 +636,7 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
             vecfloat den = VFUNC(loadu_ps) (imgnoise + imu);
             vecfloat v = VFUNC(loadu_ps) (vmu + imu);
             vecfloat k2 = VFUNC(load_ps) (cker2 + mu);
-            vecfloat k = VFUNC(load_ps) (cker + mu);
+            vecfloat ke = VFUNC(load_ps) (cker + mu);
             vecfloat vb = VFUNC(load_ps) (cvbeal + mu);
 
             den = VFUNC(add_ps) (den, v);
@@ -648,10 +648,10 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
             vecfloat om = VFUNC(loadu_ps) (omegamu + imu);
             vecfloat ab = VFUNC(load_ps) (cabeal + mu);
 
-            ab = VFUNC(mul_ps) (k, ab);
+            ab = VFUNC(mul_ps) (ke, ab);
             bnum = VFUNC(sub_ps) (bnum, om);
             bnum = VFUNC(add_ps) (bnum, ab);
-            bnum = VFUNC(mul_ps) (bnum, k);
+            bnum = VFUNC(mul_ps) (bnum, ke);
 
             vecfloat valA = VFUNC(mul_ps) (k2, den);
             vecfloat ibA = VFUNC(load_ps) (caA + mu);
@@ -830,10 +830,10 @@ float update_pbe(float * P_be_E, float * P_be_F,
         //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF > 1.2) fafc[0] = 1.2 * prevPbF / prevPbE;
         //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF < 0.2) fafc[0] = 0.2 * prevPbF / prevPbE;
 
-        damp = 0.01;
+        damp = 0.04;
         float invE = (1 - damp) / P_be_E[k] + damp * fafc[1];
         P_be_E[k]= 1 / invE;
-        damp = 0.015;
+        damp = 0.06;
         P_be_F[k] = (1 - damp) * P_be_F[k] / invE / prevPbE
             + damp * fafc[0] / invE;
 
@@ -980,7 +980,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     plot_image(smes * sker, smes * sker, ker, "kerint.png", PLOT_RESCALE);
 #endif // DISPLAY_PLOTS == 1
 
-    float Binit = rho * pixmean * Ainit;
+    float Binit = RHO * pixmean * Ainit;
 
     for (unsigned int i = 0; i < nbact * sker2; ++i) {
         mu_albe_A[i] = Ainit;
@@ -1003,7 +1003,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     float relerr = 1.0;
     int iter = 0;
     //printf("nbiter: %i\n", nbiter);
-    updatetemp(2.5, imgnoisecp);
+    updatetemp(BETA, imgnoisecp);
     while (relerr > THRCONV && iter < nbiter)
     //for (int iter = 0; iter < nbiter; ++iter)
     {
@@ -1421,7 +1421,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
         imglabs[i] = 0;
     }
 
-    lab_t lastlab = 0;
+    int lastlab = 0;
     for (int i = 1; i < height - 1; i++) {
         for (int j = 1; j < width - 1; j++) {
             int ind = j + i * width;
@@ -1623,14 +1623,13 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
 #endif // DISPLAY_PLOTS == 1
 
     lab_t * imgccmp = malloc(size2 * sizeof(lab_t));
-    for (unsigned int i = 0; i < sizex; ++i)
-    {
-        for (unsigned int j = 0; j < sizey; ++j)
-        {
+    for (unsigned int i = 0; i < size2; ++i) {
+        imgccmp[i] = 0;
+    }
+    for (unsigned int i = smes * sker / 2; i < sizex - smes * (sker / 2 - 1); ++i) {
+        for (unsigned int j = smes * sker / 2; j < sizey - smes * (sker / 2 - 1); ++j) {
             if (imgsmoo[j + i * syfft] > pixthr){
                 imgccmp[j + i * sizey] = 1;
-            } else {
-                imgccmp[j + i * sizey] = 0;
             }
         }
     }
