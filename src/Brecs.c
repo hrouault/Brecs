@@ -830,12 +830,10 @@ float update_pbe(float * P_be_E, float * P_be_F,
         //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF > 1.2) fafc[0] = 1.2 * prevPbF / prevPbE;
         //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF < 0.2) fafc[0] = 0.2 * prevPbF / prevPbE;
 
-        damp = 0.04;
-        float invE = (1 - damp) / P_be_E[k] + damp * fafc[1];
+        float invE = (1 - DAMP1) / P_be_E[k] + DAMP1 * fafc[1];
         P_be_E[k]= 1 / invE;
-        damp = 0.06;
-        P_be_F[k] = (1 - damp) * P_be_F[k] / invE / prevPbE
-            + damp * fafc[0] / invE;
+        P_be_F[k] = (1 - DAMP2) * P_be_F[k] / invE / prevPbE
+            + DAMP2 * fafc[0] / invE;
 
         float errvar = fabsf(fafc[1] - 1 / prevPbE) / (fafc[1] + 1 / prevPbE);
         float errmean = fabsf(fafc[0] - prevPbF / prevPbE) / (fafc[0] + prevPbF / prevPbE);
@@ -1003,7 +1001,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     float relerr = 1.0;
     int iter = 0;
     //printf("nbiter: %i\n", nbiter);
-    updatetemp(BETA, imgnoisecp);
     while (relerr > THRCONV && iter < nbiter)
     //for (int iter = 0; iter < nbiter; ++iter)
     {
@@ -1035,88 +1032,10 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                             vbeal, abeal,
                             nbact, activepix,
                             iterpbe);
-        if (iter < 100) relerr = 1.0;
+        if (iter < 200) relerr = 1.0;
 
         //printf("iteration, relerr: %i, %f\n", iter, relerr); 
     }
-//    updatetemp(2.0, imgnoisecp);
-//    iter = 0;
-//    relerr = 1.0;
-//    while (relerr > THRCONV && iter < nbiter)
-//    //for (int iter = 0; iter < nbiter; ++iter)
-//    {
-//        iter++;
-//        /* Internal loop */
-//        for (unsigned int j = 0; j < nbintern; ++j)
-//        {
-//            update_mubeal(vbeal, abeal,
-//                    mu_albe_A, mu_albe_B,
-//                    P_be_E, P_be_F,
-//                    sum_mualbe_A, sum_mualbe_B,
-//                    nbact, activepix);
-//
-//            update_mualbe(mu_albe_A, mu_albe_B,
-//                    sum_mualbe_A, sum_mualbe_B,
-//                    abeal, vbeal,
-//                    omegamu, vmu,
-//                    ker, ker2,
-//                    imgnoisecp, imgmes,
-//                    nbact, activepix);
-//            //printf("relerr: %f\n", relerr);
-//        }
-//
-//        /* External loop */
-//        //printf("updatePbe\n");
-//        int iterpbe = 1;
-//
-//        relerr = update_pbe(P_be_E, P_be_F,
-//                            vbeal, abeal,
-//                            nbact, activepix,
-//                            iterpbe);
-//
-//        //printf("iteration, relerr: %i, %f\n", iter, relerr); 
-//    }
-//
-//    for (unsigned int i = 0; i < nbmes2; ++i)
-//    {
-//        imgnoisecp[i] = imgnoise[i];
-//    }
-//    updatetemp(3.0, imgnoisecp);
-//    iter = 0;
-//    relerr = 1.0;
-//    while (relerr > THRCONV && iter < nbiter)
-//    {
-//        iter++;
-//        /* Internal loop */
-//        for (unsigned int j = 0; j < nbintern; ++j)
-//        {
-//            update_mubeal(vbeal, abeal,
-//                    mu_albe_A, mu_albe_B,
-//                    P_be_E, P_be_F,
-//                    sum_mualbe_A, sum_mualbe_B,
-//                    nbact, activepix);
-//
-//            update_mualbe(mu_albe_A, mu_albe_B,
-//                    sum_mualbe_A, sum_mualbe_B,
-//                    abeal, vbeal,
-//                    omegamu, vmu,
-//                    ker, ker2,
-//                    imgnoisecp, imgmes,
-//                    nbact, activepix);
-//            //printf("relerr: %f\n", relerr);
-//        }
-//
-//        /* External loop */
-//        //printf("updatePbe\n");
-//        int iterpbe = 1;
-//
-//        relerr = update_pbe(P_be_E, P_be_F,
-//                            vbeal, abeal,
-//                            nbact, activepix,
-//                            iterpbe);
-//
-//        //printf("iteration, relerr: %i, %f\n", iter, relerr); 
-//    }
 
     if (relerr < 1.01 * THRCONV) nbconv++;
 
@@ -1421,7 +1340,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
         imglabs[i] = 0;
     }
 
-    int lastlab = 0;
+    lab_t lastlab = 0;
     for (int i = 1; i < height - 1; i++) {
         for (int j = 1; j < width - 1; j++) {
             int ind = j + i * width;
