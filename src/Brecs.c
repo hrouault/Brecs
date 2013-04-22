@@ -59,8 +59,8 @@ struct gengetopt_args_info brecs_args;
 
 /* signal noise properties */
 const float pixmean = PIXMEAN;
-double pixstd = PIXSTD;
-double rho = RHO;
+float pixstd = PIXSTD;
+float rho = RHO;
 
 const float pixthr = PIXTHR;
 
@@ -113,9 +113,9 @@ const float beta = BETA;
 
 int nbframe;
 
-void updatetemp(double b, float * imgnoise)
+void updatetemp(float b, float * imgnoise)
 {
-    double c = pow(RHO, b);
+    float c = pow(RHO, b);
     rho = c / (1 + c);
 
     for (unsigned int i = 0; i < nbmes2; ++i)
@@ -439,7 +439,7 @@ void saveimage(float * img, int size, const char * fname)
 
 void fafcfunc(float * out, float sig2, float r)
 {
-    if (r > 1e5) r = 1e5;
+    if (r > 1e4) r = 1e4;
     float pstd2 = pixstd * pixstd;
 
     float deltr = (r - pixmean) * (r - pixmean);
@@ -450,9 +450,9 @@ void fafcfunc(float * out, float sig2, float r)
     float fra2 = fra1 / varr;
 
     float argexp = -r * r / 2 / sig2 + deltr / 2 / varr;
-    if (argexp > 30.0){
-        out[0] = 0;
-        out[1] = 1e-2;
+    if (argexp > 25.0){
+        out[0] = 1e-10;
+        out[1] = 1e-3;
         return;
     }
     float exprgauss = exp(argexp);
@@ -475,8 +475,8 @@ void fafcfunc(float * out, float sig2, float r)
     out[0] = num1 / den1;
     out[1] = num2 / den2;
 
-    if (out[0] < 0) out[0] = 0;
-    if (out[1] < 1e-2) out[1] = 1e-2;
+    if (out[0] < 1e-10) out[0] = 1e-10;
+    if (out[1] < 1e-3) out[1] = 1e-3;
 }
 
 void init_kernels(float * ker, float * ker2,
@@ -836,10 +836,10 @@ float update_pbe(float * P_be_E, float * P_be_F,
 
         float errvar = fabsf(fafc[1] - 1 / prevPbE) / (fafc[1] + 1 / prevPbE);
         float errmean = fabsf(fafc[0] - prevPbF / prevPbE) / (fafc[0] + prevPbF / prevPbE);
-        if (errvar > relerr && fafc[1] > 10){
+        if (errvar > relerr){// && fafc[1] > 10){
             relerr = errvar;
         }
-        if (errmean > relerr && fafc[0] > 1){
+        if (errmean > relerr){// && fafc[0] > 1){
             relerr = errmean;
         }
         if (errvar > errvartot && fafc[1] > 10){

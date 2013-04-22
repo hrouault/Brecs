@@ -70,8 +70,8 @@
 
 /* General parameters for display */
 #define DISPLAY_OVERLAY_ITER 0
-#define DISPLAY_OVERLAY 1
-#define DISPLAY_PLOTS 1
+#define DISPLAY_OVERLAY 0
+#define DISPLAY_PLOTS 0
 #define PRINT_ERRS 0
 #define OVERLAY_MAX_INT 10000.0
 #define OVERLAY_MIN_INT 10.0
@@ -177,7 +177,7 @@
 #  define SIZEZ 4
 // DATASET 5 (LS_1 in ISBI contest)
 #elif DATASET == 5
-#  define PIXMEAN 5500
+#  define PIXMEAN 5000
 #  define PIXSTD 500
 #  define RHO 0.001
 #  define SKER 12 /* has to be a multiple of 4 to use sse */
@@ -187,16 +187,16 @@
 #  define SIZEPIX 100.0
 #  define SIZEZ 1
 #  define DAMP1 0.02
-#  define DAMP2 0.03
-#  define NOISEBACK 800
+#  define DAMP2 0.06
+#  define NOISEBACK 3600
 #  define MEANBACK 150
 #  define SIGPSF 0.9545
-#  define DEFOCUS 1.12 /* the 1.1 is for defocus */
-#  define AINITPFACT 4.0
-#  define NBITER 12000
+#  define DEFOCUS 1.15 /* the 1.1 is for defocus */
+#  define AINITPFACT 100.0
+#  define NBITER 2500
 #  define THRPOINT 2000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 200
+#  define BETA 2.2 /* inverse temperature for inference */
+#  define PIXTHR 150
 #  define THRCONV 1e-3
 #  define KERNEL 1
 #  define SMOOTHEN 1
