@@ -84,7 +84,6 @@ const int nbmesy = NBMESY + SKER;
 const int nbmes2 = (NBMESX + SKER) * (NBMESY + SKER);
 
 const int nbintern = 1;
-float damp = DAMP;
 float noiseback = NOISEBACK;
 
 /* Properties of the psf */
@@ -854,8 +853,6 @@ float update_pbe(float * P_be_E, float * P_be_F,
         }
         //printf("%f %f %f\n", relerr, errmeantot, errvartot);
     }
-    //if (relerr < 0.05) damp = 0.1;
-    //else damp = DAMP;
 
 #if PRINT_ERRS == 1
     printf("nberr, errmean, errvar: %i %f %f\n", nberr, errmeantot, errvartot);
@@ -1473,7 +1470,6 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
 
 ccomp_dec connectcomp_decomp(float * imgmes, float radius)
 {
-    damp = DAMP;
     int sxfft = pow(2, (int)log2(sizex) + 1);
     int syfft = pow(2, (int)log2(sizey) + 1);
 
