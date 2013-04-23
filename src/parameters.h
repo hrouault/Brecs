@@ -99,7 +99,7 @@
 #  define THRCONV 1e-3
 // DATASET 2 (HD_1 in ISBI contest)
 #elif DATASET == 2
-#  define PIXMEAN 5500
+#  define PIXMEAN 5300
 #  define PIXSTD 500
 #  define RHO 0.001
 #  define SKER 12 /* has to be a multiple of 4 to use sse */
@@ -108,22 +108,22 @@
 #  define NBMESX 128
 #  define NBMESY 128
 #  define SIZEPIX 100.0
-#  define DAMP1 0.01
-#  define DAMP2 0.015
-#  define NOISEBACK 600
-#  define MEANBACK 150
+#  define DAMP1 0.010
+#  define DAMP2 0.02
+#  define NOISEBACK 3000
+#  define MEANBACK 180
 #  define SIGPSF 0.9545
-#  define DEFOCUS 1.12 /* the 1.1 is for defocus */
-#  define AINITPFACT 2.0
-#  define NBITER 12000
+#  define DEFOCUS 1.15 /* the 1.1 is for defocus */
+#  define AINITPFACT 10.0
+#  define NBITER 5000
 #  define THRPOINT 2000
-#  define BETA 2.4 /* inverse temperature for inference */
-#  define PIXTHR 200
+#  define BETA 3.0 /* inverse temperature for inference */
+#  define PIXTHR 150
 #  define THRCONV 1e-3
 #  define KERNEL 1
 #  define SMOOTHEN 1
 #  define SMOOTHEN_RAD 8
-#  define SMOOTHEN_THR 200
+#  define SMOOTHEN_THR 250
 #  define SIZESMOOTH 0
 #  define SIZEPIXZ 333.0
 // DATASET 3 (HD_2 in ISBI contest)
@@ -138,14 +138,14 @@
 #  define NBMESY 128
 #  define SIZEPIX 150.0
 #  define DAMP1 0.01
-#  define DAMP2 0.015
-#  define NOISEBACK 1000
-#  define MEANBACK 200.0
+#  define DAMP2 0.02
+#  define NOISEBACK 2000
+#  define MEANBACK 150.0
 #  define AINITPFACT 2.0
-#  define NBITER 1600
+#  define NBITER 5000
 #  define THRPOINT 1000
 #  define BETA 2.5 /* inverse temperature for inference */
-#  define PIXTHR 200
+#  define PIXTHR 150
 #  define THRCONV 1e-3
 #  define GIBSSIZE 257
 #  define KERNEL 2
@@ -186,14 +186,14 @@
 #  define NBMESY 128
 #  define SIZEPIX 100.0
 #  define SIZEZ 1
-#  define DAMP1 0.02
-#  define DAMP2 0.06
-#  define NOISEBACK 3600
-#  define MEANBACK 150
+#  define DAMP1 0.01
+#  define DAMP2 0.02
+#  define NOISEBACK 3400
+#  define MEANBACK 180
 #  define SIGPSF 0.9545
 #  define DEFOCUS 1.15 /* the 1.1 is for defocus */
-#  define AINITPFACT 100.0
-#  define NBITER 2500
+#  define AINITPFACT 10.0
+#  define NBITER 3000
 #  define THRPOINT 2000
 #  define BETA 2.2 /* inverse temperature for inference */
 #  define PIXTHR 150
@@ -201,12 +201,12 @@
 #  define KERNEL 1
 #  define SMOOTHEN 1
 #  define SMOOTHEN_RAD 8
-#  define SMOOTHEN_THR 200
+#  define SMOOTHEN_THR 250
 #  define SIZESMOOTH 0
 #  define SIZEPIXZ 333.0
 // DATASET 6 (LS_2 in ISBI contest)
 #elif DATASET == 6
-#  define PIXMEAN 5000
+#  define PIXMEAN 5400
 #  define PIXSTD 500
 #  define RHO 0.001
 #  define SKER 12 /* has to be a multiple of 4 to use sse */
@@ -214,21 +214,24 @@
 #  define NBMESX 128
 #  define NBMESY 128
 #  define SIZEPIX 150.0
-#  define DAMP 0.1
-#  define NOISEBACK 7000
-#  define MEANBACK 0.0
+#  define SIZEZ 1
+#  define DAMP1 0.01
+#  define DAMP2 0.02
+#  define NOISEBACK 4000
+#  define MEANBACK 140
 #  define AINITPFACT 10.0
-#  define NBITER 300
+#  define NBITER 5000
 #  define THRPOINT 1000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 300
+#  define BETA 2.5 /* inverse temperature for inference */
+#  define PIXTHR 150
 #  define THRCONV 1e-3
 #  define KERNEL 2
 #  define SMOOTHEN 1
 #  define SIZESMOOTH 0
-#  define GIBSSIZE 129
-#  define GIBSFRAME 6
-#  define SIZEZ 4
+#  define SMOOTHEN_RAD 8
+#  define SMOOTHEN_THR 400
+#  define GIBSSIZE 257
+#  define SIZEPIXZ 333.0
 // DATASET 7 (LS_3 in ISBI contest)
 #elif DATASET == 7
 #  define PIXMEAN 2000

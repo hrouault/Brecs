@@ -439,7 +439,7 @@ void saveimage(float * img, int size, const char * fname)
 
 void fafcfunc(float * out, float sig2, float r)
 {
-    if (r > 1e4) r = 1e4;
+    if (r > 5e4) r = 5e4;
     float pstd2 = pixstd * pixstd;
 
     float deltr = (r - pixmean) * (r - pixmean);
@@ -1888,6 +1888,7 @@ int main(int argc, char ** argv)
                 int ind = i + sker / 2 + (j + sker / 2) * nbmesy;
                 imgmes[ind] = pixmes;
                 imgnoise[ind] = noiseback + 1.0 * val;
+
                 //printf("%f\n", val);
 //            }
         }
