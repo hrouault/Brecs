@@ -440,6 +440,7 @@ void saveimage(float * img, int size, const char * fname)
 void fafcfunc(float * out, float sig2, float r)
 {
     if (r > 5e4) r = 5e4;
+    if (sig2 < 0) sig2 = 1e10;
     float pstd2 = pixstd * pixstd;
 
     float deltr = (r - pixmean) * (r - pixmean);
@@ -537,8 +538,7 @@ void update_omegavmu(float * omegamu, float * vmu,
         float * cker = ker + ikeri * sker2;
         float * cker2 = ker2 + ikeri * sker2;
 
-        for (int mu = 0; mu < sker2; mu += SHIFT)
-        {
+        for (int mu = 0; mu < sker2; mu += SHIFT) {
             int dcmu = mu % sker - sker / 2;
             int dlmu = mu / sker - sker / 2;
 
@@ -745,6 +745,8 @@ void update_mubeal(float * vbeal, float * abeal,
 {
     const float rat = ((float)sker2 - 1) / sker2;
     const vecfloat one = VFUNC(set1_ps) (1.0);
+    const vecfloat thrmin = VFUNC(set1_ps) (1e15);
+    const vecfloat thrmax = VFUNC(set1_ps) (-1e15);
 
     for (unsigned int k = 0; k < nbact; ++k)
     {
@@ -769,6 +771,8 @@ void update_mubeal(float * vbeal, float * abeal,
 
             cC = VFUNC(add_ps) (rPE, cC);
             cC = VFUNC(div_ps) (one, cC);
+            cC = VFUNC(max_ps) (cC, thrmax);
+            cC = VFUNC(min_ps) (cC, thrmin);
 
             cD = VFUNC(add_ps) (rPF, cD);
             cD = VFUNC(mul_ps) (cC, cD);
@@ -1541,8 +1545,8 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     for (unsigned int i = 0; i < size2; ++i) {
         imgccmp[i] = 0;
     }
-    for (unsigned int i = smes * sker / 2; i < sizex - smes * (sker / 2 - 1); ++i) {
-        for (unsigned int j = smes * sker / 2; j < sizey - smes * (sker / 2 - 1); ++j) {
+    for (unsigned int i = smes * sker / 2; i < sizex - smes * sker / 2; ++i) {
+        for (unsigned int j = smes * sker / 2; j < sizey - smes * sker / 2; ++j) {
             if (imgsmoo[j + i * syfft] > pixthr){
                 imgccmp[j + i * sizey] = 1;
             }
@@ -1835,7 +1839,8 @@ int main(int argc, char ** argv)
     float * imgrecons;
 
 #ifdef __DEBUG__
-    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID);
+    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID
+            & ~_MM_MASK_OVERFLOW & ~_MM_MASK_DIV_ZERO);
 #endif
 
     /* Command line parser */
