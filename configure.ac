@@ -19,10 +19,11 @@ AS_IF([test x"$ac_cv_prog_cc_c99" = xno],
 
 AC_CHECK_LIB([m],[cos])
 AC_CHECK_LIB([bz2],[BZ2_bzWriteOpen])
+AC_CHECK_LIB([tiff],[TIFFOpen])
 
 # Checks for libraries with pkg-config
 PKG_CHECK_MODULES(LIBPNG, libpng, [], [AC_MSG_ERROR([libpng library required.])])
-PKG_CHECK_MODULES(LIBTIFF, libtiff-4, [], [AC_MSG_ERROR([libtiff library required.])])
+#PKG_CHECK_MODULES(LIBTIFF, libtiff-4, [], [AC_MSG_ERROR([libtiff library required.])])
 PKG_CHECK_MODULES(FFTWF, fftw3f, [], [AC_MSG_ERROR([fftw3f library required.])])
 
 AC_CONFIG_HEADERS([config.h])
