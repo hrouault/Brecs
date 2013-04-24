@@ -440,7 +440,10 @@ void saveimage(float * img, int size, const char * fname)
 void fafcfunc(float * out, float sig2, float r)
 {
     if (r > 5e4) r = 5e4;
-    if (sig2 < 0) sig2 = 1e10;
+    if (sig2 < 0){
+        sig2 = 1e6;
+        r = 0;
+    }
     float pstd2 = pixstd * pixstd;
 
     float deltr = (r - pixmean) * (r - pixmean);
@@ -595,6 +598,7 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
     const vecfloat zero = VFUNC(set1_ps) (0);
     const vecfloat one = VFUNC(set1_ps) (1.0);
     const vecfloat oneosk = VFUNC(set1_ps) (1.0 / sker2);
+    const vecfloat lowv = VFUNC(set1_ps) (1e8);
 
     update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, nbact, activepix);
 
@@ -634,6 +638,7 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
 
             vecfloat den = VFUNC(loadu_ps) (imgnoise + imu);
             vecfloat v = VFUNC(loadu_ps) (vmu + imu);
+            v = VFUNC(min_ps) (v, lowv);
             vecfloat k2 = VFUNC(load_ps) (cker2 + mu);
             vecfloat ke = VFUNC(load_ps) (cker + mu);
             vecfloat vb = VFUNC(load_ps) (cvbeal + mu);
@@ -745,8 +750,9 @@ void update_mubeal(float * vbeal, float * abeal,
 {
     const float rat = ((float)sker2 - 1) / sker2;
     const vecfloat one = VFUNC(set1_ps) (1.0);
-    const vecfloat thrmin = VFUNC(set1_ps) (1e15);
-    const vecfloat thrmax = VFUNC(set1_ps) (-1e15);
+    const vecfloat thrmin = VFUNC(set1_ps) (1e10);
+    const vecfloat thrmax = VFUNC(set1_ps) (1e-5);
+    const vecfloat thrmin2 = VFUNC(set1_ps) (1e12);
 
     for (unsigned int k = 0; k < nbact; ++k)
     {
@@ -768,6 +774,7 @@ void update_mubeal(float * vbeal, float * abeal,
             cC = VFUNC(sub_ps) (P_be_A, cC);
             vecfloat cD = VFUNC(load_ps) (caB + mu);
             cD = VFUNC(sub_ps) (P_be_B, cD);
+            cD = VFUNC(min_ps) (cD, thrmin);
 
             cC = VFUNC(add_ps) (rPE, cC);
             cC = VFUNC(div_ps) (one, cC);
@@ -825,6 +832,7 @@ float update_pbe(float * P_be_E, float * P_be_F,
         float prevPbE = P_be_E[k];
         float prevPbF = P_be_F[k];
 
+        if (PFt > 1e12) PFt = 1e12;
         float fafc[2];
         fafcfunc(fafc, 1 / PEt, PFt / PEt);
 
@@ -1842,6 +1850,8 @@ int main(int argc, char ** argv)
     _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID
             & ~_MM_MASK_OVERFLOW & ~_MM_MASK_DIV_ZERO);
 #endif
+    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID
+            & ~_MM_MASK_OVERFLOW);
 
     /* Command line parser */
     char * arg0 = argv[0];
