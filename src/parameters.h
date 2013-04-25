@@ -155,28 +155,32 @@
 #  define PREFAC_RAD_CC 1.0
 // DATASET 4 (HD_3 in ISBI contest)
 #elif DATASET == 4
-#  define PIXMEAN 4000
-#  define PIXSTD 400
+#  define PIXMEAN 1200
+#  define PIXSTD 300
 #  define RHO 0.001
 #  define SKER 16 /* has to be a multiple of 4 to use sse */
 #  define SMES 4
 #  define NBMESX 200
 #  define NBMESY 200
 #  define SIZEPIX 100.0
-#  define DAMP 0.05
-#  define NOISEBACK 300 // should be 160
-#  define MEANBACK 114
+#  define SIZEPIXZ 333.0
+#  define DAMP1 0.01
+#  define DAMP2 0.02
+#  define NOISEBACK 22.0
+#  define MEANBACK 108.0
 #  define AINITPFACT 10.0
-#  define NBITER 600
-#  define THRPOINT 1000
-#  define BETA 2 /* inverse temperature for inference */
-#  define PIXTHR 40
+#  define NBITER 3000
+#  define THRPOINT 300
+#  define BETA 2.5 /* inverse temperature for inference */
+#  define PIXTHR 9
 #  define THRCONV 1e-3
 #  define KERNEL 2
-#  define SMOOTHEN 0
+#  define SMOOTHEN 1
+#  define SMOOTHEN_RAD 18
+#  define SMOOTHEN_THR 40
 #  define SIZESMOOTH 0
 #  define GIBSSIZE 129
-#  define GIBSFRAME 6
+#  define GIBSFRAME 0
 #  define SIZEZ 4
 #  define PREFAC_RAD_CC 2.0
 // DATASET 5 (LS_1 in ISBI contest)
