@@ -1057,10 +1057,10 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
         for (unsigned int k = 0; k < nbact; ++k)
         {
             float val = P_be_F[k] / P_be_E[k];
-            res[activepix[k]] = val;
+            res[activepix[k] % size2] += val;
         }
         static int nbfluo = 1;
-        for (int i = 0; i < size3; ++i)
+        for (int i = 0; i < size2; ++i)
         {
             int c = (i % size2) % sizey;
             int l = (i % size2) / sizey;
@@ -1504,7 +1504,7 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     fftwf_complex * out1, * out2;
     fftwf_plan pforw1, pforw2, pbackw;
 
-    float * imgker = gausskerpar(sxfft, syfft, smes);
+    float * imgker = gausskerpar(sxfft, syfft, PREFAC_RAD_CC * smes);
 #if DISPLAY_PLOTS == 1
     plot_image(sxfft, syfft, imgker, "kersmoo.png", PLOT_RESCALE);
 #endif // DISPLAY_PLOTS == 1

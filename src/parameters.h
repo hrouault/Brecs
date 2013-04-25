@@ -97,6 +97,7 @@
 #  define BETA 2 /* inverse temperature for inference */
 #  define PIXTHR 500
 #  define THRCONV 1e-3
+#  define PREFAC_RAD_CC 1.0
 // DATASET 2 (HD_1 in ISBI contest)
 #elif DATASET == 2
 #  define PIXMEAN 5300
@@ -108,7 +109,7 @@
 #  define NBMESX 128
 #  define NBMESY 128
 #  define SIZEPIX 100.0
-#  define DAMP1 0.010
+#  define DAMP1 0.01
 #  define DAMP2 0.02
 #  define NOISEBACK 3000
 #  define MEANBACK 180
@@ -126,6 +127,7 @@
 #  define SMOOTHEN_THR 250
 #  define SIZESMOOTH 0
 #  define SIZEPIXZ 333.0
+#  define PREFAC_RAD_CC 1.0
 // DATASET 3 (HD_2 in ISBI contest)
 #elif DATASET == 3
 #  define PIXMEAN 5000
@@ -150,6 +152,7 @@
 #  define GIBSSIZE 257
 #  define KERNEL 2
 #  define SIZEPIXZ 333.0
+#  define PREFAC_RAD_CC 1.0
 // DATASET 4 (HD_3 in ISBI contest)
 #elif DATASET == 4
 #  define PIXMEAN 4000
@@ -175,6 +178,7 @@
 #  define GIBSSIZE 129
 #  define GIBSFRAME 6
 #  define SIZEZ 4
+#  define PREFAC_RAD_CC 2.0
 // DATASET 5 (LS_1 in ISBI contest)
 #elif DATASET == 5
 #  define PIXMEAN 5000
@@ -204,6 +208,7 @@
 #  define SMOOTHEN_THR 250
 #  define SIZESMOOTH 0
 #  define SIZEPIXZ 333.0
+#  define PREFAC_RAD_CC 1.0
 // DATASET 6 (LS_2 in ISBI contest)
 #elif DATASET == 6
 #  define PIXMEAN 5400
@@ -232,10 +237,11 @@
 #  define SMOOTHEN_THR 400
 #  define GIBSSIZE 257
 #  define SIZEPIXZ 333.0
+#  define PREFAC_RAD_CC 1.0
 // DATASET 7 (LS_3 in ISBI contest)
 #elif DATASET == 7
-#  define PIXMEAN 2000
-#  define PIXSTD 200
+#  define PIXMEAN 1200
+#  define PIXSTD 300
 #  define RHO 0.001
 #  define SKER 16 /* has to be a multiple of 4 to use sse */
 #  define SMES 4
@@ -243,23 +249,25 @@
 #  define NBMESY 200
 #  define SIZEPIX 100.0
 #  define SIZEPIXZ 333.0
-#  define DAMP 0.01
-#  define NOISEBACK 150
+#  define DAMP1 0.01
+#  define DAMP2 0.02
+#  define NOISEBACK 22.0
 #  define MEANBACK 108.0
 #  define AINITPFACT 10.0
-#  define NBITER 1500
-#  define THRPOINT 1000
-#  define BETA 1 /* inverse temperature for inference */
-#  define PIXTHR 16
+#  define NBITER 3000
+#  define THRPOINT 300
+#  define BETA 2.5 /* inverse temperature for inference */
+#  define PIXTHR 9
 #  define THRCONV 1e-3
 #  define KERNEL 2
 #  define SMOOTHEN 1
-#  define SMOOTHEN_RAD 12
-#  define SMOOTHEN_THR 20
+#  define SMOOTHEN_RAD 18
+#  define SMOOTHEN_THR 40
 #  define SIZESMOOTH 0
 #  define GIBSSIZE 129
 #  define GIBSFRAME 0
-#  define SIZEZ 11
+#  define SIZEZ 4
+#  define PREFAC_RAD_CC 2.0
 // DATASET 10 (Clathrin coated pits)
 #elif DATASET == 10
 #  define PIXMEAN 3000
