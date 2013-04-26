@@ -1904,7 +1904,7 @@ int main(int argc, char ** argv)
                 imgmes[ind] = pixmes;
                 imgnoise[ind] = noiseback + 1.0 * val;
 
-                printf("%f\n", val);
+                //printf("%f\n", val);
 //            }
         }
     }

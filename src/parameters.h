@@ -155,10 +155,10 @@
 #  define PREFAC_RAD_CC 1.0
 // DATASET 4 (HD_3 in ISBI contest)
 #elif DATASET == 4
-#  define PIXMEAN 1200
-#  define PIXSTD 300
+#  define PIXMEAN 1500
+#  define PIXSTD 200
 #  define RHO 0.001
-#  define SKER 16 /* has to be a multiple of 4 to use sse */
+#  define SKER 20 /* has to be a multiple of 4 to use sse */
 #  define SMES 4
 #  define NBMESX 200
 #  define NBMESY 200
@@ -169,9 +169,9 @@
 #  define NOISEBACK 22.0
 #  define MEANBACK 108.0
 #  define AINITPFACT 10.0
-#  define NBITER 5000
-#  define THRPOINT 300
-#  define BETA 2.5 /* inverse temperature for inference */
+#  define NBITER 4000
+#  define THRPOINT 450
+#  define BETA 3.0 /* inverse temperature for inference */
 #  define PIXTHR 12
 #  define THRCONV 1e-3
 #  define KERNEL 2
@@ -244,10 +244,10 @@
 #  define PREFAC_RAD_CC 1.0
 // DATASET 7 (LS_3 in ISBI contest)
 #elif DATASET == 7
-#  define PIXMEAN 1200
-#  define PIXSTD 300
+#  define PIXMEAN 1500
+#  define PIXSTD 200
 #  define RHO 0.001
-#  define SKER 16 /* has to be a multiple of 4 to use sse */
+#  define SKER 20 /* has to be a multiple of 4 to use sse */
 #  define SMES 4
 #  define NBMESX 200
 #  define NBMESY 200
@@ -258,9 +258,9 @@
 #  define NOISEBACK 22.0
 #  define MEANBACK 108.0
 #  define AINITPFACT 10.0
-#  define NBITER 3000
-#  define THRPOINT 300
-#  define BETA 2.5 /* inverse temperature for inference */
+#  define NBITER 4000
+#  define THRPOINT 450
+#  define BETA 3.5 /* inverse temperature for inference */
 #  define PIXTHR 9
 #  define THRCONV 1e-3
 #  define KERNEL 2
