@@ -244,7 +244,7 @@
 #  define PREFAC_RAD_CC 1.0
 // DATASET 7 (LS_3 in ISBI contest)
 #elif DATASET == 7
-#  define PIXMEAN 1500
+#  define PIXMEAN 1600
 #  define PIXSTD 200
 #  define RHO 0.001
 #  define SKER 20 /* has to be a multiple of 4 to use sse */
