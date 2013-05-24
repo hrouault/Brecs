@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       157,          7]
-NotebookDataLength[     15577,        441]
-NotebookOptionsPosition[     14572,        401]
-NotebookOutlinePosition[     14927,        417]
-CellTagsIndexPosition[     14884,        414]
+NotebookDataLength[     17676,        517]
+NotebookOptionsPosition[     16443,        469]
+NotebookOutlinePosition[     16800,        485]
+CellTagsIndexPosition[     16757,        482]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -397,10 +397,78 @@ Cell[BoxData[
 }, Open  ]],
 
 Cell[BoxData["  "], "Input",
- CellChangeTimes->{{3.569346093883895*^9, 3.56934609398508*^9}}]
+ CellChangeTimes->{{3.569346093883895*^9, 3.56934609398508*^9}}],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Simplify", "[", 
+  RowBox[{
+   RowBox[{"Integrate", "[", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"Exp", "[", 
+       RowBox[{
+        RowBox[{
+         RowBox[{"-", 
+          RowBox[{
+           RowBox[{"(", 
+            RowBox[{"x", "-", "R"}], ")"}], "^", "2"}]}], "/", "2"}], "/", 
+        RowBox[{"\[Sigma]", "^", "2"}]}], "]"}], 
+      RowBox[{"Exp", "[", 
+       RowBox[{
+        RowBox[{"-", "x"}], "/", "\[Tau]"}], "]"}]}], ",", 
+     RowBox[{"{", 
+      RowBox[{"x", ",", "0", ",", 
+       RowBox[{"+", "Infinity"}]}], "}"}]}], "]"}], ",", 
+   RowBox[{"\[Sigma]", ">", "0"}]}], "]"}]], "Input",
+ CellChangeTimes->{{3.576237071385146*^9, 3.5762371488156643`*^9}, {
+  3.57623718532872*^9, 3.576237213262083*^9}}],
+
+Cell[BoxData[
+ RowBox[{
+  SuperscriptBox["\[ExponentialE]", 
+   FractionBox[
+    RowBox[{
+     SuperscriptBox["\[Sigma]", "2"], "-", 
+     RowBox[{"2", " ", "R", " ", "\[Tau]"}]}], 
+    RowBox[{"2", " ", 
+     SuperscriptBox["\[Tau]", "2"]}]]], " ", 
+  SqrtBox[
+   FractionBox["\[Pi]", "2"]], " ", "\[Sigma]", " ", 
+  RowBox[{"(", 
+   RowBox[{"1", "+", 
+    RowBox[{"Erf", "[", 
+     FractionBox[
+      RowBox[{
+       RowBox[{"-", "\[Sigma]"}], "+", 
+       FractionBox[
+        RowBox[{"R", " ", "\[Tau]"}], "\[Sigma]"]}], 
+      RowBox[{
+       SqrtBox["2"], " ", "\[Tau]"}]], "]"}]}], ")"}]}]], "Output",
+ CellChangeTimes->{3.5762372179293823`*^9}]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"D", "[", 
+  RowBox[{
+   RowBox[{"Erf", "[", "x", "]"}], ",", "x"}], "]"}]], "Input",
+ CellChangeTimes->{{3.5762393992797337`*^9, 3.5762394063438387`*^9}}],
+
+Cell[BoxData[
+ FractionBox[
+  RowBox[{"2", " ", 
+   SuperscriptBox["\[ExponentialE]", 
+    RowBox[{"-", 
+     SuperscriptBox["x", "2"]}]]}], 
+  SqrtBox["\[Pi]"]]], "Output",
+ CellChangeTimes->{3.576239407517589*^9}]
+}, Open  ]]
 },
-WindowSize->{740, 796},
-WindowMargins->{{0, Automatic}, {Automatic, 0}},
+WindowSize->{866, 790},
+WindowMargins->{{672, Automatic}, {5, Automatic}},
 FrontEndVersion->"9.0 for Mac OS X x86 (32-bit, 64-bit Kernel) (November 20, \
 2012)",
 StyleDefinitions->"Default.nb"
@@ -439,13 +507,20 @@ Cell[10420, 293, 430, 9, 28, "Input"],
 Cell[10853, 304, 2166, 42, 242, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[13056, 351, 701, 20, 46, "Input"],
+Cell[13056, 351, 701, 20, 28, "Input"],
 Cell[13760, 373, 700, 22, 61, "Output"]
 }, Open  ]],
-Cell[14475, 398, 93, 1, 28, "Input"]
+Cell[14475, 398, 93, 1, 28, "Input"],
+Cell[CellGroupData[{
+Cell[14593, 403, 746, 22, 28, "Input"],
+Cell[15342, 427, 652, 21, 61, "Output"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[16031, 453, 178, 4, 28, "Input"],
+Cell[16212, 459, 215, 7, 58, "Output"]
+}, Open  ]]
 }
 ]
 *)
 
 (* End of internal cache information *)
-

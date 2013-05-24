@@ -70,8 +70,8 @@
 
 /* General parameters for display */
 #define DISPLAY_OVERLAY_ITER 0
-#define DISPLAY_OVERLAY 0
-#define DISPLAY_PLOTS 0
+#define DISPLAY_OVERLAY 1
+#define DISPLAY_PLOTS 1
 #define PRINT_ERRS 0
 #define OVERLAY_MAX_INT 10000.0
 #define OVERLAY_MIN_INT 10.0
@@ -244,11 +244,11 @@
 #  define PREFAC_RAD_CC 1.0
 // DATASET 7 (LS_3 in ISBI contest)
 #elif DATASET == 7
-#  define PIXMEAN 1600
-#  define PIXSTD 200
+#  define PIXMEAN 2000
+#  define PIXSTD 500
 #  define RHO 0.001
 #  define SKER 20 /* has to be a multiple of 4 to use sse */
-#  define SMES 4
+#  define SMES 2
 #  define NBMESX 200
 #  define NBMESY 200
 #  define SIZEPIX 100.0
@@ -261,17 +261,17 @@
 #  define NBITER 4000
 #  define THRPOINT 450
 #  define BETA 3.5 /* inverse temperature for inference */
-#  define PIXTHR 9
+#  define PIXTHR 5
 #  define THRCONV 1e-3
 #  define KERNEL 2
 #  define SMOOTHEN 1
-#  define SMOOTHEN_RAD 18
+#  define SMOOTHEN_RAD 25
 #  define SMOOTHEN_THR 40
-#  define SIZESMOOTH 0
+#  define SIZESMOOTH 100
 #  define GIBSSIZE 129
 #  define GIBSFRAME 0
-#  define SIZEZ 4
-#  define PREFAC_RAD_CC 2.0
+#  define SIZEZ 6
+#  define PREFAC_RAD_CC 1.5
 // DATASET 10 (Clathrin coated pits)
 #elif DATASET == 10
 #  define PIXMEAN 3000
@@ -305,6 +305,40 @@
 #  define RESCALEINPUT
 #  define RESCALEOFFSET 300
 #  define RESCALESLOPE 18.8
+// DATASET 11 (microtubule 3d)
+#elif DATASET == 11
+#  define PIXMEAN 3000
+#  define PIXSTD 1000
+#  define RHO 0.001
+#  define SKER 8 /* has to be a multiple of 4 to use sse */
+#  define SMES 6
+#  define NBMESX 128
+#  define NBMESY 128
+#  define NBMESXINI 210
+#  define NBMESYINI 416
+#  define OFFXINI 0
+#  define OFFYINI 0
+#  define SIZEPIX 133.0
+#  define SIZEPIXZ 333.0
+#  define DAMP1 0.05
+#  define DAMP2 0.1
+#  define NOISEBACK 80.0
+#  define MEANBACK 85.0
+#  define AINITPFACT 1.0
+#  define NBITER 1500
+#  define THRPOINT 500
+#  define BETA 1 /* inverse temperature for inference */
+#  define PIXTHR 50
+#  define THRCONV 1e-3
+#  define KERNEL 1
+#  define SIGPSF 1.04
+#  define DEFOCUS 1.0 /* the 1.1 is for defocus */
+#  define SIZESMOOTH 0
+#  define SIZEZ 1
+#  define RESCALEINPUT
+#  define RESCALEOFFSET 300
+#  define RESCALESLOPE 19.23
+#  define PREFAC_RAD_CC 1.0
 #  endif
 
 #endif /* end of include guard: PARAMETERS_H */

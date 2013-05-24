@@ -1628,7 +1628,7 @@ void smoothen_noise(float * img)
     int sysmoo = nbmesy + SIZESMOOTH;
 
     float * img2 = fftwf_alloc_real(sxsmoo * sysmoo);
-    float * imgmean = fftwf_alloc_real(sxsmoo * sysmoo);
+    float * imgmean = fftwf_alloc_real(nbmes2);
     float * imgker;
 
     out1 = fftwf_alloc_complex(sxsmoo * (sysmoo / 2 + 1));
@@ -1681,12 +1681,14 @@ void smoothen_noise(float * img)
     plot_image(sxsmoo, sysmoo, img2, "asmooth.png", PLOT_RESCALE);
 #endif // DISPLAY_PLOTS == 1
 
-    for (unsigned int i = 0; i < sysmoo * sxsmoo; ++i)
+    for (unsigned int i = 0; i < nbmes2; ++i)
     {
-        imgmean[i] = img[i] - img2[i];
+        int ls = i / nbmesy + SIZESMOOTH / 2;
+        int cs = (i % nbmesy) + SIZESMOOTH / 2;
+        imgmean[i] = img[i] - img2[cs + ls * sysmoo];
     }
 #if DISPLAY_PLOTS == 1
-    plot_image(sxsmoo, sysmoo, imgmean, "remmean.png", PLOT_RESCALE);
+    plot_image(nbmesx, nbmesy, imgmean, "remmean.png", PLOT_RESCALE);
 #endif // DISPLAY_PLOTS == 1
 
     fftwf_free(out1);
@@ -1707,6 +1709,7 @@ void smoothen_noise(float * img)
 
 int loadimg(uint16_t ** img)
 {
+    uint16_t * imgtmp;
     char * fname = brecs_args.filename_arg;
     char * dot = strrchr(fname, '/');
     dot = strrchr(fname, '.');
@@ -1727,17 +1730,28 @@ int loadimg(uint16_t ** img)
             exit(EXIT_FAILURE);
         }
 
-        if (fseek(fimg, NBMESY * NBMESX * 2 * offset, SEEK_SET) == -1){
+        if (fseek(fimg, NBMESYINI * NBMESXINI * 2 * offset, SEEK_SET) == -1){
             fprintf(stderr, "%s: Error reading input file: %s\n",
                     prog_name, strerror(errno));
             exit(EXIT_FAILURE);
         }
         *img = malloc(NBMESX * NBMESY * sizeof(uint16_t));
-        if (fread(*img, 2, NBMESX * NBMESY, fimg) == -1){
+        imgtmp = malloc(NBMESXINI * NBMESYINI * sizeof(uint16_t));
+        if (fread(imgtmp, 2, NBMESXINI * NBMESYINI, fimg) == -1){
             fprintf(stderr, "%s: Error reading input file: %s\n",
                     prog_name, strerror(errno));
             exit(EXIT_FAILURE);
         }
+        for (unsigned int i = 0; i < NBMESX; ++i)
+        {
+            for (unsigned int j = 0; j < NBMESY; ++j)
+            {
+                int ind = OFFXINI + j + (OFFYINI + i) * NBMESYINI;
+                (*img)[j + i * NBMESY] = imgtmp[ind];
+            }
+            /* code */
+        }
+        free(imgtmp);
         fclose(fimg);
     } else if (!strcmp(dot,".tif") || !strcmp(dot,".tiff")){
         *img = opentiff(fname, NBMESX, NBMESY);
@@ -1850,8 +1864,6 @@ int main(int argc, char ** argv)
     _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID
             & ~_MM_MASK_OVERFLOW & ~_MM_MASK_DIV_ZERO);
 #endif
-    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID
-            & ~_MM_MASK_OVERFLOW);
 
     /* Command line parser */
     char * arg0 = argv[0];
