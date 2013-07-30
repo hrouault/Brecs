@@ -101,14 +101,14 @@ const float beta = BETA;
 #  define SHIFT 8
 #  define ALIGNSIZE 32
 #  define VFUNC(name) _mm256_ ## name
-   typedef __m256 vecfloat;
-   typedef float afloat __attribute__ ((__aligned__(32)));
+typedef __m256 vecfloat;
+typedef float afloat __attribute__ ((__aligned__(32)));
 #else
 #  define SHIFT 4
 #  define ALIGNSIZE 16
 #  define VFUNC(name) _mm_ ## name
-   typedef __m128 vecfloat;
-   typedef float afloat __attribute__ ((__aligned__(16)));
+typedef __m128 vecfloat;
+typedef float afloat __attribute__ ((__aligned__(16)));
 #endif
 
 int nbframe;
@@ -118,8 +118,7 @@ void updatetemp(float b, float * imgnoise)
     float c = pow(RHO, b);
     rho = c / (1 + c);
 
-    for (unsigned int i = 0; i < nbmes2; ++i)
-    {
+    for (unsigned int i = 0; i < nbmes2; ++i) {
         imgnoise[i] /= b;
     }
 
@@ -130,11 +129,9 @@ void updatetemp(float b, float * imgnoise)
 #if KERNEL == 1
 void gaussker(float * ker)
 {
-    for (int x = -sizex / 2; x < sizex / 2 ; ++x)
-    {
+    for (int x = -sizex / 2; x < sizex / 2 ; ++x) {
         float dx2 = x * x;
-        for (int y = -sizey / 2; y < sizey / 2; ++y)
-        {
+        for (int y = -sizey / 2; y < sizey / 2; ++y) {
             float dy2 = y * y;
             float radius2 = dx2 + dy2;
             float val = exp(-radius2 / 2 / (sigpsf * sigpsf))
@@ -143,7 +140,7 @@ void gaussker(float * ker)
             int col = y;
             if (x < 0) line += sizex;
             if (y < 0) col += sizey;
-            
+
             ker[col + line * sizey] = val;
         }
     }
@@ -153,11 +150,9 @@ void gaussker(float * ker)
 #if KERNEL == 3
 void refinedker(float * ker)
 {
-    for (int x = -sizex / 2; x < sizex / 2 ; ++x)
-    {
+    for (int x = -sizex / 2; x < sizex / 2 ; ++x) {
         float dx2 = x * x;
-        for (int y = -sizey / 2; y < sizey / 2; ++y)
-        {
+        for (int y = -sizey / 2; y < sizey / 2; ++y) {
             float dy2 = y * y;
             float radius2 = dx2 + dy2;
             float r2 = radius2 / 2 / (sigpsf * sigpsf);
@@ -169,7 +164,7 @@ void refinedker(float * ker)
             int col = y;
             if (x < 0) line += sizex;
             if (y < 0) col += sizey;
-            
+
             ker[col + line * sizey] = val;
         }
     }
@@ -184,8 +179,8 @@ void plot_image(int sx, int sy,
     FILE * fp = fopen(filen, "wb");
     if (!fp) exit(EXIT_FAILURE);
 
-    png_structp png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING,
-                                                   NULL, NULL, NULL);
+    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
+                                                  NULL, NULL, NULL);
     if (!png_ptr) exit(EXIT_FAILURE);
     png_infop info_ptr = png_create_info_struct(png_ptr);
     if (!info_ptr) {
@@ -213,16 +208,16 @@ void plot_image(int sx, int sy,
     png_byte * img_data = malloc(sx * sy * sizeof(png_byte));
     float max = 0;
     float min = 0;
-    if (flags == PLOT_RESCALE){
-        for (i = 0 ; i < sx * sy ; i++){
+    if (flags == PLOT_RESCALE) {
+        for (i = 0 ; i < sx * sy ; i++) {
             if (max < img[i]) max = img[i];
             if (min > img[i]) min = img[i];
         }
-        for (x = 0 ; x < sx * sy ; x++){
+        for (x = 0 ; x < sx * sy ; x++) {
             img_data[x] = 255 / (max - min) * (img[x] - min);
         }
     } else {
-        for (x = 0 ; x < sx * sy ; x++){
+        for (x = 0 ; x < sx * sy ; x++) {
             img_data[x] = img[x];
         }
     }
@@ -243,8 +238,8 @@ void plot_imagergb(int sx, int sy,
     FILE * fp = fopen(filen, "wb");
     if (!fp) exit(EXIT_FAILURE);
 
-    png_structp png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING,
-                                                   NULL, NULL, NULL);
+    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
+                                                  NULL, NULL, NULL);
     if (!png_ptr) exit(EXIT_FAILURE);
     png_infop info_ptr = png_create_info_struct(png_ptr);
     if (!info_ptr) {
@@ -299,19 +294,16 @@ void loadgibson(float * ker)
         }
     }
 
-    for (unsigned int i = 0; i < size3; ++i)
-    {
+    for (unsigned int i = 0; i < size3; ++i) {
         ker[i] = 0;
     }
 #if DISPLAY_PLOTS == 1
     plot_image(gibssize, gibssize, img, "imgfromstack.png", PLOT_RESCALE);
-#endif // DISPLAY_PLOTS
+#endif  // DISPLAY_PLOTS
 
     for (unsigned int z = 0; z < sizez; ++z) {
-        for (int x = 0; x < gibssize ; ++x)
-        {
-            for (int y = 0; y < gibssize; ++y)
-            {
+        for (int x = 0; x < gibssize ; ++x) {
+            for (int y = 0; y < gibssize; ++y) {
                 float val = img[y + x * gibssize + z * gibssize2] / sum[z];
                 int line = x - gibssize / 2;
                 int col = y - gibssize / 2;
@@ -324,7 +316,7 @@ void loadgibson(float * ker)
     }
     free(img);
 }
-#endif // KERNEL == 2
+#endif  // KERNEL == 2
 
 
 void plot_overlay(float * mes,
@@ -334,8 +326,8 @@ void plot_overlay(float * mes,
     FILE * fp = fopen(filen, "wb");
     if (!fp) exit(EXIT_FAILURE);
 
-    png_structp png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING,
-                                                   NULL, NULL, NULL);
+    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
+                                                  NULL, NULL, NULL);
     if (!png_ptr) exit(EXIT_FAILURE);
     png_infop info_ptr = png_create_info_struct(png_ptr);
     if (!info_ptr) {
@@ -363,15 +355,15 @@ void plot_overlay(float * mes,
     png_byte * img_data = malloc(size2 * 3 * sizeof(png_byte));
     float max2 = 0;
     float min2 = 0;
-    for (i = 0 ; i < nbmes2 ; i++){
+    for (i = 0 ; i < nbmes2 ; i++) {
         if (max2 < mes[i]) max2 = mes[i];
         if (min2 > mes[i]) min2 = mes[i];
     }
-    for (x = 0 ; x < sizex ; x++){
-        for (y = 0 ; y < sizey ; y++){
+    for (x = 0 ; x < sizex ; x++) {
+        for (y = 0 ; y < sizey ; y++) {
             float val = pred[x * sizey + y];
             png_byte * cimgd = img_data + (x * sizey + y) * 3;
-            if (val > OVERLAY_MIN_INT){
+            if (val > OVERLAY_MIN_INT) {
                 if (val > OVERLAY_MAX_INT) val = OVERLAY_MAX_INT;
                 cimgd[0] = 255 * log(val)
                            / log(OVERLAY_MAX_INT);
@@ -407,9 +399,9 @@ void saveimage(float * img, int size, const char * fname)
     int bzerror;
     int j = 0;
 
-    b = BZ2_bzWriteOpen( &bzerror, fout, 9, 0, 30 );
+    b = BZ2_bzWriteOpen(&bzerror, fout, 9, 0, 30);
     if (bzerror != BZ_OK) {
-        BZ2_bzWriteClose (&bzerror, b, 0, NULL, NULL);
+        BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
         exit(EXIT_FAILURE);
     }
     int nbtot = 0;
@@ -417,13 +409,12 @@ void saveimage(float * img, int size, const char * fname)
     while (j < size) {
         /* get data to write into buf, and set nBuf appropriately */
         size_t i;
-        for (i = 0; i < nBuf && j < size; i += 2)
-        {
+        for (i = 0; i < nBuf && j < size; i += 2) {
             *(uint16_t *)(buf + i) = (uint16_t)(img[j]);
             j++;
         }
-        BZ2_bzWrite ( &bzerror, b, buf, i);
-        if (bzerror == BZ_IO_ERROR) { 
+        BZ2_bzWrite(&bzerror, b, buf, i);
+        if (bzerror == BZ_IO_ERROR) {
             BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
             exit(EXIT_FAILURE);
         }
@@ -440,7 +431,7 @@ void saveimage(float * img, int size, const char * fname)
 void fafcfunc(float * out, float sig2, float r)
 {
     if (r > 5e4) r = 5e4;
-    if (sig2 < 0){
+    if (sig2 < 0) {
         sig2 = 1e6;
         r = 0;
     }
@@ -454,7 +445,7 @@ void fafcfunc(float * out, float sig2, float r)
     float fra2 = fra1 / varr;
 
     float argexp = -r * r / 2 / sig2 + deltr / 2 / varr;
-    if (argexp > 25.0){
+    if (argexp > 25.0) {
         out[0] = 1e-10;
         out[1] = 1e-3;
         return;
@@ -518,13 +509,11 @@ void update_omegavmu(float * omegamu, float * vmu,
 {
     const vecfloat zero = VFUNC(set1_ps) (0);
 
-    for (int mu = 0; mu < nbmes2; mu += SHIFT)
-    {
+    for (int mu = 0; mu < nbmes2; mu += SHIFT) {
         VFUNC(store_ps) (vmu + mu, zero);
         VFUNC(store_ps) (omegamu + mu, zero);
     }
-    for (unsigned int k = 0; k < nbact; ++k)
-    {
+    for (unsigned int k = 0; k < nbact; ++k) {
         int i = activepix[k];
         float * cabeal = abeal + k * sker2;
         float * cvbeal = vbeal + k * sker2;
@@ -571,7 +560,7 @@ void update_omegavmu(float * omegamu, float * vmu,
 }
 
 static inline vecfloat abs_ps(vecfloat x) {
-    vecfloat sign_mask = VFUNC(set1_ps) (-0.f); // -0.f = 1 << 31
+    vecfloat sign_mask = VFUNC(set1_ps) (-0.f);  // -0.f = 1 << 31
     return VFUNC(andnot_ps) (sign_mask, x);
 }
 
@@ -602,8 +591,7 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
 
     update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, nbact, activepix);
 
-    for (unsigned int k = 0; k < nbact; ++k)
-    {
+    for (unsigned int k = 0; k < nbact; ++k) {
         int i = activepix[k];
         float * caA = mu_albe_A + k * sker2;
         float * caB = mu_albe_B + k * sker2;
@@ -627,8 +615,7 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
         vecfloat sumA = zero;
         vecfloat sumB = zero;
 
-        for (int mu = 0; mu < sker2; mu += SHIFT)
-        {
+        for (int mu = 0; mu < sker2; mu += SHIFT) {
             int dcmu = mu % sker - sker / 2;
             int dlmu = mu / sker - sker / 2;
 
@@ -675,8 +662,8 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
         }
         sumA = sumh_ps(sumA);
         sumB = sumh_ps(sumB);
-        sumA = VFUNC(mul_ps ) (sumA, oneosk);
-        sumB = VFUNC(mul_ps ) (sumB, oneosk);
+        sumA = VFUNC(mul_ps) (sumA, oneosk);
+        sumB = VFUNC(mul_ps) (sumB, oneosk);
 
         VFUNC(store_ps) (sum_mualbe_A + k * SHIFT, sumA);
         VFUNC(store_ps) (sum_mualbe_B + k * SHIFT, sumB);
@@ -701,8 +688,7 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
 
     const vecfloat zero = VFUNC(set1_ps) (0);
     const vecfloat oneosk = VFUNC(set1_ps) (1.0f / sker2);
-    for (unsigned int k = 0; k < nbact; ++k)
-    {
+    for (unsigned int k = 0; k < nbact; ++k) {
         float * caA = mu_albe_A + k * sker2;
         float * caB = mu_albe_B + k * sker2;
         float * cPA = vbeal + k * sker2;
@@ -713,8 +699,7 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
 
         vecfloat sumA = zero;
         vecfloat sumB = zero;
-        for (int mu = 0; mu < sker2; mu += SHIFT)
-        {
+        for (int mu = 0; mu < sker2; mu += SHIFT) {
             vecfloat A = VFUNC(load_ps) (cPA + mu);
             vecfloat B = VFUNC(load_ps) (cPB + mu);
             vecfloat maA = VFUNC(load_ps) (caA + mu);
@@ -734,8 +719,8 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
         }
         sumA = sumh_ps(sumA);
         sumB = sumh_ps(sumB);
-        sumA = VFUNC(mul_ps ) (sumA, oneosk);
-        sumB = VFUNC(mul_ps ) (sumB, oneosk);
+        sumA = VFUNC(mul_ps) (sumA, oneosk);
+        sumB = VFUNC(mul_ps) (sumB, oneosk);
 
         VFUNC(store_ps) (sum_mualbe_A + k * SHIFT, sumA);
         VFUNC(store_ps) (sum_mualbe_B + k * SHIFT, sumB);
@@ -754,8 +739,7 @@ void update_mubeal(float * vbeal, float * abeal,
     const vecfloat thrmax = VFUNC(set1_ps) (1e-5);
     const vecfloat thrmin2 = VFUNC(set1_ps) (1e12);
 
-    for (unsigned int k = 0; k < nbact; ++k)
-    {
+    for (unsigned int k = 0; k < nbact; ++k) {
         float * caA = mu_albe_A + k * sker2;
         float * caB = mu_albe_B + k * sker2;
         float * cabeal = abeal + k * sker2;
@@ -804,15 +788,13 @@ float update_pbe(float * P_be_E, float * P_be_F,
     int nberr = 0;
     float errmeantot = 0;
     float errvartot = 0;
-    for (unsigned int k = 0; k < nbact; ++k)
-    {
+    for (unsigned int k = 0; k < nbact; ++k) {
         float * cA = P_albe_A + k * sker2;
         float * cB = P_albe_B + k * sker2;
 
         vecfloat vPEt = VFUNC(set1_ps) (0);
         vecfloat vPFt = VFUNC(set1_ps) (0);
-        for (size_t mu = 0; mu < sker2; mu += SHIFT)
-        {
+        for (size_t mu = 0; mu < sker2; mu += SHIFT) {
             vecfloat e = VFUNC(load_ps) (cA + mu);
             vPEt = VFUNC(add_ps) (vPEt, e);
             vecfloat f = VFUNC(load_ps) (cB + mu);
@@ -836,10 +818,12 @@ float update_pbe(float * P_be_E, float * P_be_F,
         float fafc[2];
         fafcfunc(fafc, 1 / PEt, PFt / PEt);
 
-        //if (fafc[1] > 1 && fafc[1] * prevPbE > 1.2) fafc[1] = 1.2 / prevPbE;
-        //if (fafc[1] > 1 && fafc[1] * prevPbE < 0.2) fafc[1] = 0.2 / prevPbE;
-        //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF > 1.2) fafc[0] = 1.2 * prevPbF / prevPbE;
-        //if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF < 0.2) fafc[0] = 0.2 * prevPbF / prevPbE;
+        // if (fafc[1] > 1 && fafc[1] * prevPbE > 1.2) fafc[1] = 1.2 / prevPbE;
+        // if (fafc[1] > 1 && fafc[1] * prevPbE < 0.2) fafc[1] = 0.2 / prevPbE;
+        // if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF > 1.2)
+        //   fafc[0] = 1.2 * prevPbF / prevPbE;
+        // if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF < 0.2)
+        //   fafc[0] = 0.2 * prevPbF / prevPbE;
 
         float invE = (1 - DAMP1) / P_be_E[k] + DAMP1 * fafc[1];
         P_be_E[k]= 1 / invE;
@@ -847,28 +831,30 @@ float update_pbe(float * P_be_E, float * P_be_F,
             + DAMP2 * fafc[0] / invE;
 
         float errvar = fabsf(fafc[1] - 1 / prevPbE) / (fafc[1] + 1 / prevPbE);
-        float errmean = fabsf(fafc[0] - prevPbF / prevPbE) / (fafc[0] + prevPbF / prevPbE);
-        if (errvar > relerr){// && fafc[1] > 10){
+        float errmean = fabsf(fafc[0] - prevPbF / prevPbE)
+                        / (fafc[0] + prevPbF / prevPbE);
+        if (errvar > relerr) {  // && fafc[1] > 10){
             relerr = errvar;
         }
-        if (errmean > relerr){// && fafc[0] > 1){
+        if (errmean > relerr) {  // && fafc[0] > 1){
             relerr = errmean;
         }
-        if (errvar > errvartot && fafc[1] > 10){
+        if (errvar > errvartot && fafc[1] > 10) {
             errvartot = errvar;
         }
-        if (errmean > errmeantot && fafc[0] > 1){
+        if (errmean > errmeantot && fafc[0] > 1) {
             errmeantot = errmean;
         }
-        if ((errvar > 0.05 && fafc[1] > 1) || (errmean > 0.05 && fafc[0] > 1)){
+        if ((errvar > 0.05 && fafc[1] > 1)
+                || (errmean > 0.05 && fafc[0] > 1)) {
             nberr++;
         }
-        //printf("%f %f %f\n", relerr, errmeantot, errvartot);
+        // printf("%f %f %f\n", relerr, errmeantot, errvartot);
     }
 
 #if PRINT_ERRS == 1
     printf("nberr, errmean, errvar: %i %f %f\n", nberr, errmeantot, errvartot);
-#endif // PRINT_ERRS
+#endif  // PRINT_ERRS
 
     return relerr;
 }
@@ -879,11 +865,9 @@ float * gausskerpar(int sx, int sy, float radius)
     posix_memalign((void **)&out, ALIGNSIZE, sx * sy * sizeof(float));
 
     float sig2 = radius * radius;
-    for (int x = -sx / 2; x < sx / 2 ; ++x)
-    {
+    for (int x = -sx / 2; x < sx / 2 ; ++x) {
         float dx2 = x * x;
-        for (int y = -sy / 2; y < sy / 2; ++y)
-        {
+        for (int y = -sy / 2; y < sy / 2; ++y) {
             float dy2 = y * y;
             float r2 = dx2 + dy2;
             float val = exp(-r2 / 2 / sig2)
@@ -892,7 +876,7 @@ float * gausskerpar(int sx, int sy, float radius)
             int col = y;
             if (x < 0) line += sx;
             if (y < 0) col += sy;
-            
+
             out[col + line * sy] = val;
         }
     }
@@ -908,7 +892,7 @@ int on_border(int i, int * activepix, int nbact)
     int count = 0;
     for (unsigned int k = 0; k < nbact; ++k) {
         int j = activepix[k];
-        if (j == p1 || j == p2 || j == p3 || j == p4){
+        if (j == p1 || j == p2 || j == p3 || j == p4) {
             count += 1;
             if (count == 4) return 0;
         }
@@ -944,8 +928,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
 
     posix_memalign((void **)&imgnoisecp, ALIGNSIZE, nbmes2 * sizeof(float));
 
-    for (unsigned int i = 0; i < nbmes2; ++i)
-    {
+    for (unsigned int i = 0; i < nbmes2; ++i) {
         imgnoisecp[i] = imgnoise[i];
     }
 
@@ -958,18 +941,26 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                    nbact * sker2 * sizeof(float));
     posix_memalign((void **)&mu_beal_B, ALIGNSIZE,
                    nbact * sker2 * sizeof(float));
-    vbeal = mu_beal_A; 
-    abeal = mu_beal_B; 
-    //posix_memalign((void **)&P_albe_A, ALIGNSIZE,
-    //               nbact * sker2 * sizeof(float));
-    //posix_memalign((void **)&P_albe_B, ALIGNSIZE,
-    //               nbact * sker2 * sizeof(float));
-    //posix_memalign((void **)&abeal, ALIGNSIZE, nbact * sker2 * sizeof(float));
-    //posix_memalign((void **)&vbeal, ALIGNSIZE, nbact * sker2 * sizeof(float));
+    vbeal = mu_beal_A;
+    abeal = mu_beal_B;
+    // posix_memalign((void **)&P_albe_A, ALIGNSIZE,
+    //                nbact * sker2 * sizeof(float));
+    // posix_memalign((void **)&P_albe_B, ALIGNSIZE,
+    //                nbact * sker2 * sizeof(float));
+    // posix_memalign((void **)&abeal,
+    //                ALIGNSIZE,
+    //                nbact * sker2 * sizeof(float));
+    // posix_memalign((void **)&vbeal,
+    //                ALIGNSIZE,
+    //                nbact * sker2 * sizeof(float));
     posix_memalign((void **)&P_be_E, ALIGNSIZE, nbact * sizeof(float));
     posix_memalign((void **)&P_be_F, ALIGNSIZE, nbact * sizeof(float));
-    posix_memalign((void **)&sum_mualbe_A, ALIGNSIZE, nbact * SHIFT * sizeof(float));
-    posix_memalign((void **)&sum_mualbe_B, ALIGNSIZE, nbact * SHIFT * sizeof(float));
+    posix_memalign((void **)&sum_mualbe_A,
+                   ALIGNSIZE,
+                   nbact * SHIFT * sizeof(float));
+    posix_memalign((void **)&sum_mualbe_B,
+                   ALIGNSIZE,
+                   nbact * SHIFT * sizeof(float));
     posix_memalign((void **)&omegamu, ALIGNSIZE, nbmes2 * sizeof(float));
     posix_memalign((void **)&vmu, ALIGNSIZE, nbmes2 * sizeof(float));
 
@@ -985,7 +976,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
            */
 #if DISPLAY_PLOTS == 1
     plot_image(smes * sker, smes * sker, ker, "kerint.png", PLOT_RESCALE);
-#endif // DISPLAY_PLOTS == 1
+#endif  // DISPLAY_PLOTS == 1
 
     float Binit = RHO * pixmean * Ainit;
 
@@ -997,8 +988,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     }
     vecfloat vAinit = VFUNC(set1_ps) (Ainit);
     vecfloat vBinit = VFUNC(set1_ps) (Binit);
-    for (unsigned int i = 0; i < nbact; ++i)
-    {
+    for (unsigned int i = 0; i < nbact; ++i) {
         P_be_E[i] = Ainit;
         P_be_F[i] = Binit;
 
@@ -1009,14 +999,12 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     /* Main loop */
     float relerr = 1.0;
     int iter = 0;
-    //printf("nbiter: %i\n", nbiter);
-    while (relerr > THRCONV && iter < nbiter)
-    //for (int iter = 0; iter < nbiter; ++iter)
-    {
+    // printf("nbiter: %i\n", nbiter);
+    while (relerr > THRCONV && iter < nbiter) {
+    // for (int iter = 0; iter < nbiter; ++iter) {
         iter++;
         /* Internal loop */
-        for (unsigned int j = 0; j < nbintern; ++j)
-        {
+        for (unsigned int j = 0; j < nbintern; ++j) {
             update_mubeal(vbeal, abeal,
                     mu_albe_A, mu_albe_B,
                     P_be_E, P_be_F,
@@ -1030,11 +1018,11 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                     ker, ker2,
                     imgnoisecp, imgmes,
                     nbact, activepix);
-            //printf("relerr: %f\n", relerr);
+            // printf("relerr: %f\n", relerr);
         }
 
         /* External loop */
-        //printf("updatePbe\n");
+        // printf("updatePbe\n");
         int iterpbe = 1;
 
         relerr = update_pbe(P_be_E, P_be_F,
@@ -1043,7 +1031,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                             iterpbe);
         if (iter < 200) relerr = 1.0;
 
-        //printf("iteration, relerr: %i, %f\n", iter, relerr); 
+        // printf("iteration, relerr: %i, %f\n", iter, relerr);
     }
 
     if (relerr < 1.01 * THRCONV) nbconv++;
@@ -1053,19 +1041,17 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     for (int i = 0; i < size3; ++i) {
         res[i] = 0;
     }
-    //if (relerr < 1.1 * THRCONV){
-        for (unsigned int k = 0; k < nbact; ++k)
-        {
+    // if (relerr < 1.1 * THRCONV){
+        for (unsigned int k = 0; k < nbact; ++k) {
             float val = P_be_F[k] / P_be_E[k];
             res[activepix[k] % size2] += val;
         }
         static int nbfluo = 1;
-        for (int i = 0; i < size2; ++i)
-        {
+        for (int i = 0; i < size2; ++i) {
             int c = (i % size2) % sizey;
             int l = (i % size2) / sizey;
             int z = i / size2;
-            if (res[i] > thrpoint && !on_border(i, activepix, nbact)){
+            if (res[i] > thrpoint && !on_border(i, activepix, nbact)) {
                 printf("%d %s %.2f %.2f %.2f %.2f\n",
                         nbfluo,
                         brecs_args.filename_arg,
@@ -1076,7 +1062,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
                 nbfluo++;
             }
         }
-    //}
+    // }
     /*
     printf("res min, max: %f %f\n",                                            
             min(res, size2),                                               
@@ -1112,8 +1098,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
         reconspic[i] = 0;
     }
 
-    for (unsigned int i = 0; i < ccdec.nbcomp; ++i)
-    {
+    for (unsigned int i = 0; i < ccdec.nbcomp; ++i) {
         float * rectmp = recons_ccomp(imgmes, imgnoise,
                                       ccdec.activepixcomp[i], ccdec.nbact[i],
                                       psf);
@@ -1132,7 +1117,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
 
 #if DISPLAY_OVERLAY == 1
     plot_overlay(imgmes, reconspic, "overlay.png");
-#endif // DISPLAY_OVERLAY
+#endif  // DISPLAY_OVERLAY
     if (brecs_args.output_given){
         FILE * fout = fopen(brecs_args.output_arg, "wb");
         if (!fout) {
@@ -1154,8 +1139,7 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
 float max(float * img, int size)
 {
     float max = img[0];
-    for (int i = 1; i < size; ++i)
-    {
+    for (int i = 1; i < size; ++i) {
         if (img[i] > max) max = img[i];
     }
 
@@ -1165,8 +1149,7 @@ float max(float * img, int size)
 float min(float * img, int size)
 {
     float min = img[0];
-    for (int i = 1; i < size; ++i)
-    {
+    for (int i = 1; i < size; ++i) {
         if (img[i] < min) min = img[i];
     }
 
@@ -1176,8 +1159,7 @@ float min(float * img, int size)
 float maxra(float * num, float * den, int size)
 {
     float max = num[0] / den[0];
-    for (int i = 1; i < size; ++i)
-    {
+    for (int i = 1; i < size; ++i) {
         if (num[i] / den[i] > max) max = num[i] / den[i];
     }
 
@@ -1187,8 +1169,7 @@ float maxra(float * num, float * den, int size)
 float minra(float * num, float * den, int size)
 {
     float min = num[0] / den[0];
-    for (int i = 1; i < size; ++i)
-    {
+    for (int i = 1; i < size; ++i) {
         if (num[i] / den[i] < min) min = num[i] / den[i];
     }
 
@@ -1208,18 +1189,17 @@ uint16_t * opentiff(const char * fname, int sx, int sy)
         uint32 col;
 
         TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &imagelength);
-        if (imagelength != sx){
+        if (imagelength != sx) {
             printf("%i %i\n", imagelength, sx);
             printf("incorrect image length\n");
             exit(EXIT_FAILURE);
         }
         scanline = TIFFScanlineSize(tif);
         if (scanline / 2 != sy) exit(EXIT_FAILURE);
-        //printf("image length: %i\n", imagelength);
-        //printf("scanline: %li\n", scanline);
+        // printf("image length: %i\n", imagelength);
+        // printf("scanline: %li\n", scanline);
         buf = _TIFFmalloc(scanline);
-        for (row = 0; row < imagelength; row++)
-        {
+        for (row = 0; row < imagelength; row++) {
             TIFFReadScanline(tif, buf, row, 0);
             for (col = 0; col < scanline / 2; col++)
                 img[col + row * scanline / 2] = ((uint16 *)buf)[col];
@@ -1236,10 +1216,8 @@ uint16_t * opentiff(const char * fname, int sx, int sy)
 float valuearound(float * img, int sx, int sy, int x, int y , float rad2)
 {
     float sum = 0;
-    for (unsigned int i = 0; i < sx; ++i)
-    {
-        for (unsigned int j = 0; j < sy; ++j)
-        {
+    for (unsigned int i = 0; i < sx; ++i) {
+        for (unsigned int j = 0; j < sy; ++j) {
             float r2 = (i - x) * (i - x) + (j - y) * (j - y);
             if (r2 < rad2) sum += img[j + i * sy];
         }
@@ -1260,7 +1238,7 @@ lab_t * roundker(int diam)
             int y = i - center;
             float rad2 = x * x + y * y;
             int ind = j + i * diam;
-            if (rad2 < center * center){
+            if (rad2 < center * center) {
                 ker[ind] = 1;
             } else {
                 ker[ind] = 0;
@@ -1270,7 +1248,7 @@ lab_t * roundker(int diam)
     return ker;
 }
 
-void maskpix(lab_t * img, int width, lab_t * ker, int diam, int x, int y){
+void maskpix(lab_t * img, int width, lab_t * ker, int diam, int x, int y) {
     for (size_t i = 0; i < diam; i++) {
         for (size_t j = 0; j < diam; j++) {
             int ind = x + j - diam / 2 + (y + i - diam / 2) * width;
@@ -1296,13 +1274,12 @@ lab_t neighb(lab_t * img, int width, int x, int y)
 lab_t * dilate(lab_t * img, int width, int height, lab_t * ker, int diam)
 {
     lab_t * res = malloc(width * height * sizeof(lab_t));
-    for (size_t i = 0; i < width * height; ++i)
-    {
+    for (size_t i = 0; i < width * height; ++i) {
         res[i] = img[i];
     }
     for (size_t i = 0; i < height; i++) {
         for (size_t j = 0; j < width; j++) {
-            if (img[j + i * width] && neighb(img, width, j, i)){
+            if (img[j + i * width] && neighb(img, width, j, i)) {
                 maskpix(res, width, ker, diam, j, i);
             }
         }
@@ -1312,10 +1289,9 @@ lab_t * dilate(lab_t * img, int width, int height, lab_t * ker, int diam)
 
 void unionsets(lab_t * labs, int lastlab, int parentlab, int lab)
 {
-    if (lab != parentlab){
-        for (int i = lab - 1; i < lastlab; ++i)
-        {
-            if (labs[i] == lab){
+    if (lab != parentlab) {
+        for (int i = lab - 1; i < lastlab; ++i) {
+            if (labs[i] == lab) {
                 labs[i] = parentlab;
             }
         }
@@ -1344,7 +1320,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
     lab_t labs[MAX_LABEL];
 
     lab_t * imglabs = malloc(width * height * sizeof(lab_t));
-    
+
     for (int i = 0; i < width * height; i++) {
         imglabs[i] = 0;
     }
@@ -1353,7 +1329,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
     for (int i = 1; i < height - 1; i++) {
         for (int j = 1; j < width - 1; j++) {
             int ind = j + i * width;
-            if (imgdil[ind]){
+            if (imgdil[ind]) {
                 lab_t lab4[4] = {0, 0, 0, 0};
                 lab_t lab4p[4] = {0, 0, 0, 0};
                 size_t nlab = 0;
@@ -1362,33 +1338,32 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
                 lab4[2] = imglabs[ind - width + 1];
                 lab4[3] = imglabs[ind - 1];
                 lab_t minlab = MAX_LABEL;
-                if (lab4[0]){
+                if (lab4[0]) {
                     minlab = lab4[0];
                     lab4p[0] = lab4[0];
                     nlab++;
                 }
-                if (lab4[1]){
+                if (lab4[1]) {
                     if (lab4[1] < minlab) minlab = lab4[1];
                     lab4p[nlab] = lab4[1];
                     nlab++;
                 }
-                if (lab4[2]){
+                if (lab4[2]) {
                     if (lab4[2] < minlab) minlab = lab4[2];
                     lab4p[nlab] = lab4[2];
                     nlab++;
                 }
-                if (lab4[3]){
+                if (lab4[3]) {
                     if (lab4[3] < minlab) minlab = lab4[3];
                     lab4p[nlab] = lab4[3];
                     nlab++;
                 }
-                if (nlab > 2){
-                    for (int k = 0; k < nlab; ++k)
-                    {
+                if (nlab > 2) {
+                    for (int k = 0; k < nlab; ++k) {
                         unionsets(labs, lastlab, minlab, lab4p[k]);
                     }
                 }
-                if (!nlab){
+                if (!nlab) {
                     lastlab++;
                     labs[lastlab - 1] = lastlab;
                     imglabs[ind] = lastlab;
@@ -1401,7 +1376,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
     int clab = 0;
     int clab2 = 0;
     for (unsigned int i = 0; i < lastlab; ++i) {
-        if (labs[i] > clab2){
+        if (labs[i] > clab2) {
             clab2 = labs[i];
             clab++;
             labs[i] = clab;
@@ -1413,8 +1388,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
     ccdec.coordcomp = malloc(clab * 4 * sizeof(int));
     ccdec.nbact = malloc(clab * sizeof(int));
     ccdec.activepixcomp = malloc(clab * sizeof(int *));
-    for (unsigned int i = 0; i < clab; ++i)
-    {
+    for (unsigned int i = 0; i < clab; ++i) {
         ccdec.coordcomp[4 * i] = sizey;
         ccdec.coordcomp[4 * i + 1] = 0;
         ccdec.coordcomp[4 * i + 2] = sizex;
@@ -1425,7 +1399,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
         for (int j = 0; j < width; j++) {
             int ind = j + i * width;
 
-            if (img[ind]){
+            if (img[ind]) {
                 lab_t lab = labs[imglabs[ind] - 1];
                 int * coord = ccdec.coordcomp + 4 * (lab - 1);
                 if (j < coord[0]) coord[0] = j;
@@ -1445,7 +1419,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
         for (int j = 0; j < width; j++) {
             int ind = j + i * width;
 
-            if (img[ind]){
+            if (img[ind]) {
                 lab_t lab = imglabs[ind];
                 for (unsigned int z = 0; z < sizez; ++z) {
                     ccdec.activepixcomp[lab - 1][ccdec.nbact[lab - 1] + z] =
@@ -1459,9 +1433,8 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
     png_byte * cols = genrandomcolo(clab);
     png_byte * imgccmprgb = malloc(size2 * 3 * sizeof(png_byte));
 
-    for (unsigned int i = 0; i < size2; ++i)
-    {
-        if (img[i]){
+    for (unsigned int i = 0; i < size2; ++i) {
+        if (img[i]) {
             imgccmprgb[3 * i] = cols[3 * imglabs[i] - 3];
             imgccmprgb[1 + 3 * i] = cols[1 + 3 * imglabs[i] - 3];
             imgccmprgb[2 + 3 * i] = cols[2 + 3 * imglabs[i] - 3];
@@ -1474,7 +1447,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
     free(cols);
     plot_imagergb(sizey, sizex, imgccmprgb, "connected_comp.png");
     free(imgccmprgb);
-#endif // DISPLAY_PLOTS == 1
+#endif  // DISPLAY_PLOTS == 1
 
     ccdec.imglab = imglabs;
     return ccdec;
@@ -1486,19 +1459,16 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     int syfft = pow(2, (int)log2(sizey) + 1);
 
     float * imgsmoo = fftwf_alloc_real(sxfft * syfft);
-    for (unsigned int i = 0; i < sxfft * syfft; ++i){
+    for (unsigned int i = 0; i < sxfft * syfft; ++i) {
         imgsmoo[i] = 0;
     }
-    for (unsigned int i = 0; i < nbmes2; ++i)
-    {
+    for (unsigned int i = 0; i < nbmes2; ++i) {
         float val = imgmes[i];
         int ci = i % nbmesy;
         int li = i / nbmesy;
-        for (unsigned int j = 0; j < smes2; ++j)
-        {
+        for (unsigned int j = 0; j < smes2; ++j) {
             int ind = ci * smes + j % smes + syfft * (li * smes + j / smes);
             imgsmoo[ind] = val;
-            
         }
     }
     fftwf_complex * out1, * out2;
@@ -1507,7 +1477,7 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     float * imgker = gausskerpar(sxfft, syfft, PREFAC_RAD_CC * smes);
 #if DISPLAY_PLOTS == 1
     plot_image(sxfft, syfft, imgker, "kersmoo.png", PLOT_RESCALE);
-#endif // DISPLAY_PLOTS == 1
+#endif  // DISPLAY_PLOTS == 1
 
     out1 = fftwf_alloc_complex(sxfft * (syfft / 2 + 1));
     out2 = fftwf_alloc_complex(sxfft * (syfft / 2 + 1));
@@ -1527,8 +1497,7 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     fftwf_execute(pforw2);
     fftwf_free(imgker);
 
-    for (unsigned int i = 0; i < sxfft * (syfft / 2 + 1); ++i)
-    {
+    for (unsigned int i = 0; i < sxfft * (syfft / 2 + 1); ++i) {
         fftwf_complex c1, c2;
         c1[0] = out1[i][0];
         c1[1] = out1[i][1];
@@ -1547,15 +1516,17 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
 
 #if DISPLAY_PLOTS == 1
     plot_image(sxfft, syfft, imgsmoo, "smoothimg.png", PLOT_RESCALE);
-#endif // DISPLAY_PLOTS == 1
+#endif  // DISPLAY_PLOTS == 1
 
     lab_t * imgccmp = malloc(size2 * sizeof(lab_t));
     for (unsigned int i = 0; i < size2; ++i) {
         imgccmp[i] = 0;
     }
     for (unsigned int i = smes * sker / 2; i < sizex - smes * sker / 2; ++i) {
-        for (unsigned int j = smes * sker / 2; j < sizey - smes * sker / 2; ++j) {
-            if (imgsmoo[j + i * syfft] > pixthr){
+        for (unsigned int j = smes * sker / 2;
+             j < sizey - smes * sker / 2;
+             ++j) {
+            if (imgsmoo[j + i * syfft] > pixthr) {
                 imgccmp[j + i * sizey] = 1;
             }
         }
@@ -1566,11 +1537,9 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
 
 #if DISPLAY_PLOTS == 1
     png_byte * imgdilrgb = malloc(3 * size2 * sizeof(png_byte));
-    for (unsigned int i = 0; i < sizex; ++i)
-    {
-        for (unsigned int j = 0; j < sizey; ++j)
-        {
-            if (imgdil[j + i * sizey]){
+    for (unsigned int i = 0; i < sizex; ++i) {
+        for (unsigned int j = 0; j < sizey; ++j) {
+            if (imgdil[j + i * sizey]) {
                 imgdilrgb[3 * (j + i * sizey)] = 255;
                 imgdilrgb[1 + 3 * (j + i * sizey)] = 255;
                 imgdilrgb[2 + 3 * (j + i * sizey)] = 255;
@@ -1583,7 +1552,7 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     }
     plot_imagergb(sizex, sizey, imgdilrgb, "imgdilrgb.png");
     free(imgdilrgb);
-#endif // DISPLAY_PLOTS == 1
+#endif  // DISPLAY_PLOTS == 1
     free(rker);
     ccomp_dec ccdec = aggregate(imgccmp, imgdil, sizey, sizex);
 
@@ -1602,14 +1571,11 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
 #ifdef SMOOTHEN
 void shiftimg(float * img, float * img2)
 {
-    for (unsigned int i = 0; i < nbmesx * nbmesy; ++i)
-    {
+    for (unsigned int i = 0; i < nbmesx * nbmesy; ++i) {
         img2[i] = 0;
     }
-    for (unsigned int i = 0; i < nbmesx; ++i)
-    {
-        for (unsigned int j = 0; j < nbmesy; ++j)
-        {
+    for (unsigned int i = 0; i < nbmesx; ++i) {
+        for (unsigned int j = 0; j < nbmesy; ++j) {
             int ind = j + SIZESMOOTH / 2
                       + (i + SIZESMOOTH / 2) * (nbmesy + SIZESMOOTH);
             float val = img[j + i * nbmesy];
@@ -1647,20 +1613,19 @@ void smoothen_noise(float * img)
                                   out1, img2,
                                   FFTW_ESTIMATE);
 
-    //plot_image(nbmesx, nbmesy, img, "imgmes.png", plot_rescale);
+    // plot_image(nbmesx, nbmesy, img, "imgmes.png", plot_rescale);
     shiftimg(img, img2);
 
 #if DISPLAY_PLOTS == 1
     plot_image(sxsmoo, sysmoo, img2, "bsmooth.png", PLOT_RESCALE);
 
     plot_image(sxsmoo, sysmoo, imgker, "gausssmooth.png", PLOT_RESCALE);
-#endif // DISPLAY_PLOTS == 1
+#endif  // DISPLAY_PLOTS == 1
 
     fftwf_execute(pforw1);
     fftwf_execute(pforw2);
 
-    for (unsigned int i = 0; i < sxsmoo * (sysmoo / 2 + 1); ++i)
-    {
+    for (unsigned int i = 0; i < sxsmoo * (sysmoo / 2 + 1); ++i) {
         fftwf_complex c1, c2;
         c1[0] = out1[i][0];
         c1[1] = out1[i][1];
@@ -1679,17 +1644,16 @@ void smoothen_noise(float * img)
 
 #if DISPLAY_PLOTS == 1
     plot_image(sxsmoo, sysmoo, img2, "asmooth.png", PLOT_RESCALE);
-#endif // DISPLAY_PLOTS == 1
+#endif  // DISPLAY_PLOTS == 1
 
-    for (unsigned int i = 0; i < nbmes2; ++i)
-    {
+    for (unsigned int i = 0; i < nbmes2; ++i) {
         int ls = i / nbmesy + SIZESMOOTH / 2;
         int cs = (i % nbmesy) + SIZESMOOTH / 2;
         imgmean[i] = img[i] - img2[cs + ls * sysmoo];
     }
 #if DISPLAY_PLOTS == 1
     plot_image(nbmesx, nbmesy, imgmean, "remmean.png", PLOT_RESCALE);
-#endif // DISPLAY_PLOTS == 1
+#endif  // DISPLAY_PLOTS == 1
 
     fftwf_free(out1);
     fftwf_free(out2);
@@ -1697,7 +1661,7 @@ void smoothen_noise(float * img)
     fftwf_free(imgker);
 
     for (unsigned int i = 0; i < NBMESX; ++i) {
-        for (unsigned int j = 0; j < NBMESY; ++j){
+        for (unsigned int j = 0; j < NBMESY; ++j) {
             int ind = j + sker / 2 + (i + sker / 2) * nbmesy;
             img[ind] = imgmean[ind];
         }
@@ -1705,7 +1669,7 @@ void smoothen_noise(float * img)
     fftwf_free(imgmean);
     fftwf_cleanup();
 }
-#endif // SMOOTHEN
+#endif  // SMOOTHEN
 
 int loadimg(uint16_t ** img)
 {
@@ -1713,9 +1677,9 @@ int loadimg(uint16_t ** img)
     char * fname = brecs_args.filename_arg;
     char * dot = strrchr(fname, '/');
     dot = strrchr(fname, '.');
-    if (!dot || dot == fname || !strcmp(dot,".dat")){
+    if (!dot || dot == fname || !strcmp(dot, ".dat")) {
         /* Assume a raw image file */
-        if (!brecs_args.frame_given){
+        if (!brecs_args.frame_given) {
             fprintf(stderr, "%s: Frame number not provided for a raw image.\n",
                     prog_name);
             exit(EXIT_FAILURE);
@@ -1730,22 +1694,20 @@ int loadimg(uint16_t ** img)
             exit(EXIT_FAILURE);
         }
 
-        if (fseek(fimg, NBMESYINI * NBMESXINI * 2 * offset, SEEK_SET) == -1){
+        if (fseek(fimg, NBMESYINI * NBMESXINI * 2 * offset, SEEK_SET) == -1) {
             fprintf(stderr, "%s: Error reading input file: %s\n",
                     prog_name, strerror(errno));
             exit(EXIT_FAILURE);
         }
         *img = malloc(NBMESX * NBMESY * sizeof(uint16_t));
         imgtmp = malloc(NBMESXINI * NBMESYINI * sizeof(uint16_t));
-        if (fread(imgtmp, 2, NBMESXINI * NBMESYINI, fimg) == -1){
+        if (fread(imgtmp, 2, NBMESXINI * NBMESYINI, fimg) == -1) {
             fprintf(stderr, "%s: Error reading input file: %s\n",
                     prog_name, strerror(errno));
             exit(EXIT_FAILURE);
         }
-        for (unsigned int i = 0; i < NBMESX; ++i)
-        {
-            for (unsigned int j = 0; j < NBMESY; ++j)
-            {
+        for (unsigned int i = 0; i < NBMESX; ++i) {
+            for (unsigned int j = 0; j < NBMESY; ++j) {
                 int ind = OFFXINI + j + (OFFYINI + i) * NBMESYINI;
                 (*img)[j + i * NBMESY] = imgtmp[ind];
             }
@@ -1753,7 +1715,7 @@ int loadimg(uint16_t ** img)
         }
         free(imgtmp);
         fclose(fimg);
-    } else if (!strcmp(dot,".tif") || !strcmp(dot,".tiff")){
+    } else if (!strcmp(dot, ".tif") || !strcmp(dot, ".tiff")) {
         *img = opentiff(fname, NBMESX, NBMESY);
     } else {
         fprintf(stderr, "%s: File format not supported\n",
@@ -1867,7 +1829,7 @@ int main(int argc, char ** argv)
 
     /* Command line parser */
     char * arg0 = argv[0];
-    arg0 = strrchr (arg0, '/');
+    arg0 = strrchr(arg0, '/');
     if (arg0)
         prog_name = arg0 + 1;
     else
@@ -1882,15 +1844,13 @@ int main(int argc, char ** argv)
     posix_memalign((void **)&imgnoise, ALIGNSIZE, nbmes2 * sizeof(float));
 
     posix_memalign((void **)&imgker, ALIGNSIZE, size3 * sizeof(float));
-    
-    for (unsigned int i = 0; i < nbmes2; ++i)
-    {
+
+    for (unsigned int i = 0; i < nbmes2; ++i) {
         imgnoise[i] = 1e8;
         imgmes[i] = 0;
     }
     for (unsigned int i = 0; i < NBMESY; ++i) {
-        for (unsigned int j = 0; j < NBMESX; ++j){
-
+        for (unsigned int j = 0; j < NBMESX; ++j) {
             /*
             if (
                     (i > 3500 / 12 && i < 3700 / 12
@@ -1909,14 +1869,14 @@ int main(int argc, char ** argv)
 
 #ifdef RESCALEINPUT
                 val = (val - RESCALEOFFSET) / RESCALESLOPE;
-#endif // RESCALEINPUT
+#endif  // RESCALEINPUT
 
                 float pixmes = val - meanback;
                 int ind = i + sker / 2 + (j + sker / 2) * nbmesy;
                 imgmes[ind] = pixmes;
                 imgnoise[ind] = noiseback + 1.0 * val;
 
-                //printf("%f\n", val);
+                // printf("%f\n", val);
 //            }
         }
     }
@@ -1925,15 +1885,15 @@ int main(int argc, char ** argv)
 
 #if DISPLAY_PLOTS == 1
     plot_image(nbmesx, nbmesy, imgmes, "imgsource.png", PLOT_RESCALE);
-#endif // DISPLAY_PLOTS == 1
+#endif  // DISPLAY_PLOTS == 1
 
 #ifdef SMOOTHEN
     smoothen_noise(imgmes);
-#endif // SMOOTHEN
+#endif  // SMOOTHEN
 
 #if KERNEL == 1
     gaussker(imgker);
-    //plot_image(sizex, sizey, imgker, "kernel.png", plot_rescale);
+    // plot_image(sizex, sizey, imgker, "kernel.png", plot_rescale);
 #elif KERNEL == 2
     loadgibson(imgker);
     plot_image(sizex, sizey, imgker, "kernel.png", PLOT_RESCALE);
@@ -2031,19 +1991,19 @@ int main(int argc, char ** argv)
         }
     }
 
-    //plot_image(sizex, sizey, imgrecons, "recons.png", plot_rescale);
-    //plot_overlay(imgmes, imgrecons, "overlay.png");
+    // plot_image(sizex, sizey, imgrecons, "recons.png", plot_rescale);
+    // plot_overlay(imgmes, imgrecons, "overlay.png");
     
-    //char fname[100];
-    //snprintf(fname, 100, "img-%li.dat.bz2", offset);
-    //saveimage(imgrecons, size2, fname);
+    // char fname[100];
+    // snprintf(fname, 100, "img-%li.dat.bz2", offset);
+    // saveimage(imgrecons, size2, fname);
     */
 
 
     free(imgker);
     free(imgmes);
     free(imgnoise);
-    //free(imgrecons);
-    
+    // free(imgrecons);
+
     return EXIT_SUCCESS;
 }

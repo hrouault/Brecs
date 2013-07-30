@@ -43,7 +43,7 @@ Quick install
 ```sh
 mkdir build
 cd build
-CPPFLAGS="-DDATASET=nbdata"; CFLAGS="-O3 -mtune=native"; ../configure
+../configure CPPFLAGS="-DDATASET=nbdata" CFLAGS="-O3 -mtune=native"
 make
 make install
 ```
@@ -51,6 +51,16 @@ make install
 You should then be able to run `Brecs --version`. You can also adapt the place
 where the program is install by adjusting the prefix (`../configure --prefix
 /rep/install`.
+
+Development version
+-------------------
+
+If you use the development version available on bitbucket, the install process
+is somewhat less straightforward. You need first to generate the configure
+scripts and alike:
+```sh
+autoreconf --force --install
+```
 
 
 Parameters

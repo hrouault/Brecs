@@ -30,44 +30,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/* This file contains the parameters necessary for the different datasets
- * analyzed by Brecs. For tha moment, the parameters are hardcoded for
- * efficiency but this could change in the future.
- *
- * Here are the different parameters:
- *
- * ** Prior **
- * For the moment the prior on the intensity distribution of a fluorophore is
- * gaussian:
- * Psi(I) = (1 - RHO) delta(I) + RHO * Gauss(PIXMEAN, PIXSTD)
- * where:
- * RHO: density of fluorophores
- * PIXMEAN: mean number of photons emitted by a fluorophore
- * PIXSTD: standard deviation of this number of photons
- *
- * ** Pixel sizes **
- * In general, I call pixel, a physical pixel measured by the camera and
- * superpixel, a unit pixel on the superresolved image computed by the program.
- * A florophore emits photons on a localized region of size SKER * SKER on the
- * camera.
- * The program builds an image with a pixel size smaller than the pixelsize of
- * the camera. Specifically, for one pixel on the camera, the program extracts
- * SMES * SMES superpixels.
- * The input images have size NBMESX * NBMESY pixels.
- * The physical size of a pixel is SIZEPIX.
- * When MODE3D is defined, the program will also try to extract the position in
- * z, the length separating two slices of the extracted stack is SIZEPIXZ.
- *
- * ** Internals of the program **
- * The help the algorithm to converge, the update of positions is dampended.
- * This is the "dirty" side of the algorithm and has to be adjusted by trial
- * and error.
- * DAMP is the amount of the relative intensity change (I usually use 0.1, but
- * it should be lowered when the program fails to converge).
- *
- * ** Statistics of the background **
- */
-
 /* General parameters for display */
 #define DISPLAY_OVERLAY_ITER 0
 #define DISPLAY_OVERLAY 1
@@ -340,5 +302,11 @@
 #  define RESCALESLOPE 19.23
 #  define PREFAC_RAD_CC 1.0
 #  endif
+
+/* Parameters for the generation of the artificial datasets */
+#define GENDAT_SIZEX 64
+#define GENDAT_SIZEY 64
+#define GENDAT_SIZEZ 16
+#define GENDAT_NBPOINTS 100
 
 #endif /* end of include guard: PARAMETERS_H */
