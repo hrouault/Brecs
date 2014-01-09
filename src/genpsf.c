@@ -27,35 +27,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BRECS_H_GWC5RGBI
-#define BRECS_H_GWC5RGBI
+#include <stdlib.h>
 
-typedef unsigned short int lab_t;
+#include "inoutimg.h"
 
-typedef struct {
-    int nbcomp;
-    lab_t * imglab;
-    int * coordcomp;
-    int * nbact;
-    int ** activepixcomp;
-} ccomp_dec;
+void gaussker()
+{
+    for (int z = -sizez / 2; z < sizez / 2 ; ++z) {
+        for (int y = -sizey / 2; y < sizey / 2; ++y) {
+            for (int x = -sizex / 2; x < sizex / 2 ; ++x) {
+                float dx2 = x * x;
+                float dy2 = y * y;
+                float dz2 = z * z;
 
-ccomp_dec connectcomp_decomp3d(float * img,
-                               int nbmesx, int nbmesy, int nbmesz);
-ccomp_dec connectcomp_decomp2d(float * img,
-                               int nbmesx, int nbmesy);
+                float val = exp(-radius2 / 2 / (sigpsf * sigpsf))
+                    / (2 * M_PI * sigpsf * sigpsf);
+                int line = x;
+                int col = y;
+                if (x < 0) line += sizex;
+                if (y < 0) col += sizey;
 
-extern char * prog_name;
-
-float min(float * img, int size);
-float max(float * img, int size);
-float maxra(float * num, float * den, int size);
-float minra(float * num, float * den, int size);
-
-#define PLOT_NO_RESCALE 0
-#define PLOT_RESCALE 1
-
-#define MAX_LABEL 65355
+                ker[col + line * sizey] = val;
+            }
+        }
+    }
+}
 
 
-#endif /* end of include guard: BRECS_H_GWC5RGBI */
+int main(int argc, char const *argv[])
+{
+    uint16_t * img;
+    int sx, sy, sz;
+    img = opentiff("psf9-15.tif", &sx, &sy, &sz);
+
+    uint16_t * img2 = malloc(sx * sy * sz * sizeof(uint16_t));
+
+    for (size_t k = 0; k < sz; ++k) {
+        for (size_t j = 0; j < sy; ++j) {
+            for (size_t i = 0; i < sx; ++i) {
+                int x = (i + 8 * k + 25) % sx;
+                img2[x + j * sx + k * sx * sy] = img[i + j * sx + k * sx * sy];
+            }
+        }
+    }
+
+    writetiff_gray("shiftedimg.tif", sx, sy, sz, img2);
+
+    return 0;
+}

@@ -34,7 +34,8 @@ cmdline.c: cmdline.ggo
 
 bin_PROGRAMS = Brecs gendat
 
-Brecs_SOURCES = cmdline.c cmdline.h Brecs.c Brecs.h parameters.h
+Brecs_SOURCES = cmdline.c cmdline.h Brecs.c Brecs.h inoutimg.c inoutimg.h \
+                parameters.h
 Brecs_CPPFLAGS = $(LIBPNG_CFLAGS) $(LIBTIFF_CFLAGS) $(FFTWF_CFLAGS)
 Brecs_LDADD = $(LIBPNG_LIBS) $(LIBTIFF_LIBS) $(FFTWF_LIBS)
 

@@ -301,6 +301,19 @@
 #  define RESCALEOFFSET 300
 #  define RESCALESLOPE 19.23
 #  define PREFAC_RAD_CC 1.0
+// DATASET 110 (PolII Eos dataset)
+#elif DATASET == 110
+#  define BRECS_PIXMEAN 50
+#  define BRECS_PIXSTD 20
+#  define BRECS_KERSIZEZ 1
+#  define BRECS_PIXSDIVZ 1
+#  define BRECS_MESOFFSET 100
+#  define BRECS_MESAMPLI 61.22
+#  define BRECS_NBITER 500
+#  define BRECS_CONVOLPIXTHR 1.8
+#  define BRECS_LOCAINTENSTHR 10
+#  define BRECS_OVERLAYMAXINT 3
+#  define BRECS_OVERLAYMININT 0.1
 #  endif
 
 /* Parameters for the generation of the artificial datasets */

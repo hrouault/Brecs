@@ -35,5 +35,11 @@ option "frame" n "Picture number in the file (for raw images)"
 option "filename" f "Filename of the image"
            string typestr="str" required
 
-option "output" o "Raw output image"
+option "psf" - "PSF image in tiff format"
+           string typestr="str" required
+
+option "background" - "background image in raw format"
+           string typestr="str" optional
+
+option "output" o "Tiff output image"
            string typestr="str" optional

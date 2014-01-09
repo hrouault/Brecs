@@ -28,8 +28,6 @@
  */
 
 
-#define _XOPEN_SOURCE 600
-
 #include <inttypes.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -49,6 +47,7 @@
 #include "config.h"
 
 #include "cmdline.h"
+#include "inoutimg.h"
 #include "Brecs.h"
 
 /* Command line variable */
@@ -58,374 +57,196 @@ struct gengetopt_args_info brecs_args;
 #include "parameters.h"
 
 /* signal noise properties */
-const float pixmean = PIXMEAN;
-float pixstd = PIXSTD;
-float rho = RHO;
+#ifdef BRECS_PIXMEAN
+static int const pixmean = BRECS_PIXMEAN;
+#else
+static int const pixmean = 10;
+#endif
 
-const float pixthr = PIXTHR;
+#ifdef BRECS_PIXSTD
+static int const pixstd = BRECS_PIXSTD;
+#else
+static int const pixstd = 4;
+#endif
+
+#ifdef BRECS_RHO
+static float const rho = BRECS_RHO;
+#else
+static float const rho = 0.001;
+#endif
 
 /* Sizes of the images */
 
-const int smes = SMES;
-const int smes2 = SMES * SMES;
-const int smes3 = SIZEZ * SMES * SMES;
-const int sizex = (NBMESX + SKER) * SMES;
-const int sizey = (NBMESY + SKER) * SMES;
-const int sizez = SIZEZ;
-const int size2 = (NBMESX + SKER) * SMES * (NBMESY + SKER) * SMES;
-const int size3 = (NBMESX + SKER) * SMES * (NBMESY + SKER) * SMES * SIZEZ;
-const int sker = SKER;
-const int sker2 = SKER * SKER;
-
-const float spix = SIZEPIX / SMES;
-
-const int nbmesx = NBMESX + SKER;
-const int nbmesy = NBMESY + SKER;
-const int nbmes2 = (NBMESX + SKER) * (NBMESY + SKER);
-
-const int nbintern = 1;
-float noiseback = NOISEBACK;
-
-/* Properties of the psf */
-#if KERNEL == 1 || KERNEL == 3
-const float sigpsf = SIGPSF * SMES * DEFOCUS;
+#ifdef BRECS_KERSIZE
+static int const kersize = BRECS_KERSIZE;
+#else
+static int const kersize = 8;
 #endif
 
-const float Ainit = AINITPFACT / (PIXMEAN * PIXMEAN);
-const int nbiter = NBITER;
-const float meanback = MEANBACK;
-const float thrpoint = THRPOINT;
-const float beta = BETA;
+#ifdef BRECS_KERSIZEZ
+static int const kersizez = BRECS_KERSIZEZ;
+#else
+static int const kersizez = 4;
+#endif
+
+#ifdef BRECS_PIXSDIV
+static int const pixsdiv = BRECS_PIXSDIV;
+#else
+static int const pixsdiv = 8;
+#endif
+
+#ifdef BRECS_PIXSDIVZ
+static int const pixsdivz = BRECS_PIXSDIVZ;
+#else
+static int const pixsdivz = 8;
+#endif
+
+static int const kersize2 = kersize * kersize;
+static int const kersize3 = kersize * kersize * kersizez;
+
+static int const pixsdiv2 = pixsdiv * pixsdiv;
+static int const pixsdiv3 = pixsdiv2 * pixsdivz;
+
+#ifdef BRECS_SPIXNM
+static float const spixnm = BRECS_SPIXNM;
+#else
+static float const spixnm = 133.0;
+#endif
+
+#ifdef BRECS_SPIXZNM
+static float const spixznm = BRECS_SPIXZNM;
+#else
+static float const spixznm = 300.0;
+#endif
+
+#ifdef BRECS_MESOFFSET
+static float const mesoffset = BRECS_MESOFFSET;
+#else
+static float const mesoffset = 80;
+#endif
+
+#ifdef BRECS_MESAMPLI
+static float const mesampli = BRECS_MESAMPLI;
+#else
+static float const mesampli = 20;
+#endif
+
+#ifdef BRECS_NOISEOFFSET
+static float const noiseoffset = BRECS_NOISEOFFSET;
+#else
+static float const noiseoffset = 1;
+#endif
+
+#ifdef BRECS_NBITER
+static int const nbiter = BRECS_NBITER;
+#else
+static int const nbiter = 200;
+#endif
+
+#ifdef BRECS_PREFACRADCC
+static float const prefacradcc = BRECS_PREFACRADCC;
+#else
+static float const prefacradcc = 1.0;
+#endif
+
+#ifdef BRECS_CONVOLPIXTHR
+static float const convolpixthr = BRECS_CONVOLPIXTHR;
+#else
+static float const convolpixthr = 40.0;
+#endif
+
+
+#ifdef BRECS_AINITPFACT
+static float const Ainit = BRECS_AINITPFACT / (pixmean * pixmean);
+#else
+static float const Ainit = 1.0 / (pixmean * pixmean);
+#endif
+
+#ifdef BRECS_MEANBACK
+const float meanback = BRECS_MEANBACK;
+#else
+const float meanback = 0;
+#endif
+
+#ifdef BRECS_LOCAINTENSTHR
+const float locaintensthr = BRECS_LOCAINTENSTHR;
+#else
+const float locaintensthr = 1000;
+#endif
+
+#ifdef BRECS_OVERLAYMAXINT
+const float overlaymaxint = BRECS_OVERLAYMAXINT;
+#else
+const float overlaymaxint = 50.4;
+#endif
+
+#ifdef BRECS_OVERLAYMININT
+const float overlayminint = BRECS_OVERLAYMININT;
+#else
+const float overlayminint = 0.1;
+#endif
+
+#ifdef BRECS_RELERRTHR
+const float relerrthr = BRECS_RELERRTHR;
+#else
+const float relerrthr = 1e-3;
+#endif
+
+#ifdef BRECS_NBINTERNLOOP
+const float nbinternloop = BRECS_NBINTERNLOOP;
+#else
+const float nbinternloop = 1;
+#endif
+
+
+#ifdef BRECS_DAMP1
+const float damp1 = BRECS_DAMP1;
+#else
+const float damp1 = 0.05;
+#endif
+
+#ifdef BRECS_DAMP2
+const float damp2 = BRECS_DAMP2;
+#else
+const float damp2 = 0.1;
+#endif
 
 #ifdef __AVX__
-#  define SHIFT 8
-#  define ALIGNSIZE 32
+static int const shift = 8;
+static int const alignsize = 32;
 #  define VFUNC(name) _mm256_ ## name
 typedef __m256 vecfloat;
 typedef float afloat __attribute__ ((__aligned__(32)));
 #else
-#  define SHIFT 4
-#  define ALIGNSIZE 16
+static int const shift = 4;
+static int const alignsize = 16;
 #  define VFUNC(name) _mm_ ## name
 typedef __m128 vecfloat;
 typedef float afloat __attribute__ ((__aligned__(16)));
 #endif
 
+static inline vecfloat abs_ps(vecfloat x) {
+    vecfloat sign_mask = VFUNC(set1_ps) (-0.f);  // -0.f = 1 << 31
+    return VFUNC(andnot_ps) (sign_mask, x);
+}
+
+static inline vecfloat sumh_ps(vecfloat x) {
+#if __AVX__
+    __m256 tmp = _mm256_permute2f128_ps(x, x, 1);
+    tmp = _mm256_add_ps(tmp, x);
+#else
+    __m128 tmp = x;
+#endif
+    tmp = VFUNC(hadd_ps) (tmp, tmp);
+    tmp = VFUNC(hadd_ps) (tmp, tmp);
+    return tmp;
+}
+
+
+
+
+
 int nbframe;
-
-void updatetemp(float b, float * imgnoise)
-{
-    float c = pow(RHO, b);
-    rho = c / (1 + c);
-
-    for (unsigned int i = 0; i < nbmes2; ++i) {
-        imgnoise[i] /= b;
-    }
-
-    pixstd = PIXSTD / sqrt(b);
-}
-
-
-#if KERNEL == 1
-void gaussker(float * ker)
-{
-    for (int x = -sizex / 2; x < sizex / 2 ; ++x) {
-        float dx2 = x * x;
-        for (int y = -sizey / 2; y < sizey / 2; ++y) {
-            float dy2 = y * y;
-            float radius2 = dx2 + dy2;
-            float val = exp(-radius2 / 2 / (sigpsf * sigpsf))
-                        / (2 * M_PI * sigpsf * sigpsf);
-            int line = x;
-            int col = y;
-            if (x < 0) line += sizex;
-            if (y < 0) col += sizey;
-
-            ker[col + line * sizey] = val;
-        }
-    }
-}
-#endif
-
-#if KERNEL == 3
-void refinedker(float * ker)
-{
-    for (int x = -sizex / 2; x < sizex / 2 ; ++x) {
-        float dx2 = x * x;
-        for (int y = -sizey / 2; y < sizey / 2; ++y) {
-            float dy2 = y * y;
-            float radius2 = dx2 + dy2;
-            float r2 = radius2 / 2 / (sigpsf * sigpsf);
-            float val = (1.0 + KERC2 * r2 + KERC4 * r2 * r2
-                         + KERC6 * r2 * r2 * r2 + KERC8 * r2 * r2 * r2 * r2
-                         + KERC10 * r2 * r2 * r2 * r2 * r2)
-                        * exp(-r2) / (2 * M_PI * sigpsf * sigpsf);
-            int line = x;
-            int col = y;
-            if (x < 0) line += sizex;
-            if (y < 0) col += sizey;
-
-            ker[col + line * sizey] = val;
-        }
-    }
-}
-#endif
-
-void plot_image(int sx, int sy,
-                float * img,
-                const char * filen,
-                int flags)
-{
-    FILE * fp = fopen(filen, "wb");
-    if (!fp) exit(EXIT_FAILURE);
-
-    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
-                                                  NULL, NULL, NULL);
-    if (!png_ptr) exit(EXIT_FAILURE);
-    png_infop info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr) {
-        png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
-        exit(EXIT_FAILURE);
-    }
-
-    if (setjmp(png_jmpbuf(png_ptr))) {
-        png_destroy_write_struct(&png_ptr, &info_ptr);
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-
-    png_init_io(png_ptr, fp);
-
-    png_set_IHDR(png_ptr, info_ptr, sy, sx,
-                 8, PNG_COLOR_TYPE_GRAY, PNG_INTERLACE_NONE,
-                 PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-
-    /*
-     * At this point, we have to rewrite the image to convert it to ints
-     * Then the image date array is passed to the info struct
-     */
-    int i, x;
-    png_byte * img_data = malloc(sx * sy * sizeof(png_byte));
-    float max = 0;
-    float min = 0;
-    if (flags == PLOT_RESCALE) {
-        for (i = 0 ; i < sx * sy ; i++) {
-            if (max < img[i]) max = img[i];
-            if (min > img[i]) min = img[i];
-        }
-        for (x = 0 ; x < sx * sy ; x++) {
-            img_data[x] = 255 / (max - min) * (img[x] - min);
-        }
-    } else {
-        for (x = 0 ; x < sx * sy ; x++) {
-            img_data[x] = img[x];
-        }
-    }
-    png_bytep row_pointers[sx];
-    for (x = 0 ; x < sx ; x++) row_pointers[x] = img_data + x * sy;
-    png_set_rows(png_ptr, info_ptr, row_pointers);
-
-    png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
-    png_destroy_write_struct(&png_ptr, &info_ptr);
-    fclose(fp);
-    free(img_data);
-}
-
-void plot_imagergb(int sx, int sy,
-                   png_byte * img,
-                   const char * filen)
-{
-    FILE * fp = fopen(filen, "wb");
-    if (!fp) exit(EXIT_FAILURE);
-
-    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
-                                                  NULL, NULL, NULL);
-    if (!png_ptr) exit(EXIT_FAILURE);
-    png_infop info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr) {
-        png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
-        exit(EXIT_FAILURE);
-    }
-
-    if (setjmp(png_jmpbuf(png_ptr))) {
-        png_destroy_write_struct(&png_ptr, &info_ptr);
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-
-    png_init_io(png_ptr, fp);
-
-    png_set_IHDR(png_ptr, info_ptr, sy, sx,
-                 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-                 PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-
-    png_bytep row_pointers[sx];
-    for (size_t x = 0 ; x < sx ; x++) row_pointers[x] = img + 3 * x * sy;
-    png_set_rows(png_ptr, info_ptr, row_pointers);
-
-    png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
-    png_destroy_write_struct(&png_ptr, &info_ptr);
-    fclose(fp);
-}
-
-#if KERNEL == 2
-const int gibssize = GIBSSIZE;
-const int gibssize2 = GIBSSIZE * GIBSSIZE;
-void loadgibson(float * ker)
-{
-    float * img;
-
-    float sum[SIZEZ];
-
-    posix_memalign((void **)&img, ALIGNSIZE,
-                   sizez * gibssize2 * sizeof(float));
-    FILE * fimg = fopen("gibson.raw", "rb");
-    if (!fimg) exit(EXIT_FAILURE);
-
-    fseek(fimg, 0, SEEK_SET);
-    fread(img, 4, gibssize2 * sizez, fimg);
-    fclose(fimg);
-
-    for (unsigned int z = 0; z < sizez; ++z) {
-        sum[z] = 0;
-
-        for (unsigned int i = 0; i < gibssize2; ++i) {
-            sum[z] += img[i + gibssize2 * z];
-        }
-    }
-
-    for (unsigned int i = 0; i < size3; ++i) {
-        ker[i] = 0;
-    }
-#if DISPLAY_PLOTS == 1
-    plot_image(gibssize, gibssize, img, "imgfromstack.png", PLOT_RESCALE);
-#endif  // DISPLAY_PLOTS
-
-    for (unsigned int z = 0; z < sizez; ++z) {
-        for (int x = 0; x < gibssize ; ++x) {
-            for (int y = 0; y < gibssize; ++y) {
-                float val = img[y + x * gibssize + z * gibssize2] / sum[z];
-                int line = x - gibssize / 2;
-                int col = y - gibssize / 2;
-                if (line < 0) line += sizex;
-                if (col < 0) col += sizey;
-
-                ker[col + line * sizey + size2 * z] = val;
-            }
-        }
-    }
-    free(img);
-}
-#endif  // KERNEL == 2
-
-
-void plot_overlay(float * mes,
-                  float * pred,
-                  const char * filen)
-{
-    FILE * fp = fopen(filen, "wb");
-    if (!fp) exit(EXIT_FAILURE);
-
-    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
-                                                  NULL, NULL, NULL);
-    if (!png_ptr) exit(EXIT_FAILURE);
-    png_infop info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr) {
-        png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
-        exit(EXIT_FAILURE);
-    }
-
-    if (setjmp(png_jmpbuf(png_ptr))) {
-        png_destroy_write_struct(&png_ptr, &info_ptr);
-        fclose(fp);
-        exit(EXIT_FAILURE);
-    }
-
-    png_init_io(png_ptr, fp);
-
-    png_set_IHDR(png_ptr, info_ptr, sizey, sizex,
-                 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-                 PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-
-    /*
-     * At this point, we have to rewrite the image to convert it to ints
-     * Then the image date array is passed to the info struct
-     */
-    int i, x, y;
-    png_byte * img_data = malloc(size2 * 3 * sizeof(png_byte));
-    float max2 = 0;
-    float min2 = 0;
-    for (i = 0 ; i < nbmes2 ; i++) {
-        if (max2 < mes[i]) max2 = mes[i];
-        if (min2 > mes[i]) min2 = mes[i];
-    }
-    for (x = 0 ; x < sizex ; x++) {
-        for (y = 0 ; y < sizey ; y++) {
-            float val = pred[x * sizey + y];
-            png_byte * cimgd = img_data + (x * sizey + y) * 3;
-            if (val > OVERLAY_MIN_INT) {
-                if (val > OVERLAY_MAX_INT) val = OVERLAY_MAX_INT;
-                cimgd[0] = 255 * log(val)
-                           / log(OVERLAY_MAX_INT);
-                cimgd[1] = 0;
-                cimgd[2] = 0;
-            } else {
-                float val = 255 / (max2 - min2)
-                    * (mes[(x / smes) * nbmesy + y / smes] - min2);
-                cimgd[0] = val;
-                cimgd[1] = val;
-                cimgd[2] = val;
-            }
-        }
-    }
-    png_bytep row_pointers[sizex];
-    for (x = 0 ; x < sizex ; x++) row_pointers[x] = img_data + x * sizey * 3;
-    png_set_rows(png_ptr, info_ptr, row_pointers);
-
-    png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
-    png_destroy_write_struct(&png_ptr, &info_ptr);
-    fclose(fp);
-    free(img_data);
-}
-
-void saveimage(float * img, int size, const char * fname)
-{
-    FILE * fout = fopen(fname, "wb");
-    if (!fout) exit(EXIT_FAILURE);
-
-    BZFILE* b;
-    int nBuf = 256 * 1024;
-    char buf[nBuf];
-    int bzerror;
-    int j = 0;
-
-    b = BZ2_bzWriteOpen(&bzerror, fout, 9, 0, 30);
-    if (bzerror != BZ_OK) {
-        BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
-        exit(EXIT_FAILURE);
-    }
-    int nbtot = 0;
-
-    while (j < size) {
-        /* get data to write into buf, and set nBuf appropriately */
-        size_t i;
-        for (i = 0; i < nBuf && j < size; i += 2) {
-            *(uint16_t *)(buf + i) = (uint16_t)(img[j]);
-            j++;
-        }
-        BZ2_bzWrite(&bzerror, b, buf, i);
-        if (bzerror == BZ_IO_ERROR) {
-            BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
-            exit(EXIT_FAILURE);
-        }
-        nbtot += i;
-    }
-
-    BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
-    if (bzerror == BZ_IO_ERROR) {
-            exit(EXIT_FAILURE);
-    }
-}
 
 
 void fafcfunc(float * out, float sig2, float r)
@@ -474,69 +295,55 @@ void fafcfunc(float * out, float sig2, float r)
     if (out[1] < 1e-3) out[1] = 1e-3;
 }
 
-void init_kernels(float * ker, float * ker2,
-                  float * psf)
-{
-    for (int i = 0; i < smes3; ++i) {
-        int ci = (i % smes2) % smes;
-        int li = (i % smes2) / smes;
-        int z  = i / smes2;
-        for (int j = 0; j < sker2; ++j) {
-            int kerc = j % sker - sker / 2;
-            int kerl = j / sker - sker / 2;
-            float sum = 0;
-            for (int k = 0; k < smes2; ++k) {
-                int cli = -li + k / smes + smes * kerl;
-                if (cli < 0) cli += sizex;
-                int cci = -ci + k % smes + smes * kerc;
-                if (cci < 0) cci += sizey;
-
-                sum += psf[cci + sizey * cli + z * size2];
-            }
-            int cker = j % sker;
-            int lker = j / sker;
-            int indmu = cker + sker * lker;
-            ker[indmu + i * sker2] = sum;
-            ker2[indmu + i * sker2] = sum * sum;
-        }
-    }
-}
-
 void update_omegavmu(float * omegamu, float * vmu,
                      float * ker, float * ker2,
                      float * abeal, float * vbeal,
-                     int nbact, int * activepix)
+                     int nbact, int * activepix,
+                     int sizex, int sizey, int sizez)
 {
     const vecfloat zero = VFUNC(set1_ps) (0);
 
-    for (int mu = 0; mu < nbmes2; mu += SHIFT) {
+    int nbmesx = sizex / pixsdiv + kersize;
+    int nbmesy = sizey / pixsdiv + kersize;
+    int nbmesz = sizez / pixsdivz + kersizez - kersizez % 2;
+    int nbmes2 = nbmesx * nbmesy; 
+    int nbmes3 = nbmes2 * nbmesz; 
+
+    int size2 = sizex * sizey;
+
+
+    for (int mu = 0; mu < nbmes3; mu += shift) {
         VFUNC(store_ps) (vmu + mu, zero);
         VFUNC(store_ps) (omegamu + mu, zero);
     }
+
+    printf("start main loop\n");
     for (unsigned int k = 0; k < nbact; ++k) {
         int i = activepix[k];
-        float * cabeal = abeal + k * sker2;
-        float * cvbeal = vbeal + k * sker2;
+        float * cabeal = abeal + k * kersize3;
+        float * cvbeal = vbeal + k * kersize3;
 
+        int ci = ((i % size2) % sizex) % pixsdiv;
+        int li = ((i % size2) / sizex) % pixsdiv;
+        int zi = (i / size2) % pixsdivz;
+        int ikeri = ci + li * pixsdiv + zi * pixsdiv2;
 
-        int z = i / size2;
-        int ci = ((i % size2) % sizey) % smes;
-        int li = ((i % size2) / sizey) % smes;
-        int ikeri = ci + li * smes + z * smes2;
+        int cmu0 = ((i % size2) % sizex) / pixsdiv + kersize / 2;
+        int lmu0 = ((i % size2) / sizex) / pixsdiv + kersize / 2;
+        int zmu0 = (i / size2) / pixsdivz + kersizez / 2;
 
-        int cmu0 = ((i % size2) % sizey) / smes;
-        int lmu0 = ((i % size2) / sizey) / smes;
+        float * cker = ker + ikeri * kersize3;
+        float * cker2 = ker2 + ikeri * kersize3;
 
-        float * cker = ker + ikeri * sker2;
-        float * cker2 = ker2 + ikeri * sker2;
-
-        for (int mu = 0; mu < sker2; mu += SHIFT) {
-            int dcmu = mu % sker - sker / 2;
-            int dlmu = mu / sker - sker / 2;
+        for (int mu = 0; mu < kersize3; mu += shift) {
+            int dcmu = (mu % kersize2) % kersize - kersize / 2;
+            int dlmu = (mu % kersize2) / kersize - kersize / 2;
+            int dzmu = (mu / kersize2) - kersizez / 2;
 
             int cmu = cmu0 + dcmu;
             int lmu = lmu0 + dlmu;
-            int imu = cmu + lmu * nbmesy;
+            int zmu = zmu0 + dzmu;
+            int imu = cmu + lmu * nbmesx + zmu * nbmes2;
 
             vecfloat ck = VFUNC(load_ps) (cker + mu);
             vecfloat ck2 = VFUNC(load_ps) (cker2 + mu);
@@ -557,23 +364,8 @@ void update_omegavmu(float * omegamu, float * vmu,
             VFUNC(storeu_ps) (vmu + imu, cv);
         }
     }
-}
-
-static inline vecfloat abs_ps(vecfloat x) {
-    vecfloat sign_mask = VFUNC(set1_ps) (-0.f);  // -0.f = 1 << 31
-    return VFUNC(andnot_ps) (sign_mask, x);
-}
-
-static inline vecfloat sumh_ps(vecfloat x) {
-#if __AVX__
-    __m256 tmp = _mm256_permute2f128_ps(x, x, 1);
-    tmp = _mm256_add_ps(tmp, x);
-#else
-    __m128 tmp = x;
-#endif
-    tmp = VFUNC(hadd_ps) (tmp, tmp);
-    tmp = VFUNC(hadd_ps) (tmp, tmp);
-    return tmp;
+    printf("main loop over\n");
+    writetiff_f("omegavmu", nbmesx, nbmesy, nbmesz, omegamu);
 }
 
 void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
@@ -582,46 +374,58 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
                   afloat * omegamu, afloat * vmu,
                   afloat * ker, afloat * ker2,
                   afloat * imgnoise, afloat * imgmes,
-                  int nbact, int * activepix)
+                  int nbact, int * activepix,
+                  int sizex, int sizey, int sizez)
 {
     const vecfloat zero = VFUNC(set1_ps) (0);
     const vecfloat one = VFUNC(set1_ps) (1.0);
-    const vecfloat oneosk = VFUNC(set1_ps) (1.0 / sker2);
+    const vecfloat oneosk = VFUNC(set1_ps) (1.0 / kersize3);
     const vecfloat lowv = VFUNC(set1_ps) (1e8);
 
-    update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, nbact, activepix);
+    int nbmesx = sizex / pixsdiv + kersize;
+    int nbmesy = sizey / pixsdiv + kersize;
+    int nbmes2 = nbmesx * nbmesy; 
+    int nbmes3 = nbmes2 * (sizez / pixsdivz + kersizez - kersizez % 2); 
+
+    int size2 = sizex * sizey;
+
+    update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, nbact, activepix,
+                    sizex, sizey, sizez);
 
     for (unsigned int k = 0; k < nbact; ++k) {
         int i = activepix[k];
-        float * caA = mu_albe_A + k * sker2;
-        float * caB = mu_albe_B + k * sker2;
-        float * cabeal = abeal + k * sker2;
-        float * cvbeal = vbeal + k * sker2;
+        float * caA = mu_albe_A + k * kersize3;
+        float * caB = mu_albe_B + k * kersize3;
+        float * cabeal = abeal + k * kersize3;
+        float * cvbeal = vbeal + k * kersize3;
 
-        int z = i / size2;
-        int ci = ((i % size2) % sizey) % smes;
-        int li = ((i % size2) / sizey) % smes;
-        int ikeri = ci + li * smes + z * smes2;
+        int ci = ((i % size2) % sizex) % pixsdiv;
+        int li = ((i % size2) / sizex) % pixsdiv;
+        int zi = (i / size2) % pixsdivz;
+        int ikeri = ci + li * pixsdiv + zi * pixsdiv2;
 
-        int cmu0 = ((i % size2) % sizey) / smes;
-        int lmu0 = ((i % size2) / sizey) / smes;
+        int cmu0 = ((i % size2) % sizex) / pixsdiv + kersize / 2;
+        int lmu0 = ((i % size2) / sizex) / pixsdiv + kersize / 2;
+        int zmu0 = (i / size2) / pixsdivz + kersizez / 2;
 
-        float * cker = ker + ikeri * sker2;
-        float * cker2 = ker2 + ikeri * sker2;
+        float * cker = ker + ikeri * kersize3;
+        float * cker2 = ker2 + ikeri * kersize3;
 
-        vecfloat sumvmualA = VFUNC(load_ps) (sum_mualbe_A + k * SHIFT);
-        vecfloat sumvmualB = VFUNC(load_ps) (sum_mualbe_B + k * SHIFT);
+        vecfloat sumvmualA = VFUNC(load_ps) (sum_mualbe_A + k * shift);
+        vecfloat sumvmualB = VFUNC(load_ps) (sum_mualbe_B + k * shift);
 
         vecfloat sumA = zero;
         vecfloat sumB = zero;
 
-        for (int mu = 0; mu < sker2; mu += SHIFT) {
-            int dcmu = mu % sker - sker / 2;
-            int dlmu = mu / sker - sker / 2;
+        for (int mu = 0; mu < kersize3; mu += shift) {
+            int dcmu = (mu % kersize2) % kersize - kersize / 2;
+            int dlmu = (mu % kersize2) / kersize - kersize / 2;
+            int dzmu = (mu / kersize2) - kersizez / 2;
 
             int cmu = cmu0 + dcmu;
             int lmu = lmu0 + dlmu;
-            int imu = cmu + lmu * nbmesy;
+            int zmu = zmu0 + dzmu;
+            int imu = cmu + lmu * nbmesx + zmu * nbmes2;
 
             vecfloat den = VFUNC(loadu_ps) (imgnoise + imu);
             vecfloat v = VFUNC(loadu_ps) (vmu + imu);
@@ -665,8 +469,8 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
         sumA = VFUNC(mul_ps) (sumA, oneosk);
         sumB = VFUNC(mul_ps) (sumB, oneosk);
 
-        VFUNC(store_ps) (sum_mualbe_A + k * SHIFT, sumA);
-        VFUNC(store_ps) (sum_mualbe_B + k * SHIFT, sumB);
+        VFUNC(store_ps) (sum_mualbe_A + k * shift, sumA);
+        VFUNC(store_ps) (sum_mualbe_B + k * shift, sumB);
     }
 }
 
@@ -676,30 +480,34 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
                    float * omegamu, float * vmu,
                    float * ker, float * ker2,
                    float * imgnoise, float * imgmes,
-                   int nbact, int * activepix)
+                   int nbact, int * activepix,
+                   int sizex, int sizey, int sizez)
 {
+    printf("palbe\n");
     update_Palbe(mu_albe_A, mu_albe_B,
                  abeal, vbeal,
                  sum_mualbe_A, sum_mualbe_B,
                  omegamu, vmu,
                  ker, ker2,
                  imgnoise, imgmes,
-                 nbact, activepix);
+                 nbact, activepix,
+                 sizex, sizey, sizez);
+    printf("palbe over\n");
 
     const vecfloat zero = VFUNC(set1_ps) (0);
-    const vecfloat oneosk = VFUNC(set1_ps) (1.0f / sker2);
+    const vecfloat oneosk = VFUNC(set1_ps) (1.0f / kersize3);
     for (unsigned int k = 0; k < nbact; ++k) {
-        float * caA = mu_albe_A + k * sker2;
-        float * caB = mu_albe_B + k * sker2;
-        float * cPA = vbeal + k * sker2;
-        float * cPB = abeal + k * sker2;
+        float * caA = mu_albe_A + k * kersize3;
+        float * caB = mu_albe_B + k * kersize3;
+        float * cPA = vbeal + k * kersize3;
+        float * cPB = abeal + k * kersize3;
 
-        vecfloat PAt = VFUNC(load_ps) (sum_mualbe_A + k * SHIFT);
-        vecfloat PBt = VFUNC(load_ps) (sum_mualbe_B + k * SHIFT);
+        vecfloat PAt = VFUNC(load_ps) (sum_mualbe_A + k * shift);
+        vecfloat PBt = VFUNC(load_ps) (sum_mualbe_B + k * shift);
 
         vecfloat sumA = zero;
         vecfloat sumB = zero;
-        for (int mu = 0; mu < sker2; mu += SHIFT) {
+        for (int mu = 0; mu < kersize3; mu += shift) {
             vecfloat A = VFUNC(load_ps) (cPA + mu);
             vecfloat B = VFUNC(load_ps) (cPB + mu);
             vecfloat maA = VFUNC(load_ps) (caA + mu);
@@ -722,8 +530,8 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
         sumA = VFUNC(mul_ps) (sumA, oneosk);
         sumB = VFUNC(mul_ps) (sumB, oneosk);
 
-        VFUNC(store_ps) (sum_mualbe_A + k * SHIFT, sumA);
-        VFUNC(store_ps) (sum_mualbe_B + k * SHIFT, sumB);
+        VFUNC(store_ps) (sum_mualbe_A + k * shift, sumA);
+        VFUNC(store_ps) (sum_mualbe_B + k * shift, sumB);
     }
 }
 
@@ -733,27 +541,27 @@ void update_mubeal(float * vbeal, float * abeal,
                    float * sum_mualbe_A, float * sum_mualbe_B,
                    int nbact, int * activepix)
 {
-    const float rat = ((float)sker2 - 1) / sker2;
+    const float rat = ((float)kersize3 - 1) / kersize3;
     const vecfloat one = VFUNC(set1_ps) (1.0);
     const vecfloat thrmin = VFUNC(set1_ps) (1e10);
     const vecfloat thrmax = VFUNC(set1_ps) (1e-5);
     const vecfloat thrmin2 = VFUNC(set1_ps) (1e12);
 
     for (unsigned int k = 0; k < nbact; ++k) {
-        float * caA = mu_albe_A + k * sker2;
-        float * caB = mu_albe_B + k * sker2;
-        float * cabeal = abeal + k * sker2;
-        float * cvbeal = vbeal + k * sker2;
+        float * caA = mu_albe_A + k * kersize3;
+        float * caB = mu_albe_B + k * kersize3;
+        float * cabeal = abeal + k * kersize3;
+        float * cvbeal = vbeal + k * kersize3;
 
         /* Compute P_beta */
-        vecfloat P_be_A = VFUNC(load_ps) (sum_mualbe_A + k * SHIFT);
-        vecfloat P_be_B = VFUNC(load_ps) (sum_mualbe_B + k * SHIFT);
+        vecfloat P_be_A = VFUNC(load_ps) (sum_mualbe_A + k * shift);
+        vecfloat P_be_B = VFUNC(load_ps) (sum_mualbe_B + k * shift);
 
         const vecfloat rPE = VFUNC(set1_ps) (rat * P_be_E[k]);
         const vecfloat rPF = VFUNC(set1_ps) (rat * P_be_F[k]);
 
         /* Compute mu_beal */
-        for (size_t mu = 0; mu < sker2; mu += SHIFT) {
+        for (size_t mu = 0; mu < kersize3; mu += shift) {
             vecfloat cC = VFUNC(load_ps) (caA + mu);
             cC = VFUNC(sub_ps) (P_be_A, cC);
             vecfloat cD = VFUNC(load_ps) (caB + mu);
@@ -789,12 +597,12 @@ float update_pbe(float * P_be_E, float * P_be_F,
     float errmeantot = 0;
     float errvartot = 0;
     for (unsigned int k = 0; k < nbact; ++k) {
-        float * cA = P_albe_A + k * sker2;
-        float * cB = P_albe_B + k * sker2;
+        float * cA = P_albe_A + k * kersize3;
+        float * cB = P_albe_B + k * kersize3;
 
         vecfloat vPEt = VFUNC(set1_ps) (0);
         vecfloat vPFt = VFUNC(set1_ps) (0);
-        for (size_t mu = 0; mu < sker2; mu += SHIFT) {
+        for (size_t mu = 0; mu < kersize3; mu += shift) {
             vecfloat e = VFUNC(load_ps) (cA + mu);
             vPEt = VFUNC(add_ps) (vPEt, e);
             vecfloat f = VFUNC(load_ps) (cB + mu);
@@ -802,7 +610,7 @@ float update_pbe(float * P_be_E, float * P_be_F,
         }
         vPEt = sumh_ps(vPEt);
         vPFt = sumh_ps(vPFt);
-        float tmp[SHIFT];
+        float tmp[shift];
         VFUNC(storeu_ps) (tmp, vPEt);
         float PEt = tmp[0];
         VFUNC(storeu_ps) (tmp, vPFt);
@@ -818,17 +626,10 @@ float update_pbe(float * P_be_E, float * P_be_F,
         float fafc[2];
         fafcfunc(fafc, 1 / PEt, PFt / PEt);
 
-        // if (fafc[1] > 1 && fafc[1] * prevPbE > 1.2) fafc[1] = 1.2 / prevPbE;
-        // if (fafc[1] > 1 && fafc[1] * prevPbE < 0.2) fafc[1] = 0.2 / prevPbE;
-        // if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF > 1.2)
-        //   fafc[0] = 1.2 * prevPbF / prevPbE;
-        // if (fafc[0] > 1 && fafc[0] * prevPbE / prevPbF < 0.2)
-        //   fafc[0] = 0.2 * prevPbF / prevPbE;
-
-        float invE = (1 - DAMP1) / P_be_E[k] + DAMP1 * fafc[1];
+        float invE = (1 - damp1) / P_be_E[k] + damp1 * fafc[1];
         P_be_E[k]= 1 / invE;
-        P_be_F[k] = (1 - DAMP2) * P_be_F[k] / invE / prevPbE
-            + DAMP2 * fafc[0] / invE;
+        P_be_F[k] = (1 - damp2) * P_be_F[k] / invE / prevPbE
+            + damp2 * fafc[0] / invE;
 
         float errvar = fabsf(fafc[1] - 1 / prevPbE) / (fafc[1] + 1 / prevPbE);
         float errmean = fabsf(fafc[0] - prevPbF / prevPbE)
@@ -859,42 +660,21 @@ float update_pbe(float * P_be_E, float * P_be_F,
     return relerr;
 }
 
-float * gausskerpar(int sx, int sy, float radius)
+int on_border(int i, int * activepix, int nbact, int sizex, int size2)
 {
-    float * out;
-    posix_memalign((void **)&out, ALIGNSIZE, sx * sy * sizeof(float));
-
-    float sig2 = radius * radius;
-    for (int x = -sx / 2; x < sx / 2 ; ++x) {
-        float dx2 = x * x;
-        for (int y = -sy / 2; y < sy / 2; ++y) {
-            float dy2 = y * y;
-            float r2 = dx2 + dy2;
-            float val = exp(-r2 / 2 / sig2)
-                        / (2 * M_PI * sig2);
-            int line = x;
-            int col = y;
-            if (x < 0) line += sx;
-            if (y < 0) col += sy;
-
-            out[col + line * sy] = val;
-        }
-    }
-    return out;
-}
-
-int on_border(int i, int * activepix, int nbact)
-{
-    int p1 = i - sizey;
+    int p1 = i - sizex;
     int p2 = i - 1;
     int p3 = i + 1;
-    int p4 = i + sizey;
+    int p4 = i + sizex;
+    int p5 = i - size2;
+    int p6 = i + size2;
+
     int count = 0;
-    for (unsigned int k = 0; k < nbact; ++k) {
+    for (size_t k = 0; k < nbact; ++k) {
         int j = activepix[k];
-        if (j == p1 || j == p2 || j == p3 || j == p4) {
+        if (j == p1 || j == p2 || j == p3 || j == p4 || j == p5 || j == p6) {
             count += 1;
-            if (count == 4) return 0;
+            if (count == 6) return 0;
         }
     }
     return 1;
@@ -902,9 +682,63 @@ int on_border(int i, int * activepix, int nbact)
 
 int nbconv;
 
-float * recons_ccomp(float * imgmes, float * imgnoise,
+float * gausskerpar(int sx, int sy, int sz, float radius, float radiusz)
+{
+    float * out;
+    posix_memalign((void **)&out, alignsize, sx * sy * sz * sizeof(float));
+
+    float sig2 = radius * radius;
+    float sig2z = radiusz * radiusz;
+    for (int z = -sz / 2; z < sz / 2 ; ++z) {
+        float dz2 = z * z;
+        for (int y = -sy / 2; y < sy / 2 ; ++y) {
+            float dy2 = y * y;
+            for (int x = -sx / 2; x < sx / 2; ++x) {
+                float dx2 = x * x;
+                float r2 = dx2 + dy2;
+                float val = exp(-r2 / 2 / sig2 - dz2 / 2 / sig2z)
+                            / (2 * M_PI * sig2) / sqrt(2 * M_PI * sig2z);
+                int col = x;
+                int line = y;
+                int dep = z;
+                if (x < 0) col += sx;
+                if (y < 0) line += sy;
+                if (z < 0) dep += sz;
+
+                out[col + line * sx + dep * sx * sy] = val;
+            }
+        }
+    }
+    return out;
+}
+
+float * gausskerpar2d(int sx, int sy, float radius)
+{
+    float * out;
+    posix_memalign((void **)&out, alignsize, sx * sy * sizeof(float));
+
+    float sig2 = radius * radius;
+    for (int y = -sy / 2; y < sy / 2 ; ++y) {
+        float dy2 = y * y;
+        for (int x = -sx / 2; x < sx / 2; ++x) {
+            float dx2 = x * x;
+            float r2 = dx2 + dy2;
+            float val = exp(-r2 / 2 / sig2) / (2 * M_PI * sig2);
+            int col = x;
+            int line = y;
+            if (x < 0) col += sx;
+            if (y < 0) line += sy;
+
+            out[col + line * sx] = val;
+        }
+    }
+    return out;
+}
+
+float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
                      int * activepix, int nbact,
-                     float * psf)
+                     float * ker, float * ker2,
+                     int sizex, int sizey, int sizez)
 {
     float * imgnoisecp;
     float * mu_albe_A;
@@ -920,67 +754,46 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     float * omegamu;
     float * vmu;
 
+    int size2 = sizex * sizey;
+    int size3 = size2 * sizez;
 
-    float * ker;
-    float * ker2;
 
     float * res;
 
-    posix_memalign((void **)&imgnoisecp, ALIGNSIZE, nbmes2 * sizeof(float));
+    posix_memalign((void **)&imgnoisecp, alignsize, nbmes3 * sizeof(float));
 
-    for (unsigned int i = 0; i < nbmes2; ++i) {
+    for (unsigned int i = 0; i < nbmes3; ++i) {
         imgnoisecp[i] = imgnoise[i];
     }
 
     /* Memory allocation */
-    posix_memalign((void **)&mu_albe_A, ALIGNSIZE,
-                   nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&mu_albe_B, ALIGNSIZE,
-                   nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&mu_beal_A, ALIGNSIZE,
-                   nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&mu_beal_B, ALIGNSIZE,
-                   nbact * sker2 * sizeof(float));
+    posix_memalign((void **)&mu_albe_A, alignsize,
+                   nbact * kersize3 * sizeof(float));
+    posix_memalign((void **)&mu_albe_B, alignsize,
+                   nbact * kersize3 * sizeof(float));
+    posix_memalign((void **)&mu_beal_A, alignsize,
+                   nbact * kersize3 * sizeof(float));
+    posix_memalign((void **)&mu_beal_B, alignsize,
+                   nbact * kersize3 * sizeof(float));
     vbeal = mu_beal_A;
     abeal = mu_beal_B;
-    // posix_memalign((void **)&P_albe_A, ALIGNSIZE,
-    //                nbact * sker2 * sizeof(float));
-    // posix_memalign((void **)&P_albe_B, ALIGNSIZE,
-    //                nbact * sker2 * sizeof(float));
-    // posix_memalign((void **)&abeal,
-    //                ALIGNSIZE,
-    //                nbact * sker2 * sizeof(float));
-    // posix_memalign((void **)&vbeal,
-    //                ALIGNSIZE,
-    //                nbact * sker2 * sizeof(float));
-    posix_memalign((void **)&P_be_E, ALIGNSIZE, nbact * sizeof(float));
-    posix_memalign((void **)&P_be_F, ALIGNSIZE, nbact * sizeof(float));
+
+    posix_memalign((void **)&P_be_E, alignsize, nbact * sizeof(float));
+    posix_memalign((void **)&P_be_F, alignsize, nbact * sizeof(float));
     posix_memalign((void **)&sum_mualbe_A,
-                   ALIGNSIZE,
-                   nbact * SHIFT * sizeof(float));
+                   alignsize,
+                   nbact * shift * sizeof(float));
     posix_memalign((void **)&sum_mualbe_B,
-                   ALIGNSIZE,
-                   nbact * SHIFT * sizeof(float));
-    posix_memalign((void **)&omegamu, ALIGNSIZE, nbmes2 * sizeof(float));
-    posix_memalign((void **)&vmu, ALIGNSIZE, nbmes2 * sizeof(float));
+                   alignsize,
+                   nbact * shift * sizeof(float));
+    posix_memalign((void **)&omegamu, alignsize, nbmes3 * sizeof(float));
+    posix_memalign((void **)&vmu, alignsize, nbmes3 * sizeof(float));
 
-    posix_memalign((void **)&ker, ALIGNSIZE, smes3 * sker2 * sizeof(float));
-    posix_memalign((void **)&ker2, ALIGNSIZE, smes3 * sker2 * sizeof(float));
+    float Binit = rho * pixmean * Ainit;
 
-    /* Initialize kernels */
-    init_kernels(ker, ker2, psf);
-    /*
-    printf("Ker min, max: %f %f\n",                                            
-           min(ker, smes2 * sker2),                                               
-           max(ker, smes2 * sker2));
-           */
-#if DISPLAY_PLOTS == 1
-    plot_image(smes * sker, smes * sker, ker, "kerint.png", PLOT_RESCALE);
-#endif  // DISPLAY_PLOTS == 1
+    printf("Initializing vectors\n");
 
-    float Binit = RHO * pixmean * Ainit;
-
-    for (unsigned int i = 0; i < nbact * sker2; ++i) {
+    for (unsigned int i = 0; i < nbact * kersize3; ++i) {
         mu_albe_A[i] = Ainit;
         mu_albe_B[i] = Binit;
         vbeal[i] = Ainit;
@@ -992,37 +805,41 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
         P_be_E[i] = Ainit;
         P_be_F[i] = Binit;
 
-        VFUNC(store_ps) (sum_mualbe_A + i * SHIFT, vAinit);
-        VFUNC(store_ps) (sum_mualbe_B + i * SHIFT, vBinit);
+        VFUNC(store_ps) (sum_mualbe_A + i * shift, vAinit);
+        VFUNC(store_ps) (sum_mualbe_B + i * shift, vBinit);
     }
 
     /* Main loop */
+    printf("Main loop\n");
     float relerr = 1.0;
     int iter = 0;
     // printf("nbiter: %i\n", nbiter);
-    while (relerr > THRCONV && iter < nbiter) {
+    while (relerr > relerrthr && iter < nbiter) {
     // for (int iter = 0; iter < nbiter; ++iter) {
         iter++;
         /* Internal loop */
-        for (unsigned int j = 0; j < nbintern; ++j) {
+        for (unsigned int j = 0; j < nbinternloop; ++j) {
+            printf("mubeal\n");
             update_mubeal(vbeal, abeal,
                     mu_albe_A, mu_albe_B,
                     P_be_E, P_be_F,
                     sum_mualbe_A, sum_mualbe_B,
                     nbact, activepix);
 
+            printf("mualbe\n");
             update_mualbe(mu_albe_A, mu_albe_B,
                     sum_mualbe_A, sum_mualbe_B,
                     abeal, vbeal,
                     omegamu, vmu,
                     ker, ker2,
                     imgnoisecp, imgmes,
-                    nbact, activepix);
+                    nbact, activepix,
+                    sizex, sizey, sizez);
             // printf("relerr: %f\n", relerr);
         }
 
         /* External loop */
-        // printf("updatePbe\n");
+        printf("updatePbe\n");
         int iterpbe = 1;
 
         relerr = update_pbe(P_be_E, P_be_F,
@@ -1034,40 +851,36 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
         // printf("iteration, relerr: %i, %f\n", iter, relerr);
     }
 
-    if (relerr < 1.01 * THRCONV) nbconv++;
+    if (relerr < 1.01 * relerrthr) nbconv++;
 
-    posix_memalign((void **)&res, ALIGNSIZE, size3 * sizeof(float));
+    posix_memalign((void **)&res, alignsize, size3 * sizeof(float));
 
     for (int i = 0; i < size3; ++i) {
         res[i] = 0;
     }
-    // if (relerr < 1.1 * THRCONV){
+    // if (relerr < 1.1 * relerrthr){
         for (unsigned int k = 0; k < nbact; ++k) {
             float val = P_be_F[k] / P_be_E[k];
-            res[activepix[k] % size2] += val;
+            res[activepix[k]] += val;
+            //res[activepix[k]] = 100;
         }
         static int nbfluo = 1;
-        for (int i = 0; i < size2; ++i) {
-            int c = (i % size2) % sizey;
-            int l = (i % size2) / sizey;
+        for (int i = 0; i < size3; ++i) {
+            int c = (i % size2) % sizex;
+            int l = (i % size2) / sizex;
             int z = i / size2;
-            if (res[i] > thrpoint && !on_border(i, activepix, nbact)) {
+            if (res[i] > locaintensthr
+                && !on_border(i, activepix, nbact, sizex, size2)) {
                 printf("%d %s %.2f %.2f %.2f %.2f\n",
                         nbfluo,
                         brecs_args.filename_arg,
-                        (c - sker / 2 * smes) * spix + spix / 2,
-                        (l - sker / 2 * smes) * spix + spix / 2,
-                        z * SIZEPIXZ,
+                        (c - kersize / 2 * pixsdiv) * spixnm + spixnm / 2,
+                        (l - kersize / 2 * pixsdiv) * spixnm + spixnm / 2,
+                        z * spixznm,
                         res[i]);
                 nbfluo++;
             }
         }
-    // }
-    /*
-    printf("res min, max: %f %f\n",                                            
-            min(res, size2),                                               
-            max(res, size2));
-            */
 
     free(mu_albe_A);
     free(mu_albe_B);
@@ -1081,27 +894,113 @@ float * recons_ccomp(float * imgmes, float * imgnoise,
     free(vmu);
     free(imgnoisecp);
 
-    free(ker);
-    free(ker2);
-
     return res;
 }
 
-float * reconssparse(float * imgmes, float * imgnoise, float * psf)
+void plot_overlay(float * imgmes, float * imgrecons,
+                  unsigned int sx, unsigned int sy, unsigned int sz,
+                  unsigned int mx, unsigned int my, unsigned int mz,
+                  const char * fname)
 {
-    ccomp_dec ccdec = connectcomp_decomp(imgmes, smes);
+    int i, x, y;
+
+    unsigned int long size2 = sx * sy;
+    unsigned int long size3 = sx * sy * sz;
+
+    unsigned int long nbmes2 = mx * my;
+    unsigned int long nbmes3 = mx * my * mz;
+
+    uint8_t * img_data = malloc(3 * size3 * sizeof(png_byte));
+    float maxrc = 0;
+    for (i = 0 ; i < size3 ; i++) {
+        if (maxrc < imgrecons[i]) maxrc = imgrecons[i];
+    }
+    printf("Maxrecons : %f\n", maxrc);
+
+    float max2 = 0;
+    float min2 = 0;
+    for (i = 0 ; i < nbmes3 ; i++) {
+        if (max2 < imgmes[i]) max2 = imgmes[i];
+        if (min2 > imgmes[i]) min2 = imgmes[i];
+    }
+
+    for (size_t i = 0; i < size3; ++i) {
+        int x = i % sx;
+        int y = (i % size2) / sx;
+        int z = i / size2;
+        float val = imgrecons[i];
+        uint8_t * cimgd = img_data + i * 3;
+        if (val > overlayminint) {
+            if (val > overlaymaxint) val = overlaymaxint;
+            cimgd[0] = 255.0 * (log(val) - log(overlayminint))
+                / (log(overlaymaxint) - log(overlayminint));
+            cimgd[1] = 0;
+            cimgd[2] = 0;
+        } else {
+            float val = 255 / (max2 - min2)
+                * (imgmes[(y / pixsdiv + kersize / 2) * mx + x / pixsdiv + kersize / 2
+                          + (z / pixsdivz + kersizez / 2) * nbmes2] - min2);
+            cimgd[0] = val;
+            cimgd[1] = val;
+            cimgd[2] = val;
+        }
+    }
+    writetiff_rgb("overlay.tif", sx, sy, sz, img_data);
+}
+
+
+
+float * reconssparse(float * imgmes, float * imgnoise,
+                     int nbmesx, int nbmesy, int nbmesz)
+{
+    ccomp_dec ccdec;
+    if (nbmesz == 1) {
+        ccdec = connectcomp_decomp2d(imgmes,
+                                               nbmesx, nbmesy);
+    } else {
+        ccdec = connectcomp_decomp3d(imgmes,
+                                               nbmesx, nbmesy, nbmesz);
+    }
+
+    printf("connected components extracted\n");
+
+    float * ker;
+    float * ker2;
+    posix_memalign((void **)&ker2, alignsize,
+                   pixsdiv3 * kersize3 * sizeof(float));
+
+    /* Initialize kernels */
+    printf("Initializing kernel\n");
+    int sx, sy, sz;
+    ker = opentiff_f(brecs_args.psf_arg, &sx, &sy, &sz);
+    if (sx != kersize || sy != kersize * kersizez || sz != pixsdiv3) {
+        printf("invalid psf size: %d %d %d\n", sx, sy, sz);
+        exit(EXIT_FAILURE);
+    }
+    printf("check size ker ok\n");
+    for (unsigned int i = 0; i < pixsdiv3 * kersize3; ++i) {
+        ker2[i] = ker[i] * ker[i];
+    }
 
     nbconv = 0;
+
+    int sizex = pixsdiv * (nbmesx - kersize);
+    int sizey = pixsdiv * (nbmesy - kersize);
+    int size2 = sizex * sizey;
+    int sizez = pixsdivz * (nbmesz - kersizez + kersizez % 2);
+    int size3 = sizex * sizey * sizez;
 
     float * reconspic = malloc(size3 * sizeof(float));
     for (unsigned int i = 0; i < size3; ++i) {
         reconspic[i] = 0;
     }
 
+    printf("recons first comp\n");
     for (unsigned int i = 0; i < ccdec.nbcomp; ++i) {
-        float * rectmp = recons_ccomp(imgmes, imgnoise,
+        float * rectmp = recons_ccomp(imgmes, imgnoise, nbmesx * nbmesy * nbmesz,
                                       ccdec.activepixcomp[i], ccdec.nbact[i],
-                                      psf);
+                                      ker, ker2,
+                                      sizex, sizey, sizez);
         for (unsigned int i = 0; i < size3; ++i) {
             reconspic[i] += rectmp[i];
         }
@@ -1115,18 +1014,12 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     free(ccdec.activepixcomp);
     free(ccdec.imglab);
 
-#if DISPLAY_OVERLAY == 1
-    plot_overlay(imgmes, reconspic, "overlay.png");
-#endif  // DISPLAY_OVERLAY
-    if (brecs_args.output_given){
-        FILE * fout = fopen(brecs_args.output_arg, "wb");
-        if (!fout) {
-            fprintf(stderr, "%s: Couldn't open file %s: %s\n",
-                    prog_name, brecs_args.output_arg, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-        fwrite(reconspic, sizeof(float), size3, fout);
-        fclose(fout);
+    plot_overlay(imgmes, reconspic,
+                 sizex, sizey, sizez, nbmesx, nbmesy, nbmesz,
+                 "overlay.tif");
+
+    if (brecs_args.output_arg){
+        writetiff_f(brecs_args.output_arg, sizex, sizey, sizez, reconspic);
     }
 
     free(reconspic);
@@ -1135,110 +1028,44 @@ float * reconssparse(float * imgmes, float * imgnoise, float * psf)
     return NULL;
 }
 
-
-float max(float * img, int size)
-{
-    float max = img[0];
-    for (int i = 1; i < size; ++i) {
-        if (img[i] > max) max = img[i];
-    }
-
-    return max;
-}
-
-float min(float * img, int size)
-{
-    float min = img[0];
-    for (int i = 1; i < size; ++i) {
-        if (img[i] < min) min = img[i];
-    }
-
-    return min;
-}
-
-float maxra(float * num, float * den, int size)
-{
-    float max = num[0] / den[0];
-    for (int i = 1; i < size; ++i) {
-        if (num[i] / den[i] > max) max = num[i] / den[i];
-    }
-
-    return max;
-}
-
-float minra(float * num, float * den, int size)
-{
-    float min = num[0] / den[0];
-    for (int i = 1; i < size; ++i) {
-        if (num[i] / den[i] < min) min = num[i] / den[i];
-    }
-
-    return min;
-}
-
-uint16_t * opentiff(const char * fname, int sx, int sy)
-{
-    uint16_t * img = malloc(sx * sy * sizeof(uint16_t));
-
-    TIFF * tif = TIFFOpen(fname, "r");
-    if (tif) {
-        uint32 imagelength;
-        tsize_t scanline;
-        tdata_t buf;
-        uint32 row;
-        uint32 col;
-
-        TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &imagelength);
-        if (imagelength != sx) {
-            printf("%i %i\n", imagelength, sx);
-            printf("incorrect image length\n");
-            exit(EXIT_FAILURE);
-        }
-        scanline = TIFFScanlineSize(tif);
-        if (scanline / 2 != sy) exit(EXIT_FAILURE);
-        // printf("image length: %i\n", imagelength);
-        // printf("scanline: %li\n", scanline);
-        buf = _TIFFmalloc(scanline);
-        for (row = 0; row < imagelength; row++) {
-            TIFFReadScanline(tif, buf, row, 0);
-            for (col = 0; col < scanline / 2; col++)
-                img[col + row * scanline / 2] = ((uint16 *)buf)[col];
-        }
-        _TIFFfree(buf);
-        TIFFClose(tif);
-    } else {
-        exit(EXIT_FAILURE);
-    }
-
-    return img;
-}
-
-float valuearound(float * img, int sx, int sy, int x, int y , float rad2)
-{
-    float sum = 0;
-    for (unsigned int i = 0; i < sx; ++i) {
-        for (unsigned int j = 0; j < sy; ++j) {
-            float r2 = (i - x) * (i - x) + (j - y) * (j - y);
-            if (r2 < rad2) sum += img[j + i * sy];
-        }
-    }
-
-    return sum;
-}
-
 /* Decompose an image into connected components */
 
-lab_t * roundker(int diam)
+lab_t * roundker(int diam, int diamz)
+{
+    int center = diam / 2;
+    int centerz = diamz / 2;
+    lab_t * ker = malloc(diam * diam * diamz * sizeof(lab_t));
+    for (size_t k = 0; k < diamz; k++) {
+        for (size_t j = 0; j < diam; j++) {
+            for (size_t i = 0; i < diam; i++) {
+                int x = i - center;
+                int y = j - center;
+                int z = k - centerz;
+                float rad2 = x * x + y * y;
+                float rad2z = z * z;
+                int ind = i + j * diam + k * diam * diam;
+                if (rad2 / (center * center) + rad2z / (centerz * centerz) < 1.0) {
+                    ker[ind] = 1;
+                } else {
+                    ker[ind] = 0;
+                }
+            }
+        }
+    }
+    return ker;
+}
+
+lab_t * roundker2d(int diam)
 {
     int center = diam / 2;
     lab_t * ker = malloc(diam * diam * sizeof(lab_t));
-    for (size_t i = 0; i < diam; i++) {
-        for (size_t j = 0; j < diam; j++) {
-            int x = j - center;
-            int y = i - center;
+    for (size_t j = 0; j < diam; j++) {
+        for (size_t i = 0; i < diam; i++) {
+            int x = i - center;
+            int y = j - center;
             float rad2 = x * x + y * y;
-            int ind = j + i * diam;
-            if (rad2 < center * center) {
+            int ind = i + j * diam;
+            if (rad2 / (center * center) < 1.0) {
                 ker[ind] = 1;
             } else {
                 ker[ind] = 0;
@@ -1248,39 +1075,111 @@ lab_t * roundker(int diam)
     return ker;
 }
 
-void maskpix(lab_t * img, int width, lab_t * ker, int diam, int x, int y) {
-    for (size_t i = 0; i < diam; i++) {
+void maskpix(lab_t * img, int width, int height, lab_t * ker,
+             int diam, int diamz, int x, int y, int z) {
+    for (size_t k = 0; k < diamz; k++) {
         for (size_t j = 0; j < diam; j++) {
-            int ind = x + j - diam / 2 + (y + i - diam / 2) * width;
-            img[ind] = img[ind] || ker[j + i * diam];
+            for (size_t i = 0; i < diam; i++) {
+                int ind = x + i - diam / 2
+                          + (y + j - diam / 2) * width
+                          + (z + k - diamz / 2) * width * height;
+                img[ind] = img[ind] || ker[i + j * diam + k * diam * diam];
+            }
         }
     }
 }
 
-lab_t neighb(lab_t * img, int width, int x, int y)
+void maskpix2d(lab_t * img, int width, int height, lab_t * ker,
+        int diam, int x, int y) {
+    for (size_t j = 0; j < diam; j++) {
+        for (size_t i = 0; i < diam; i++) {
+            int ind = x + i - diam / 2 + (y + j - diam / 2) * width;
+            img[ind] = img[ind] || ker[i + j * diam];
+        }
+    }
+}
+
+lab_t neighb(lab_t * img, int width, int height, int x, int y, int z)
 {
-    if (!img[x + (y - 1) * width - 1]
-        || !img[x + (y - 1) * width]
-        || !img[x + (y - 1) * width + 1]
-        || !img[x + y * width - 1]
-        || !img[x + y * width + 1]
-        || !img[x + (y + 1) * width - 1]
-        || !img[x + (y + 1) * width]
-        || !img[x + (y + 1) * width + 1])
+    int plane = width * height;
+    if (!img[x - 1 + (y - 1) * width + z * plane]
+        || !img[x + (y - 1) * width + z * plane]
+        || !img[x + 1 + (y - 1) * width + z * plane]
+        || !img[x - 1 + y * width + z * plane]
+        || !img[x + 1 + y * width + z * plane]
+        || !img[x - 1 + (y + 1) * width + z * plane]
+        || !img[x + (y + 1) * width + z * plane]
+        || !img[x + 1 + (y + 1) * width + z * plane]
+
+        || !img[x - 1 + (y - 1) * width + (z - 1) * plane]
+        || !img[x + (y - 1) * width + (z - 1) * plane]
+        || !img[x + 1 + (y - 1) * width + (z - 1) * plane]
+        || !img[x - 1 + y * width + (z - 1) * plane]
+        || !img[x + 1 + y * width + (z - 1) * plane]
+        || !img[x + y * width + (z - 1) * plane]
+        || !img[x - 1 + (y + 1) * width + (z - 1) * plane]
+        || !img[x + (y + 1) * width + (z - 1) * plane]
+        || !img[x + 1 + (y + 1) * width + (z - 1) * plane]
+
+        || !img[x - 1 + (y - 1) * width + (z + 1) * plane]
+        || !img[x + (y - 1) * width + (z + 1) * plane]
+        || !img[x + 1 + (y - 1) * width + (z + 1) * plane]
+        || !img[x - 1 + y * width + (z + 1) * plane]
+        || !img[x + 1 + y * width + (z + 1) * plane]
+        || !img[x + y * width + (z + 1) * plane]
+        || !img[x - 1 + (y + 1) * width + (z + 1) * plane]
+        || !img[x + (y + 1) * width + (z + 1) * plane]
+        || !img[x + 1 + (y + 1) * width + (z + 1) * plane])
         return 1;
     return 0;
 }
 
-lab_t * dilate(lab_t * img, int width, int height, lab_t * ker, int diam)
+lab_t neighb2d(lab_t * img, int width, int height, int x, int y)
+{
+    int plane = width * height;
+    if (!img[x - 1 + (y - 1) * width]
+        || !img[x + (y - 1) * width]
+        || !img[x + 1 + (y - 1) * width]
+        || !img[x - 1 + y * width]
+        || !img[x + 1 + y * width]
+        || !img[x - 1 + (y + 1) * width]
+        || !img[x + (y + 1) * width]
+        || !img[x + 1 + (y + 1) * width])
+        return 1;
+    return 0;
+}
+
+lab_t * dilate(lab_t * img, int width, int height, int depth,
+               lab_t * ker, int diam, int diamz)
+{
+    lab_t * res = malloc(width * height * depth * sizeof(lab_t));
+    for (size_t i = 0; i < width * height * depth; ++i) {
+        res[i] = img[i];
+    }
+    for (size_t k = 0; k < depth; k++) {
+        for (size_t j = 0; j < height; j++) {
+            for (size_t i = 0; i < width; i++) {
+                if (img[i + j * width + k * width * height]
+                        && neighb(img, width, height, i, j, k)) {
+                    maskpix(res, width, height, ker, diam, diamz, i, j, k);
+                }
+            }
+        }
+    }
+    return res;
+}
+
+lab_t * dilate2d(lab_t * img, int width, int height, lab_t * ker, int diam)
 {
     lab_t * res = malloc(width * height * sizeof(lab_t));
     for (size_t i = 0; i < width * height; ++i) {
         res[i] = img[i];
     }
-    for (size_t i = 0; i < height; i++) {
-        for (size_t j = 0; j < width; j++) {
-            if (img[j + i * width] && neighb(img, width, j, i)) {
-                maskpix(res, width, ker, diam, j, i);
+    for (size_t j = 0; j < height; j++) {
+        for (size_t i = 0; i < width; i++) {
+            if (img[i + j * width]
+                    && neighb2d(img, width, height, i, j)) {
+                maskpix2d(res, width, height, ker, diam, i, j);
             }
         }
     }
@@ -1314,7 +1213,161 @@ png_byte * genrandomcolo(lab_t nbcol) {
     return cols;
 }
 
-ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
+ccomp_dec aggregate(lab_t * img, lab_t * imgdil,
+                    int width, int height, int depth)
+{
+    ccomp_dec ccdec;
+    lab_t labs[MAX_LABEL];
+
+    lab_t * imglabs = malloc(width * height * depth * sizeof(lab_t));
+
+    for (int i = 0; i < width * height * depth; i++) {
+        imglabs[i] = 0;
+    }
+
+    uint32_t plane = width * height;
+
+    lab_t lastlab = 0;
+    for (int k = 1; k < depth - 1; k++) {
+        for (int j = 1; j < height - 1; j++) {
+            for (int i = 1; i < width - 1; i++) {
+                int ind = i + j * width + k * width * height;
+                if (imgdil[ind]) {
+                    lab_t lab4[13] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                    lab_t lab4p[13] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+                    size_t nlab = 0;
+                    lab4[0] = imglabs[ind - width - 1 - plane];
+                    lab4[1] = imglabs[ind - width - plane];
+                    lab4[2] = imglabs[ind - width + 1 - plane];
+                    lab4[3] = imglabs[ind - 1 - plane];
+                    lab4[4] = imglabs[ind - plane];
+                    lab4[5] = imglabs[ind + 1 - plane];
+                    lab4[6] = imglabs[ind + width - 1 - plane];
+                    lab4[7] = imglabs[ind + width - plane];
+                    lab4[8] = imglabs[ind + width + 1 - plane];
+
+                    lab4[9] = imglabs[ind - width - 1];
+                    lab4[10] = imglabs[ind - width];
+                    lab4[11] = imglabs[ind - width + 1];
+                    lab4[12] = imglabs[ind - 1];
+                    lab_t minlab = MAX_LABEL;
+                    if (lab4[0]) {
+                        minlab = lab4[0];
+                        lab4p[0] = minlab;
+                        nlab++;
+                    }
+                    for (size_t i = 1; i < 13; ++i) {
+                        if (lab4[i]) {
+                            if (lab4[i] < minlab) minlab = lab4[i];
+                            lab4p[nlab] = lab4[i];
+                            nlab++;
+                        }
+                    }
+
+                    if (nlab > 2) {
+                        for (int k = 0; k < nlab; ++k) {
+                            unionsets(labs, lastlab, minlab, lab4p[k]);
+                        }
+                    }
+                    if (!nlab) {
+                        lastlab++;
+                        labs[lastlab - 1] = lastlab;
+                        imglabs[ind] = lastlab;
+                    } else {
+                        imglabs[ind] = minlab;
+                    }
+                }
+            }
+        }
+    }
+    int clab = 0;
+    int clab2 = 0;
+    for (unsigned int i = 0; i < lastlab; ++i) {
+        if (labs[i] > clab2) {
+            clab2 = labs[i];
+            clab++;
+            labs[i] = clab;
+        } else {
+            labs[i] = labs[labs[i] - 1];
+        }
+    }
+    ccdec.nbcomp = clab;
+    ccdec.coordcomp = malloc(clab * 4 * sizeof(int));
+    ccdec.nbact = malloc(clab * sizeof(int));
+    ccdec.activepixcomp = malloc(clab * sizeof(int *));
+    for (unsigned int i = 0; i < clab; ++i) {
+        ccdec.coordcomp[4 * i] = width;
+        ccdec.coordcomp[4 * i + 1] = 0;
+        ccdec.coordcomp[4 * i + 2] = height;
+        ccdec.coordcomp[4 * i + 3] = 0;
+        ccdec.nbact[i] = 0;
+    }
+    for (int k = 0; k < depth; k++) {
+        for (int j = 0; j < height; j++) {
+            for (int i = 0; i < width; i++) {
+                int ind = i + j * width + k * width * height;
+
+                if (img[ind]) {
+                    lab_t lab = labs[imglabs[ind] - 1];
+                    int * coord = ccdec.coordcomp + 4 * (lab - 1);
+                    if (j < coord[0]) coord[0] = j;
+                    if (j > coord[1]) coord[1] = j;
+                    if (i < coord[2]) coord[2] = i;
+                    if (i > coord[3]) coord[3] = i;
+                    imglabs[ind] = lab;
+                    ccdec.nbact[lab - 1] += 1;
+                }
+            }
+        }
+    }
+    for (unsigned int i = 0; i < clab; ++i) {
+        ccdec.activepixcomp[i] = malloc(ccdec.nbact[i] * sizeof(int));
+        ccdec.nbact[i] = 0;
+    }
+    int offset = pixsdiv * kersize / 2;
+    int offsetz = pixsdivz * (kersizez / 2);
+    int widthdef = width - pixsdiv * kersize;
+    int heightdef = height - pixsdiv * kersize;
+    for (int k = 0; k < depth; k++) {
+        for (int j = 0; j < height; j++) {
+            for (int i = 0; i < width; i++) {
+                int ind = i + j * width + k * width * height;
+
+                if (img[ind]) {
+                    lab_t lab = imglabs[ind];
+                    ccdec.activepixcomp[lab - 1][ccdec.nbact[lab - 1]] =
+                        i - offset + (j - offset) * widthdef
+                        + (k - offsetz) * widthdef * heightdef;
+                    ccdec.nbact[lab - 1] += 1;
+                }
+            }
+        }
+    }
+
+    uint8_t * cols = genrandomcolo(clab);
+    uint8_t * imgccmprgb = malloc(plane * depth * 3 * sizeof(uint8_t));
+
+    for (unsigned int i = 0; i < plane * depth; ++i) {
+        if (img[i]) {
+            imgccmprgb[3 * i] = cols[3 * imglabs[i] - 3];
+            imgccmprgb[1 + 3 * i] = cols[1 + 3 * imglabs[i] - 3];
+            imgccmprgb[2 + 3 * i] = cols[2 + 3 * imglabs[i] - 3];
+        } else {
+            imgccmprgb[3 * i] = 0;
+            imgccmprgb[1 + 3 * i] = 0;
+            imgccmprgb[2 + 3 * i] = 0;
+        }
+    }
+    free(cols);
+    writetiff_rgb("connected_comp.tif", width, height, depth, imgccmprgb);
+    free(imgccmprgb);
+
+    ccdec.imglab = imglabs;
+    return ccdec;
+}
+
+ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
+                      int width, int height)
 {
     ccomp_dec ccdec;
     lab_t labs[MAX_LABEL];
@@ -1325,10 +1378,12 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
         imglabs[i] = 0;
     }
 
+    uint32_t plane = width * height;
+
     lab_t lastlab = 0;
-    for (int i = 1; i < height - 1; i++) {
-        for (int j = 1; j < width - 1; j++) {
-            int ind = j + i * width;
+    for (int j = 1; j < height - 1; j++) {
+        for (int i = 1; i < width - 1; i++) {
+            int ind = i + j * width;
             if (imgdil[ind]) {
                 lab_t lab4[4] = {0, 0, 0, 0};
                 lab_t lab4p[4] = {0, 0, 0, 0};
@@ -1340,24 +1395,17 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
                 lab_t minlab = MAX_LABEL;
                 if (lab4[0]) {
                     minlab = lab4[0];
-                    lab4p[0] = lab4[0];
+                    lab4p[0] = minlab;
                     nlab++;
                 }
-                if (lab4[1]) {
-                    if (lab4[1] < minlab) minlab = lab4[1];
-                    lab4p[nlab] = lab4[1];
-                    nlab++;
+                for (size_t i = 1; i < 4; ++i) {
+                    if (lab4[i]) {
+                        if (lab4[i] < minlab) minlab = lab4[i];
+                        lab4p[nlab] = lab4[i];
+                        nlab++;
+                    }
                 }
-                if (lab4[2]) {
-                    if (lab4[2] < minlab) minlab = lab4[2];
-                    lab4p[nlab] = lab4[2];
-                    nlab++;
-                }
-                if (lab4[3]) {
-                    if (lab4[3] < minlab) minlab = lab4[3];
-                    lab4p[nlab] = lab4[3];
-                    nlab++;
-                }
+
                 if (nlab > 2) {
                     for (int k = 0; k < nlab; ++k) {
                         unionsets(labs, lastlab, minlab, lab4p[k]);
@@ -1389,15 +1437,15 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
     ccdec.nbact = malloc(clab * sizeof(int));
     ccdec.activepixcomp = malloc(clab * sizeof(int *));
     for (unsigned int i = 0; i < clab; ++i) {
-        ccdec.coordcomp[4 * i] = sizey;
+        ccdec.coordcomp[4 * i] = width;
         ccdec.coordcomp[4 * i + 1] = 0;
-        ccdec.coordcomp[4 * i + 2] = sizex;
+        ccdec.coordcomp[4 * i + 2] = height;
         ccdec.coordcomp[4 * i + 3] = 0;
         ccdec.nbact[i] = 0;
     }
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            int ind = j + i * width;
+    for (int j = 0; j < height; j++) {
+        for (int i = 0; i < width; i++) {
+            int ind = i + j * width;
 
             if (img[ind]) {
                 lab_t lab = labs[imglabs[ind] - 1];
@@ -1407,7 +1455,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
                 if (i < coord[2]) coord[2] = i;
                 if (i > coord[3]) coord[3] = i;
                 imglabs[ind] = lab;
-                ccdec.nbact[lab - 1] += sizez;
+                ccdec.nbact[lab - 1] += 1;
             }
         }
     }
@@ -1415,25 +1463,26 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
         ccdec.activepixcomp[i] = malloc(ccdec.nbact[i] * sizeof(int));
         ccdec.nbact[i] = 0;
     }
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            int ind = j + i * width;
+    int offset = pixsdiv * kersize / 2;
+    int widthdef = width - pixsdiv * kersize;
+    int heightdef = height - pixsdiv * kersize;
+    for (int j = 0; j < height; j++) {
+        for (int i = 0; i < width; i++) {
+            int ind = i + j * width;
 
             if (img[ind]) {
                 lab_t lab = imglabs[ind];
-                for (unsigned int z = 0; z < sizez; ++z) {
-                    ccdec.activepixcomp[lab - 1][ccdec.nbact[lab - 1] + z] =
-                        j + i * sizey + size2 * z;
-                }
-                ccdec.nbact[lab - 1] += sizez;
+                ccdec.activepixcomp[lab - 1][ccdec.nbact[lab - 1]] =
+                    i - offset + (j - offset) * widthdef;
+                ccdec.nbact[lab - 1] += 1;
             }
         }
     }
-#if DISPLAY_PLOTS == 1
-    png_byte * cols = genrandomcolo(clab);
-    png_byte * imgccmprgb = malloc(size2 * 3 * sizeof(png_byte));
 
-    for (unsigned int i = 0; i < size2; ++i) {
+    uint8_t * cols = genrandomcolo(clab);
+    uint8_t * imgccmprgb = malloc(plane * 3 * sizeof(uint8_t));
+
+    for (unsigned int i = 0; i < plane; ++i) {
         if (img[i]) {
             imgccmprgb[3 * i] = cols[3 * imglabs[i] - 3];
             imgccmprgb[1 + 3 * i] = cols[1 + 3 * imglabs[i] - 3];
@@ -1445,51 +1494,68 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, int width, int height)
         }
     }
     free(cols);
-    plot_imagergb(sizey, sizex, imgccmprgb, "connected_comp.png");
+    writetiff_rgb("connected_comp.tif", width, height, 1, imgccmprgb);
     free(imgccmprgb);
-#endif  // DISPLAY_PLOTS == 1
 
     ccdec.imglab = imglabs;
     return ccdec;
 }
 
-ccomp_dec connectcomp_decomp(float * imgmes, float radius)
+ccomp_dec connectcomp_decomp3d(float * imgmes,
+                               int nbmesx, int nbmesy, int nbmesz)
 {
-    int sxfft = pow(2, (int)log2(sizex) + 1);
-    int syfft = pow(2, (int)log2(sizey) + 1);
+    unsigned long int sizex = nbmesx * pixsdiv;
+    unsigned long int sizey = nbmesy * pixsdiv;
+    unsigned long int sizez = nbmesz * pixsdivz;
+    unsigned long int size2 = sizex * sizey;
+    unsigned long int size3 = size2 * sizez;
 
-    float * imgsmoo = fftwf_alloc_real(sxfft * syfft);
-    for (unsigned int i = 0; i < sxfft * syfft; ++i) {
+    unsigned long int nbmes2 = nbmesx * nbmesy;
+    unsigned long int nbmes3 = nbmesx * nbmesy * nbmesz;
+
+    unsigned long int sxfft = pow(2, (int)log2(sizex) + 1);
+    unsigned long int syfft = pow(2, (int)log2(sizey) + 1);
+    unsigned long int sfft2 = sxfft * syfft;
+    unsigned long int szfft = pow(2, (int)log2(sizez) + 1);
+
+    float * imgsmoo = fftwf_alloc_real(sxfft * syfft * szfft);
+    if (!imgsmoo) exit(EXIT_FAILURE);
+    for (unsigned int i = 0; i < sxfft * syfft * szfft; ++i) {
         imgsmoo[i] = 0;
     }
-    for (unsigned int i = 0; i < nbmes2; ++i) {
+    unsigned long int max = 0;
+    for (unsigned int i = 0; i < nbmes3; ++i) {
         float val = imgmes[i];
-        int ci = i % nbmesy;
-        int li = i / nbmesy;
-        for (unsigned int j = 0; j < smes2; ++j) {
-            int ind = ci * smes + j % smes + syfft * (li * smes + j / smes);
+        unsigned long int ci = (i % nbmes2) % nbmesx;
+        unsigned long int li = (i % nbmes2) / nbmesx;
+        unsigned long int zi = i / nbmes2;
+        for (unsigned int j = 0; j < pixsdiv3; ++j) {
+            unsigned long int ind = ci * pixsdiv + j % pixsdiv
+                      + sxfft * (li * pixsdiv + (j % pixsdiv2) / pixsdiv)
+                      + sfft2 * (zi * pixsdivz + (j / pixsdiv2) % pixsdivz);
             imgsmoo[ind] = val;
         }
     }
     fftwf_complex * out1, * out2;
     fftwf_plan pforw1, pforw2, pbackw;
 
-    float * imgker = gausskerpar(sxfft, syfft, PREFAC_RAD_CC * smes);
-#if DISPLAY_PLOTS == 1
-    plot_image(sxfft, syfft, imgker, "kersmoo.png", PLOT_RESCALE);
-#endif  // DISPLAY_PLOTS == 1
+    writetiff_f("befsmoothedimg.tif", sxfft, syfft, szfft, imgsmoo);
 
-    out1 = fftwf_alloc_complex(sxfft * (syfft / 2 + 1));
-    out2 = fftwf_alloc_complex(sxfft * (syfft / 2 + 1));
+    float * imgker = gausskerpar(sxfft, syfft, szfft,
+                                 prefacradcc * pixsdiv,
+                                 prefacradcc * pixsdivz);
 
-    pforw1 = fftwf_plan_dft_r2c_2d(sxfft, syfft,
+    out1 = fftwf_alloc_complex(szfft * syfft * (sxfft / 2 + 1));
+    out2 = fftwf_alloc_complex(szfft * syfft * (sxfft / 2 + 1));
+
+    pforw1 = fftwf_plan_dft_r2c_3d(szfft, syfft, sxfft,
                                    imgsmoo, out1,
                                    FFTW_ESTIMATE);
-    pforw2 = fftwf_plan_dft_r2c_2d(sxfft, syfft,
+    pforw2 = fftwf_plan_dft_r2c_3d(szfft, syfft, sxfft,
                                    imgker, out2,
                                    FFTW_ESTIMATE);
 
-    pbackw = fftwf_plan_dft_c2r_2d(sxfft, syfft,
+    pbackw = fftwf_plan_dft_c2r_3d(szfft, syfft, sxfft,
                                    out1, imgsmoo,
                                    FFTW_ESTIMATE);
 
@@ -1497,7 +1563,162 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     fftwf_execute(pforw2);
     fftwf_free(imgker);
 
-    for (unsigned int i = 0; i < sxfft * (syfft / 2 + 1); ++i) {
+    for (unsigned int i = 0; i < szfft * syfft * (sxfft / 2 + 1); ++i) {
+        fftwf_complex c1, c2;
+        c1[0] = out1[i][0];
+        c1[1] = out1[i][1];
+        c2[0] = out2[i][0];
+        c2[1] = out2[i][1];
+
+        out1[i][0] = (c1[0] * c2[0] - c1[1] * c2[1]) / (sxfft * syfft * szfft);
+        out1[i][1] = (c1[0] * c2[1] + c1[1] * c2[0]) / (sxfft * syfft * szfft);
+    }
+
+    fftwf_execute(pbackw);
+
+    fftwf_destroy_plan(pforw1);
+    fftwf_destroy_plan(pforw2);
+    fftwf_destroy_plan(pbackw);
+
+    writetiff_f("smoothedimg.tif", sxfft, syfft, szfft, imgsmoo);
+
+    printf("smoothing over\n");
+
+    lab_t * imgccmp = malloc(size3 * sizeof(lab_t));
+    for (unsigned int i = 0; i < size3; ++i) {
+        imgccmp[i] = 0;
+    }
+    for (unsigned int k = pixsdivz * (kersizez / 2);
+            k < sizez - pixsdivz * (kersizez / 2); ++k) {
+        for (unsigned int j = pixsdiv * kersize / 2;
+                j < sizey - pixsdiv * kersize / 2; ++j) {
+            for (unsigned int i = pixsdiv * kersize / 2;
+                    i < sizex - pixsdiv * kersize / 2; ++i) {
+                if (imgsmoo[i + j * sxfft + k * sfft2] > convolpixthr) {
+                    imgccmp[i + j * sizex + k * size2] = 1;
+                }
+            }
+        }
+    }
+
+    uint8_t * imgthrrgb = malloc(3 * size3 * sizeof(uint8_t));
+    for (unsigned int k = 0; k < sizez; ++k) {
+        for (unsigned int j = 0; j < sizey; ++j) {
+            for (unsigned int i = 0; i < sizex; ++i) {
+                int ind = i + j * sizex + k * sizex * sizey;
+                if (imgccmp[ind]) {
+                    imgthrrgb[3 * ind] = 255;
+                    imgthrrgb[1 + 3 * ind] = 255;
+                    imgthrrgb[2 + 3 * ind] = 255;
+                } else {
+                    imgthrrgb[3 * ind] = 0;
+                    imgthrrgb[1 + 3 * ind] = 0;
+                    imgthrrgb[2 + 3 * ind] = 0;
+                }
+            }
+        }
+    }
+    writetiff_rgb("imgthrrgb.tif", sizex, sizey, sizez, imgthrrgb);
+
+    printf("thresholding over\n");
+
+    lab_t * rker = roundker(pixsdiv * kersize / 2, pixsdivz * (kersizez / 2));
+    printf("ker gen over\n");
+    lab_t * imgdil = dilate(imgccmp, sizex, sizey, sizez,
+                            rker,
+                            pixsdiv * kersize / 2, pixsdivz * (kersizez / 2));
+
+    printf("dilation over\n");
+
+    uint8_t * imgdilrgb = malloc(3 * size3 * sizeof(uint8_t));
+    for (unsigned int k = 0; k < sizez; ++k) {
+        for (unsigned int j = 0; j < sizey; ++j) {
+            for (unsigned int i = 0; i < sizex; ++i) {
+                int ind = i + j * sizex + k * sizex * sizey;
+                if (imgdil[ind]) {
+                    imgdilrgb[3 * ind] = 255;
+                    imgdilrgb[1 + 3 * ind] = 255;
+                    imgdilrgb[2 + 3 * ind] = 255;
+                } else {
+                    imgdilrgb[3 * ind] = 0;
+                    imgdilrgb[1 + 3 * ind] = 0;
+                    imgdilrgb[2 + 3 * ind] = 0;
+                }
+            }
+        }
+    }
+    writetiff_rgb("imgdilrgb.tif", sizex, sizey, sizez, imgdilrgb);
+    free(imgdilrgb);
+
+    free(rker);
+    ccomp_dec ccdec = aggregate(imgccmp, imgdil, sizex, sizey, sizez);
+
+    free(imgdil);
+    free(imgccmp);
+    fftwf_free(out1);
+    fftwf_free(out2);
+    fftwf_free(imgsmoo);
+
+    fftwf_cleanup();
+
+    return ccdec;
+}
+
+ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
+{
+    printf("2d mode!\n");
+    unsigned long int sizex = nbmesx * pixsdiv;
+    unsigned long int sizey = nbmesy * pixsdiv;
+    unsigned long int size2 = sizex * sizey;
+
+    unsigned long int nbmes2 = nbmesx * nbmesy;
+
+    unsigned long int sxfft = pow(2, (int)log2(sizex) + 1);
+    unsigned long int syfft = pow(2, (int)log2(sizey) + 1);
+    unsigned long int sfft2 = sxfft * syfft;
+
+    float * imgsmoo = fftwf_alloc_real(sxfft * syfft);
+    if (!imgsmoo) exit(EXIT_FAILURE);
+    for (unsigned int i = 0; i < sxfft * syfft; ++i) {
+        imgsmoo[i] = 0;
+    }
+    unsigned long int max = 0;
+    for (unsigned int i = 0; i < nbmes2; ++i) {
+        float val = imgmes[i];
+        unsigned long int ci = i % nbmesx;
+        unsigned long int li = i / nbmesx;
+        for (unsigned int j = 0; j < pixsdiv2; ++j) {
+            unsigned long int ind = ci * pixsdiv + j % pixsdiv
+                      + sxfft * (li * pixsdiv + j / pixsdiv);
+            imgsmoo[ind] = val;
+        }
+    }
+    fftwf_complex * out1, * out2;
+    fftwf_plan pforw1, pforw2, pbackw;
+
+    writetiff_f("befsmoothedimg.tif", sxfft, syfft, 1, imgsmoo);
+
+    float * imgker = gausskerpar2d(sxfft, syfft, prefacradcc * pixsdiv);
+
+    out1 = fftwf_alloc_complex(syfft * (sxfft / 2 + 1));
+    out2 = fftwf_alloc_complex(syfft * (sxfft / 2 + 1));
+
+    pforw1 = fftwf_plan_dft_r2c_2d(syfft, sxfft,
+                                   imgsmoo, out1,
+                                   FFTW_ESTIMATE);
+    pforw2 = fftwf_plan_dft_r2c_2d(syfft, sxfft,
+                                   imgker, out2,
+                                   FFTW_ESTIMATE);
+
+    pbackw = fftwf_plan_dft_c2r_2d(syfft, sxfft,
+                                   out1, imgsmoo,
+                                   FFTW_ESTIMATE);
+
+    fftwf_execute(pforw1);
+    fftwf_execute(pforw2);
+    fftwf_free(imgker);
+
+    for (unsigned int i = 0; i < syfft * (sxfft / 2 + 1); ++i) {
         fftwf_complex c1, c2;
         c1[0] = out1[i][0];
         c1[1] = out1[i][1];
@@ -1514,47 +1735,71 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     fftwf_destroy_plan(pforw2);
     fftwf_destroy_plan(pbackw);
 
-#if DISPLAY_PLOTS == 1
-    plot_image(sxfft, syfft, imgsmoo, "smoothimg.png", PLOT_RESCALE);
-#endif  // DISPLAY_PLOTS == 1
+    writetiff_f("smoothedimg.tif", sxfft, syfft, 1, imgsmoo);
+
+    printf("smoothing over\n");
 
     lab_t * imgccmp = malloc(size2 * sizeof(lab_t));
     for (unsigned int i = 0; i < size2; ++i) {
         imgccmp[i] = 0;
     }
-    for (unsigned int i = smes * sker / 2; i < sizex - smes * sker / 2; ++i) {
-        for (unsigned int j = smes * sker / 2;
-             j < sizey - smes * sker / 2;
-             ++j) {
-            if (imgsmoo[j + i * syfft] > pixthr) {
-                imgccmp[j + i * sizey] = 1;
+    for (unsigned int j = pixsdiv * kersize / 2;
+            j < sizey - pixsdiv * kersize / 2; ++j) {
+        for (unsigned int i = pixsdiv * kersize / 2;
+                i < sizex - pixsdiv * kersize / 2; ++i) {
+            if (imgsmoo[i + j * sxfft] > convolpixthr) {
+                imgccmp[i + j * sizex] = 1;
             }
         }
     }
 
-    lab_t * rker = roundker(smes * sker / 2);
-    lab_t * imgdil = dilate(imgccmp, sizey, sizex, rker, smes * sker / 2);
-
-#if DISPLAY_PLOTS == 1
-    png_byte * imgdilrgb = malloc(3 * size2 * sizeof(png_byte));
-    for (unsigned int i = 0; i < sizex; ++i) {
-        for (unsigned int j = 0; j < sizey; ++j) {
-            if (imgdil[j + i * sizey]) {
-                imgdilrgb[3 * (j + i * sizey)] = 255;
-                imgdilrgb[1 + 3 * (j + i * sizey)] = 255;
-                imgdilrgb[2 + 3 * (j + i * sizey)] = 255;
+    uint8_t * imgthrrgb = malloc(3 * size2 * sizeof(uint8_t));
+    for (unsigned int j = 0; j < sizey; ++j) {
+        for (unsigned int i = 0; i < sizex; ++i) {
+            int ind = i + j * sizex;
+            if (imgccmp[ind]) {
+                imgthrrgb[3 * ind] = 255;
+                imgthrrgb[1 + 3 * ind] = 255;
+                imgthrrgb[2 + 3 * ind] = 255;
             } else {
-                imgdilrgb[3 * (j + i * sizey)] = 0;
-                imgdilrgb[1 + 3 * (j + i * sizey)] = 0;
-                imgdilrgb[2 + 3 * (j + i * sizey)] = 0;
+                imgthrrgb[3 * ind] = 0;
+                imgthrrgb[1 + 3 * ind] = 0;
+                imgthrrgb[2 + 3 * ind] = 0;
             }
         }
     }
-    plot_imagergb(sizex, sizey, imgdilrgb, "imgdilrgb.png");
+    writetiff_rgb("imgthrrgb.tif", sizex, sizey, 1, imgthrrgb);
+
+    printf("thresholding over\n");
+
+    lab_t * rker = roundker2d(pixsdiv * kersize / 2);
+    printf("ker gen over\n");
+    lab_t * imgdil = dilate2d(imgccmp, sizex, sizey,
+                              rker,
+                              pixsdiv * kersize / 2);
+
+    printf("dilation over\n");
+
+    uint8_t * imgdilrgb = malloc(3 * size2 * sizeof(uint8_t));
+    for (unsigned int j = 0; j < sizey; ++j) {
+        for (unsigned int i = 0; i < sizex; ++i) {
+            int ind = i + j * sizex;
+            if (imgdil[ind]) {
+                imgdilrgb[3 * ind] = 255;
+                imgdilrgb[1 + 3 * ind] = 255;
+                imgdilrgb[2 + 3 * ind] = 255;
+            } else {
+                imgdilrgb[3 * ind] = 0;
+                imgdilrgb[1 + 3 * ind] = 0;
+                imgdilrgb[2 + 3 * ind] = 0;
+            }
+        }
+    }
+    writetiff_rgb("imgdilrgb.tif", sizex, sizey, 1, imgdilrgb);
     free(imgdilrgb);
-#endif  // DISPLAY_PLOTS == 1
+
     free(rker);
-    ccomp_dec ccdec = aggregate(imgccmp, imgdil, sizey, sizex);
+    ccomp_dec ccdec = aggregate2d(imgccmp, imgdil, sizex, sizey);
 
     free(imgdil);
     free(imgccmp);
@@ -1567,255 +1812,10 @@ ccomp_dec connectcomp_decomp(float * imgmes, float radius)
     return ccdec;
 }
 
-
-#ifdef SMOOTHEN
-void shiftimg(float * img, float * img2)
-{
-    for (unsigned int i = 0; i < nbmesx * nbmesy; ++i) {
-        img2[i] = 0;
-    }
-    for (unsigned int i = 0; i < nbmesx; ++i) {
-        for (unsigned int j = 0; j < nbmesy; ++j) {
-            int ind = j + SIZESMOOTH / 2
-                      + (i + SIZESMOOTH / 2) * (nbmesy + SIZESMOOTH);
-            float val = img[j + i * nbmesy];
-            if (val > SMOOTHEN_THR) val = 0.0;
-            img2[ind] = val;
-        }
-    }
-}
-
-void smoothen_noise(float * img)
-{
-    fftwf_complex * out1, * out2;
-    fftwf_plan pforw1, pforw2, pbackw;
-
-    int sxsmoo = nbmesx + SIZESMOOTH;
-    int sysmoo = nbmesy + SIZESMOOTH;
-
-    float * img2 = fftwf_alloc_real(sxsmoo * sysmoo);
-    float * imgmean = fftwf_alloc_real(nbmes2);
-    float * imgker;
-
-    out1 = fftwf_alloc_complex(sxsmoo * (sysmoo / 2 + 1));
-    out2 = fftwf_alloc_complex(sxsmoo * (sysmoo / 2 + 1));
-
-    imgker = gausskerpar(sxsmoo, sysmoo, SMOOTHEN_RAD);
-
-    pforw1 = fftwf_plan_dft_r2c_2d(sxsmoo, sysmoo,
-                                  img2, out1,
-                                  FFTW_ESTIMATE);
-    pforw2 = fftwf_plan_dft_r2c_2d(sxsmoo, sysmoo,
-                                  imgker, out2,
-                                  FFTW_ESTIMATE);
-
-    pbackw = fftwf_plan_dft_c2r_2d(sxsmoo, sysmoo,
-                                  out1, img2,
-                                  FFTW_ESTIMATE);
-
-    // plot_image(nbmesx, nbmesy, img, "imgmes.png", plot_rescale);
-    shiftimg(img, img2);
-
-#if DISPLAY_PLOTS == 1
-    plot_image(sxsmoo, sysmoo, img2, "bsmooth.png", PLOT_RESCALE);
-
-    plot_image(sxsmoo, sysmoo, imgker, "gausssmooth.png", PLOT_RESCALE);
-#endif  // DISPLAY_PLOTS == 1
-
-    fftwf_execute(pforw1);
-    fftwf_execute(pforw2);
-
-    for (unsigned int i = 0; i < sxsmoo * (sysmoo / 2 + 1); ++i) {
-        fftwf_complex c1, c2;
-        c1[0] = out1[i][0];
-        c1[1] = out1[i][1];
-        c2[0] = out2[i][0];
-        c2[1] = out2[i][1];
-
-        out1[i][0] = (c1[0] * c2[0] - c1[1] * c2[1]) / (sxsmoo * sysmoo);
-        out1[i][1] = (c1[0] * c2[1] + c1[1] * c2[0]) / (sxsmoo * sysmoo);
-    }
-
-    fftwf_execute(pbackw);
-
-    fftwf_destroy_plan(pforw1);
-    fftwf_destroy_plan(pforw2);
-    fftwf_destroy_plan(pbackw);
-
-#if DISPLAY_PLOTS == 1
-    plot_image(sxsmoo, sysmoo, img2, "asmooth.png", PLOT_RESCALE);
-#endif  // DISPLAY_PLOTS == 1
-
-    for (unsigned int i = 0; i < nbmes2; ++i) {
-        int ls = i / nbmesy + SIZESMOOTH / 2;
-        int cs = (i % nbmesy) + SIZESMOOTH / 2;
-        imgmean[i] = img[i] - img2[cs + ls * sysmoo];
-    }
-#if DISPLAY_PLOTS == 1
-    plot_image(nbmesx, nbmesy, imgmean, "remmean.png", PLOT_RESCALE);
-#endif  // DISPLAY_PLOTS == 1
-
-    fftwf_free(out1);
-    fftwf_free(out2);
-    fftwf_free(img2);
-    fftwf_free(imgker);
-
-    for (unsigned int i = 0; i < NBMESX; ++i) {
-        for (unsigned int j = 0; j < NBMESY; ++j) {
-            int ind = j + sker / 2 + (i + sker / 2) * nbmesy;
-            img[ind] = imgmean[ind];
-        }
-    }
-    fftwf_free(imgmean);
-    fftwf_cleanup();
-}
-#endif  // SMOOTHEN
-
-int loadimg(uint16_t ** img)
-{
-    uint16_t * imgtmp;
-    char * fname = brecs_args.filename_arg;
-    char * dot = strrchr(fname, '/');
-    dot = strrchr(fname, '.');
-    if (!dot || dot == fname || !strcmp(dot, ".dat")) {
-        /* Assume a raw image file */
-        if (!brecs_args.frame_given) {
-            fprintf(stderr, "%s: Frame number not provided for a raw image.\n",
-                    prog_name);
-            exit(EXIT_FAILURE);
-        }
-        long int offset = brecs_args.frame_arg;
-
-        errno = 0;
-        FILE * fimg = fopen(fname, "rb");
-        if (!fimg) {
-            fprintf(stderr, "%s: Couldn't open file %s: %s\n",
-                    prog_name, fname, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-
-        if (fseek(fimg, NBMESYINI * NBMESXINI * 2 * offset, SEEK_SET) == -1) {
-            fprintf(stderr, "%s: Error reading input file: %s\n",
-                    prog_name, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-        *img = malloc(NBMESX * NBMESY * sizeof(uint16_t));
-        imgtmp = malloc(NBMESXINI * NBMESYINI * sizeof(uint16_t));
-        if (fread(imgtmp, 2, NBMESXINI * NBMESYINI, fimg) == -1) {
-            fprintf(stderr, "%s: Error reading input file: %s\n",
-                    prog_name, strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-        for (unsigned int i = 0; i < NBMESX; ++i) {
-            for (unsigned int j = 0; j < NBMESY; ++j) {
-                int ind = OFFXINI + j + (OFFYINI + i) * NBMESYINI;
-                (*img)[j + i * NBMESY] = imgtmp[ind];
-            }
-            /* code */
-        }
-        free(imgtmp);
-        fclose(fimg);
-    } else if (!strcmp(dot, ".tif") || !strcmp(dot, ".tiff")) {
-        *img = opentiff(fname, NBMESX, NBMESY);
-    } else {
-        fprintf(stderr, "%s: File format not supported\n",
-                prog_name);
-        exit(EXIT_FAILURE);
-    }
-
-    return 0;
-}
-
-
-/*
-void refinedkerfit(float * ker0, float * ker2, float * ker4, float * ker6,
-                   float * ker8, float * ker10)
-{
-    for (int x = -sizex / 2; x < sizex / 2 ; ++x)
-    {
-        float dx2 = x * x;
-        for (int y = -sizey / 2; y < sizey / 2; ++y)
-        {
-            float dy2 = y * y;
-            float radius2 = dx2 + dy2;
-            float r2 = radius2 / 2 / (sigpsf * sigpsf);
-            float val0 = exp(-r2)
-                         / (2 * M_PI * sigpsf * sigpsf);
-            float val2 = r2 * exp(-r2)
-                         / (2 * M_PI * sigpsf * sigpsf);
-            float val4 = r2 * r2 * exp(-r2)
-                         / (2 * M_PI * sigpsf * sigpsf);
-            float val6 = r2 * r2 * r2 * exp(-r2)
-                         / (2 * M_PI * sigpsf * sigpsf);
-            float val8 = r2 * r2 * r2 * r2 * exp(-r2)
-                         / (2 * M_PI * sigpsf * sigpsf);
-            float val10 = r2 * r2 * r2 * r2 * r2 * exp(-r2)
-                         / (2 * M_PI * sigpsf * sigpsf);
-            int line = x;
-            int col = y;
-            if (x < 0) line += sizex;
-            if (y < 0) col += sizey;
-            
-            ker0[col + line * sizey] = val0;
-            ker2[col + line * sizey] = val2;
-            ker4[col + line * sizey] = val4;
-            ker6[col + line * sizey] = val6;
-            ker8[col + line * sizey] = val8;
-            ker10[col + line * sizey] = val10;
-        }
-    }
-}
-*/
-
-void init_refinedkersfit(float * pix0, float * pix2, float * pix4,
-                         float * pix6, float * pix8, float * pix10,
-                         float * ker0, float * ker2, float * ker4,
-                         float * ker6, float * ker8, float * ker10)
-{
-    for (int i = 0; i < smes2; ++i) {
-        int ci = (i % smes2) % smes;
-        int li = (i % smes2) / smes;
-        int z  = i / smes2;
-        for (int j = 0; j < sker2; ++j) {
-            int kerc = j % sker - sker / 2;
-            int kerl = j / sker - sker / 2;
-            float sum0 = 0;
-            float sum2 = 0;
-            float sum4 = 0;
-            float sum6 = 0;
-            float sum8 = 0;
-            float sum10 = 0;
-            for (int k = 0; k < smes2; ++k) {
-                int cli = -li + k / smes + smes * kerl;
-                if (cli < 0) cli += sizex;
-                int cci = -ci + k % smes + smes * kerc;
-                if (cci < 0) cci += sizey;
-
-                sum0 += ker0[cci + sizey * cli + z * size2];
-                sum2 += ker2[cci + sizey * cli + z * size2];
-                sum4 += ker4[cci + sizey * cli + z * size2];
-                sum6 += ker6[cci + sizey * cli + z * size2];
-                sum8 += ker8[cci + sizey * cli + z * size2];
-                sum10 += ker10[cci + sizey * cli + z * size2];
-            }
-            int cker = j % smes;
-            int lker = j / smes;
-            int indmu = cker + sker * lker;
-            pix0[indmu + i * sker2] = sum0;
-            pix2[indmu + i * sker2] = sum2;
-            pix4[indmu + i * sker2] = sum4;
-            pix6[indmu + i * sker2] = sum6;
-            pix8[indmu + i * sker2] = sum8;
-            pix10[indmu + i * sker2] = sum10;
-        }
-    }
-}
-
 char * prog_name;
 
 int main(int argc, char ** argv)
 {
-    uint16_t * img;
     float * imgmes;
     float * imgker;
 
@@ -1826,6 +1826,9 @@ int main(int argc, char ** argv)
     _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID
             & ~_MM_MASK_OVERFLOW & ~_MM_MASK_DIV_ZERO);
 #endif
+
+    /* Remove libtiff warnings */
+    TIFFSetWarningHandler(NULL);
 
     /* Command line parser */
     char * arg0 = argv[0];
@@ -1838,167 +1841,86 @@ int main(int argc, char ** argv)
     if (cmdline_parser(argc, argv, & brecs_args) != 0)
         exit(EXIT_FAILURE);
 
-    loadimg(&img);
+    int insx;
+    int insy;
+    int insz;
 
-    posix_memalign((void **)&imgmes, ALIGNSIZE, nbmes2 * sizeof(float));
-    posix_memalign((void **)&imgnoise, ALIGNSIZE, nbmes2 * sizeof(float));
+    uint16_t * img;
+    img = opentiff(brecs_args.filename_arg, &insx, &insy, &insz);
 
-    posix_memalign((void **)&imgker, ALIGNSIZE, size3 * sizeof(float));
+    float * imgback;
+    if (brecs_args.background_arg) {
+        printf("background given\n");
+        int binsx;
+        int binsy;
+        int binsz;
+        imgback = opentiff_f(brecs_args.background_arg,
+                             &binsx,
+                             &binsy,
+                             &binsz);
+        if (binsx != insx || binsy != insy || binsz != insz) {
+            printf("img and background size do not match\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    printf("images opened\n");
 
-    for (unsigned int i = 0; i < nbmes2; ++i) {
-        imgnoise[i] = 1e8;
+    unsigned long int nbmesx = insx + kersize;
+    unsigned long int nbmesy = insy + kersize;
+    unsigned long int nbmesz = insz + kersizez - kersizez % 2;
+    unsigned long int nbmes2 = nbmesx * nbmesy;
+    unsigned long int nbmes3 = nbmes2 * nbmesz;
+    unsigned long int sizex = insx * pixsdiv;
+    unsigned long int sizey = insy * pixsdiv;
+    unsigned long int sizez = insz * pixsdivz;
+    unsigned long int size2 = sizex * sizey;
+    unsigned long int size3 = size2 * sizez;
+
+    posix_memalign((void **)&imgmes, alignsize, nbmes3 * sizeof(float));
+    posix_memalign((void **)&imgnoise, alignsize, nbmes3 * sizeof(float));
+
+    posix_memalign((void **)&imgker, alignsize,
+                   kersize3 * pixsdiv3 * sizeof(float));
+
+    for (unsigned int i = 0; i < nbmes3; ++i) {
+        imgnoise[i] = 1e2;
         imgmes[i] = 0;
     }
-    for (unsigned int i = 0; i < NBMESY; ++i) {
-        for (unsigned int j = 0; j < NBMESX; ++j) {
-            /*
-            if (
-                    (i > 3500 / 12 && i < 3700 / 12
-                     && j < NBMESX - 750 / 12 && j > NBMESX - 950 / 12)
-                || (i > 3350 / 12 && i < 3550 / 12
-                    && j < NBMESX - 980 / 12 && j > NBMESX - 1180 / 12)
-                || (i > 3550 / 12 && i < 3750 / 12
-                    && j < NBMESX - 1350 / 12 && j > NBMESX - 1550 / 12)
-                || (i > 1500 / 12 && i < 1700 / 12
-                    && j < NBMESX - 1470 / 12 && j > NBMESX - 1670 / 12)
-                || (i > 1600 / 12 && i < 1800 / 12
-                    && j < NBMESX - 1650 / 12 && j > NBMESX - 1850 / 12)){
-                    */
+    for (unsigned int k = 0; k < insz; ++k) {
+        for (unsigned int j = 0; j < insy; ++j) {
+            for (unsigned int i = 0; i < insx; ++i) {
 
-                float val = (img[i + j * NBMESY]);
+                float val = img[i + j * insx + k * insx * insy];
 
-#ifdef RESCALEINPUT
-                val = (val - RESCALEOFFSET) / RESCALESLOPE;
-#endif  // RESCALEINPUT
+                val = (val - mesoffset) / mesampli;
 
-                float pixmes = val - meanback;
-                int ind = i + sker / 2 + (j + sker / 2) * nbmesy;
+                float pixmes;
+                if (brecs_args.background_arg) {
+                    float valback = imgback[i + j * insx + k * insx * insy];
+                    valback = (valback - mesoffset) / mesampli;
+                    pixmes = val - valback;
+                } else {
+                    pixmes = val - meanback;
+                }
+
+                int ind = i + kersize / 2 + (j + kersize / 2) * nbmesx
+                          + (k + kersizez / 2) * nbmesx * nbmesy;
                 imgmes[ind] = pixmes;
-                imgnoise[ind] = noiseback + 1.0 * val;
-
-                // printf("%f\n", val);
-//            }
+                imgnoise[ind] = noiseoffset + 1.0 * val;
+            }
         }
     }
     free(img);
-    updatetemp(beta, imgnoise);
 
-#if DISPLAY_PLOTS == 1
-    plot_image(nbmesx, nbmesy, imgmes, "imgsource.png", PLOT_RESCALE);
-#endif  // DISPLAY_PLOTS == 1
-
-#ifdef SMOOTHEN
-    smoothen_noise(imgmes);
-#endif  // SMOOTHEN
-
-#if KERNEL == 1
-    gaussker(imgker);
-    // plot_image(sizex, sizey, imgker, "kernel.png", plot_rescale);
-#elif KERNEL == 2
-    loadgibson(imgker);
-    plot_image(sizex, sizey, imgker, "kernel.png", PLOT_RESCALE);
-#elif KERNEL == 3
-    refinedker(imgker);
-#else
+    writetiff_f("imgmes1.tif", nbmesx, nbmesy, nbmesz, imgmes);
     exit(EXIT_FAILURE);
-#endif
+    writetiff_f("imgnoise1.tif", nbmesx, nbmesy, nbmesz, imgnoise);
 
-    imgrecons = reconssparse(imgmes, imgnoise, imgker);
-
-    /*
-    float * ker0;
-    float * ker2;
-    float * ker4;
-    float * ker6;
-    float * ker8;
-    float * ker10;
-    float * pix0;
-    float * pix2;
-    float * pix4;
-    float * pix6;
-    float * pix8;
-    float * pix10;
-    posix_memalign((void **)&ker0, 32, size3 * sizeof(float));
-    posix_memalign((void **)&ker2, 32, size3 * sizeof(float));
-    posix_memalign((void **)&ker4, 32, size3 * sizeof(float));
-    posix_memalign((void **)&ker6, 32, size3 * sizeof(float));
-    posix_memalign((void **)&ker8, 32, size3 * sizeof(float));
-    posix_memalign((void **)&ker10, 32, size3 * sizeof(float));
-
-    refinedker(ker0, ker2, ker4, ker6, ker8, ker10);
-
-    posix_memalign((void **)&pix0, 32, smes3 * sker2 * sizeof(float));
-    posix_memalign((void **)&pix2, 32, smes3 * sker2 * sizeof(float));
-    posix_memalign((void **)&pix4, 32, smes3 * sker2 * sizeof(float));
-    posix_memalign((void **)&pix6, 32, smes3 * sker2 * sizeof(float));
-    posix_memalign((void **)&pix8, 32, smes3 * sker2 * sizeof(float));
-    posix_memalign((void **)&pix10, 32, smes3 * sker2 * sizeof(float));
-
-    init_refinedkers(pix0, pix2, pix4, pix6, pix8, pix10,
-                     ker0, ker2, ker4, ker6, ker8, ker10);
-
-    plot_image(sizex, sizey, ker0, "ker0.png", plot_rescale);
-    plot_image(sizex, sizey, ker2, "ker2.png", plot_rescale);
-    plot_image(sizex, sizey, ker4, "ker4.png", plot_rescale);
-    plot_image(sizex, sizey, ker6, "ker6.png", plot_rescale);
-    plot_image(sizex, sizey, ker8, "ker6.png", plot_rescale);
-    plot_image(sizex, sizey, ker10, "ker6.png", plot_rescale);
-
-    free(ker0);
-    free(ker2);
-    free(ker4);
-    free(ker6);
-    free(ker8);
-    free(ker10);
+    printf("images extracted\n");
 
 
-    for (unsigned int i = 0; i < size2; ++i)
-    {
-        if (imgrecons[i] > thrpoint){
-            int ci = (i % sizey) % smes;
-            int li = (i / sizey) % smes;
-            int ikeri = ci + li * smes;
-
-            for (unsigned int j = 0; j < sker2; ++j) {
-                int dcmu = j % sker - sker / 2;
-                int dlmu = j / sker - sker / 2;
-
-                int cmu = (i % sizey) / smes + dcmu;
-                int lmu = (i / sizey) / smes + dlmu;
-                int imu = cmu + lmu * nbmesy;
-
-                printf("%f ", imgmes[imu]);
-            }
-            for (unsigned int j = 0; j < sker2; ++j) {
-                printf("%f ", pix0[j + ikeri * sker2]);
-            }
-            for (unsigned int j = 0; j < sker2; ++j) {
-                printf("%f ", pix2[j + ikeri * sker2]);
-            }
-            for (unsigned int j = 0; j < sker2; ++j) {
-                printf("%f ", pix4[j + ikeri * sker2]);
-            }
-            for (unsigned int j = 0; j < sker2; ++j) {
-                printf("%f ", pix6[j + ikeri * sker2]);
-            }
-            for (unsigned int j = 0; j < sker2; ++j) {
-                printf("%f ", pix8[j + ikeri * sker2]);
-            }
-            for (unsigned int j = 0; j < sker2; ++j) {
-                printf("%f ", pix10[j + ikeri * sker2]);
-            }
-            printf("\n");
-        }
-    }
-
-    // plot_image(sizex, sizey, imgrecons, "recons.png", plot_rescale);
-    // plot_overlay(imgmes, imgrecons, "overlay.png");
-    
-    // char fname[100];
-    // snprintf(fname, 100, "img-%li.dat.bz2", offset);
-    // saveimage(imgrecons, size2, fname);
-    */
-
+    imgrecons = reconssparse(imgmes, imgnoise,
+                             nbmesx, nbmesy, nbmesz);
 
     free(imgker);
     free(imgmes);

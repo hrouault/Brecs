@@ -27,35 +27,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BRECS_H_GWC5RGBI
-#define BRECS_H_GWC5RGBI
+#ifndef INOUTIMG_H_86QYO34Z
+#define INOUTIMG_H_86QYO34Z
 
-typedef unsigned short int lab_t;
-
-typedef struct {
-    int nbcomp;
-    lab_t * imglab;
-    int * coordcomp;
-    int * nbact;
-    int ** activepixcomp;
-} ccomp_dec;
-
-ccomp_dec connectcomp_decomp3d(float * img,
-                               int nbmesx, int nbmesy, int nbmesz);
-ccomp_dec connectcomp_decomp2d(float * img,
-                               int nbmesx, int nbmesy);
-
-extern char * prog_name;
-
-float min(float * img, int size);
-float max(float * img, int size);
-float maxra(float * num, float * den, int size);
-float minra(float * num, float * den, int size);
-
-#define PLOT_NO_RESCALE 0
-#define PLOT_RESCALE 1
-
-#define MAX_LABEL 65355
+#include <png.h>
+#include <inttypes.h>
 
 
-#endif /* end of include guard: BRECS_H_GWC5RGBI */
+void plot_image(int sx, int sy,
+                float * img,
+                const char * filen,
+                int flags);
+
+void plot_imagergb(int sx, int sy,
+                   png_byte * img,
+                   const char * filen);
+
+void saveimage(float * img, int size, const char * fname);
+
+uint16_t * opentiff(const char * fname, int * sx, int * sy, int * sz);
+float * opentiff_f(const char * fname, int * sx, int * sy, int * sz);
+void writetiff_f(const char * fname, int sx, int sy, int sz, float * img);
+void writetiff_rgb(const char * fname, int sx, int sy, int sz, uint8_t * img);
+void writetiff_gray(const char * fname, int sx, int sy, int sz, uint16_t * img);
+
+#endif /* end of include guard: INOUTIMG_H_86QYO34Z */
