@@ -60,13 +60,14 @@ struct gengetopt_args_info brecs_args;
 #ifdef BRECS_PIXMEAN
 static int const pixmean = BRECS_PIXMEAN;
 #else
-static int const pixmean = 10;
+#define BRECS_PIXMEAN 500
+static int const pixmean = 500;
 #endif
 
 #ifdef BRECS_PIXSTD
 static int const pixstd = BRECS_PIXSTD;
 #else
-static int const pixstd = 4;
+static int const pixstd = 200;
 #endif
 
 #ifdef BRECS_RHO
@@ -80,32 +81,36 @@ static float const rho = 0.001;
 #ifdef BRECS_KERSIZE
 static int const kersize = BRECS_KERSIZE;
 #else
+#define BRECS_KERSIZE 8
 static int const kersize = 8;
 #endif
 
 #ifdef BRECS_KERSIZEZ
 static int const kersizez = BRECS_KERSIZEZ;
 #else
+#define BRECS_KERSIZEZ 4
 static int const kersizez = 4;
 #endif
 
 #ifdef BRECS_PIXSDIV
 static int const pixsdiv = BRECS_PIXSDIV;
 #else
+#define BRECS_PIXSDIV 8
 static int const pixsdiv = 8;
 #endif
 
 #ifdef BRECS_PIXSDIVZ
 static int const pixsdivz = BRECS_PIXSDIVZ;
 #else
+#define BRECS_PIXSDIVZ 8
 static int const pixsdivz = 8;
 #endif
 
-static int const kersize2 = kersize * kersize;
-static int const kersize3 = kersize * kersize * kersizez;
+static int const kersize2 = BRECS_KERSIZE * BRECS_KERSIZE;
+static int const kersize3 = BRECS_KERSIZE * BRECS_KERSIZE * BRECS_KERSIZEZ;
 
-static int const pixsdiv2 = pixsdiv * pixsdiv;
-static int const pixsdiv3 = pixsdiv2 * pixsdivz;
+static int const pixsdiv2 = BRECS_PIXSDIV * BRECS_PIXSDIV;
+static int const pixsdiv3 = BRECS_PIXSDIV * BRECS_PIXSDIV * BRECS_PIXSDIVZ;
 
 #ifdef BRECS_SPIXNM
 static float const spixnm = BRECS_SPIXNM;
@@ -157,9 +162,9 @@ static float const convolpixthr = 40.0;
 
 
 #ifdef BRECS_AINITPFACT
-static float const Ainit = BRECS_AINITPFACT / (pixmean * pixmean);
+static float const Ainit = BRECS_AINITPFACT / (BRECS_PIXMEAN * BRECS_PIXMEAN);
 #else
-static float const Ainit = 1.0 / (pixmean * pixmean);
+static float const Ainit = 1.0 / (BRECS_PIXMEAN * BRECS_PIXMEAN);
 #endif
 
 #ifdef BRECS_MEANBACK
