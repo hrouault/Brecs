@@ -322,7 +322,6 @@ void update_omegavmu(float * omegamu, float * vmu,
         VFUNC(store_ps) (omegamu + mu, zero);
     }
 
-    printf("start main loop\n");
     for (unsigned int k = 0; k < nbact; ++k) {
         int i = activepix[k];
         float * cabeal = abeal + k * kersize3;
@@ -369,8 +368,9 @@ void update_omegavmu(float * omegamu, float * vmu,
             VFUNC(storeu_ps) (vmu + imu, cv);
         }
     }
-    printf("main loop over\n");
+#if BRECS_DISPLAYPLOTS
     writetiff_f("omegavmu", nbmesx, nbmesy, nbmesz, omegamu);
+#endif
 }
 
 void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
@@ -488,7 +488,6 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
                    int nbact, int * activepix,
                    int sizex, int sizey, int sizez)
 {
-    printf("palbe\n");
     update_Palbe(mu_albe_A, mu_albe_B,
                  abeal, vbeal,
                  sum_mualbe_A, sum_mualbe_B,
@@ -497,7 +496,6 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
                  imgnoise, imgmes,
                  nbact, activepix,
                  sizex, sizey, sizez);
-    printf("palbe over\n");
 
     const vecfloat zero = VFUNC(set1_ps) (0);
     const vecfloat oneosk = VFUNC(set1_ps) (1.0f / kersize3);
@@ -796,8 +794,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
 
     float Binit = rho * pixmean * Ainit;
 
-    printf("Initializing vectors\n");
-
     for (unsigned int i = 0; i < nbact * kersize3; ++i) {
         mu_albe_A[i] = Ainit;
         mu_albe_B[i] = Binit;
@@ -815,7 +811,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
     }
 
     /* Main loop */
-    printf("Main loop\n");
     float relerr = 1.0;
     int iter = 0;
     // printf("nbiter: %i\n", nbiter);
@@ -824,14 +819,12 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
         iter++;
         /* Internal loop */
         for (unsigned int j = 0; j < nbinternloop; ++j) {
-            printf("mubeal\n");
             update_mubeal(vbeal, abeal,
                     mu_albe_A, mu_albe_B,
                     P_be_E, P_be_F,
                     sum_mualbe_A, sum_mualbe_B,
                     nbact, activepix);
 
-            printf("mualbe\n");
             update_mualbe(mu_albe_A, mu_albe_B,
                     sum_mualbe_A, sum_mualbe_B,
                     abeal, vbeal,
@@ -844,7 +837,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
         }
 
         /* External loop */
-        printf("updatePbe\n");
         int iterpbe = 1;
 
         relerr = update_pbe(P_be_E, P_be_F,
@@ -950,7 +942,7 @@ void plot_overlay(float * imgmes, float * imgrecons,
             cimgd[2] = val;
         }
     }
-    writetiff_rgb("overlay.tif", sx, sy, sz, img_data);
+    writetiff_rgb(fname, sx, sy, sz, img_data);
 }
 
 
@@ -958,6 +950,7 @@ void plot_overlay(float * imgmes, float * imgrecons,
 float * reconssparse(float * imgmes, float * imgnoise,
                      int nbmesx, int nbmesy, int nbmesz)
 {
+    printf("Extracting connected components\n");
     ccomp_dec ccdec;
     if (nbmesz == 1) {
         ccdec = connectcomp_decomp2d(imgmes,
@@ -967,7 +960,6 @@ float * reconssparse(float * imgmes, float * imgnoise,
                                                nbmesx, nbmesy, nbmesz);
     }
 
-    printf("connected components extracted\n");
 
     float * ker;
     float * ker2;
@@ -1002,6 +994,9 @@ float * reconssparse(float * imgmes, float * imgnoise,
 
     printf("recons first comp\n");
     for (unsigned int i = 0; i < ccdec.nbcomp; ++i) {
+        printf("Processing connected component %40d / %d\r",
+               i + 1, ccdec.nbcomp);
+        fflush(stdout);
         float * rectmp = recons_ccomp(imgmes, imgnoise, nbmesx * nbmesy * nbmesz,
                                       ccdec.activepixcomp[i], ccdec.nbact[i],
                                       ker, ker2,
@@ -1011,6 +1006,7 @@ float * reconssparse(float * imgmes, float * imgnoise,
         }
         free(rectmp);
     }
+    printf("\n");
     for (unsigned int i = 0; i < ccdec.nbcomp; ++i) {
         free(ccdec.activepixcomp[i]);
     }
@@ -1019,9 +1015,11 @@ float * reconssparse(float * imgmes, float * imgnoise,
     free(ccdec.activepixcomp);
     free(ccdec.imglab);
 
+#if BRECS_DISPLAYPLOTS
     plot_overlay(imgmes, reconspic,
                  sizex, sizey, sizez, nbmesx, nbmesy, nbmesz,
                  "overlay.tif");
+#endif
 
     if (brecs_args.output_arg){
         writetiff_f(brecs_args.output_arg, sizex, sizey, sizez, reconspic);
@@ -1349,6 +1347,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil,
         }
     }
 
+#if BRECS_DISPLAYPLOTS
     uint8_t * cols = genrandomcolo(clab);
     uint8_t * imgccmprgb = malloc(plane * depth * 3 * sizeof(uint8_t));
 
@@ -1366,6 +1365,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil,
     free(cols);
     writetiff_rgb("connected_comp.tif", width, height, depth, imgccmprgb);
     free(imgccmprgb);
+#endif
 
     ccdec.imglab = imglabs;
     return ccdec;
@@ -1484,6 +1484,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
         }
     }
 
+#if BRECS_DISPLAYPLOTS
     uint8_t * cols = genrandomcolo(clab);
     uint8_t * imgccmprgb = malloc(plane * 3 * sizeof(uint8_t));
 
@@ -1501,6 +1502,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
     free(cols);
     writetiff_rgb("connected_comp.tif", width, height, 1, imgccmprgb);
     free(imgccmprgb);
+#endif
 
     ccdec.imglab = imglabs;
     return ccdec;
@@ -1523,6 +1525,8 @@ ccomp_dec connectcomp_decomp3d(float * imgmes,
     unsigned long int sfft2 = sxfft * syfft;
     unsigned long int szfft = pow(2, (int)log2(sizez) + 1);
 
+    printf("Smoothing\n");
+
     float * imgsmoo = fftwf_alloc_real(sxfft * syfft * szfft);
     if (!imgsmoo) exit(EXIT_FAILURE);
     for (unsigned int i = 0; i < sxfft * syfft * szfft; ++i) {
@@ -1544,7 +1548,9 @@ ccomp_dec connectcomp_decomp3d(float * imgmes,
     fftwf_complex * out1, * out2;
     fftwf_plan pforw1, pforw2, pbackw;
 
+#if BRECS_DISPLAYPLOTS
     writetiff_f("befsmoothedimg.tif", sxfft, syfft, szfft, imgsmoo);
+#endif
 
     float * imgker = gausskerpar(sxfft, syfft, szfft,
                                  prefacradcc * pixsdiv,
@@ -1585,9 +1591,9 @@ ccomp_dec connectcomp_decomp3d(float * imgmes,
     fftwf_destroy_plan(pforw2);
     fftwf_destroy_plan(pbackw);
 
+#if BRECS_DISPLAYPLOTS
     writetiff_f("smoothedimg.tif", sxfft, syfft, szfft, imgsmoo);
-
-    printf("smoothing over\n");
+#endif
 
     lab_t * imgccmp = malloc(size3 * sizeof(lab_t));
     for (unsigned int i = 0; i < size3; ++i) {
@@ -1635,6 +1641,7 @@ ccomp_dec connectcomp_decomp3d(float * imgmes,
 
     printf("dilation over\n");
 
+#if BRECS_DISPLAYPLOTS
     uint8_t * imgdilrgb = malloc(3 * size3 * sizeof(uint8_t));
     for (unsigned int k = 0; k < sizez; ++k) {
         for (unsigned int j = 0; j < sizey; ++j) {
@@ -1654,6 +1661,7 @@ ccomp_dec connectcomp_decomp3d(float * imgmes,
     }
     writetiff_rgb("imgdilrgb.tif", sizex, sizey, sizez, imgdilrgb);
     free(imgdilrgb);
+#endif
 
     free(rker);
     ccomp_dec ccdec = aggregate(imgccmp, imgdil, sizex, sizey, sizez);
@@ -1671,7 +1679,6 @@ ccomp_dec connectcomp_decomp3d(float * imgmes,
 
 ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
 {
-    printf("2d mode!\n");
     unsigned long int sizex = nbmesx * pixsdiv;
     unsigned long int sizey = nbmesy * pixsdiv;
     unsigned long int size2 = sizex * sizey;
@@ -1701,7 +1708,9 @@ ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
     fftwf_complex * out1, * out2;
     fftwf_plan pforw1, pforw2, pbackw;
 
+#if BRECS_DISPLAYPLOTS
     writetiff_f("befsmoothedimg.tif", sxfft, syfft, 1, imgsmoo);
+#endif
 
     float * imgker = gausskerpar2d(sxfft, syfft, prefacradcc * pixsdiv);
 
@@ -1740,9 +1749,9 @@ ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
     fftwf_destroy_plan(pforw2);
     fftwf_destroy_plan(pbackw);
 
+#if BRECS_DISPLAYPLOTS
     writetiff_f("smoothedimg.tif", sxfft, syfft, 1, imgsmoo);
-
-    printf("smoothing over\n");
+#endif
 
     lab_t * imgccmp = malloc(size2 * sizeof(lab_t));
     for (unsigned int i = 0; i < size2; ++i) {
@@ -1758,6 +1767,7 @@ ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
         }
     }
 
+#if BRECS_DISPLAYPLOTS
     uint8_t * imgthrrgb = malloc(3 * size2 * sizeof(uint8_t));
     for (unsigned int j = 0; j < sizey; ++j) {
         for (unsigned int i = 0; i < sizex; ++i) {
@@ -1774,17 +1784,14 @@ ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
         }
     }
     writetiff_rgb("imgthrrgb.tif", sizex, sizey, 1, imgthrrgb);
-
-    printf("thresholding over\n");
+#endif
 
     lab_t * rker = roundker2d(pixsdiv * kersize / 2);
-    printf("ker gen over\n");
     lab_t * imgdil = dilate2d(imgccmp, sizex, sizey,
                               rker,
                               pixsdiv * kersize / 2);
 
-    printf("dilation over\n");
-
+#if BRECS_DISPLAYPLOTS
     uint8_t * imgdilrgb = malloc(3 * size2 * sizeof(uint8_t));
     for (unsigned int j = 0; j < sizey; ++j) {
         for (unsigned int i = 0; i < sizex; ++i) {
@@ -1802,6 +1809,7 @@ ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
     }
     writetiff_rgb("imgdilrgb.tif", sizex, sizey, 1, imgdilrgb);
     free(imgdilrgb);
+#endif
 
     free(rker);
     ccomp_dec ccdec = aggregate2d(imgccmp, imgdil, sizex, sizey);
@@ -1855,7 +1863,6 @@ int main(int argc, char ** argv)
 
     float * imgback;
     if (brecs_args.background_arg) {
-        printf("background given\n");
         int binsx;
         int binsy;
         int binsz;
@@ -1868,7 +1875,6 @@ int main(int argc, char ** argv)
             exit(EXIT_FAILURE);
         }
     }
-    printf("images opened\n");
 
     unsigned long int nbmesx = insx + kersize;
     unsigned long int nbmesy = insy + kersize;
@@ -1917,12 +1923,10 @@ int main(int argc, char ** argv)
     }
     free(img);
 
-    writetiff_f("imgmes1.tif", nbmesx, nbmesy, nbmesz, imgmes);
-    exit(EXIT_FAILURE);
-    writetiff_f("imgnoise1.tif", nbmesx, nbmesy, nbmesz, imgnoise);
-
-    printf("images extracted\n");
-
+#if BRECS_DISPLAYPLOTS
+    writetiff_f("imgmes.tif", nbmesx, nbmesy, nbmesz, imgmes);
+    writetiff_f("imgnoise.tif", nbmesx, nbmesy, nbmesz, imgnoise);
+#endif
 
     imgrecons = reconssparse(imgmes, imgnoise,
                              nbmesx, nbmesy, nbmesz);
@@ -1930,7 +1934,6 @@ int main(int argc, char ** argv)
     free(imgker);
     free(imgmes);
     free(imgnoise);
-    // free(imgrecons);
 
     return EXIT_SUCCESS;
 }
