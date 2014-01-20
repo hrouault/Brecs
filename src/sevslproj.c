@@ -68,89 +68,11 @@ typedef float afloat __attribute__ ((__aligned__(16)));
 #define KER_SIZE 1.4
 #endif
 
-#ifdef MINPROJ_NBIMG
-static int const nbimg = MINPROJ_NBIMG;
+#ifdef SEVSLPROJ_NBIMG
+static int const nbimg = SEVSL_NBIMG;
 #else
-static int const nbimg = 100;
+static int const nbimg = 4;
 #endif
-
-
-/* Some sample C code for the quickselect algorithm, 
-   taken from Numerical Recipes in C. */
-
-#define SWAP(a,b) temp=(a);(a)=(b);(b)=temp;
-
-float quickselect(float *arr, int n, int k)
-{
-    unsigned long i, ir, j, l, mid;
-    float a, temp;
-
-    l = 0;
-    ir = n - 1;
-    for(;;) {
-        if (ir <= l + 1) { 
-            if (ir == l + 1 && arr[ir] < arr[l]) {
-                SWAP(arr[l], arr[ir]);
-            }
-            return arr[k];
-        }
-        else {
-            mid = (l + ir) >> 1; 
-            SWAP(arr[mid], arr[l + 1]);
-            if (arr[l] > arr[ir]) {
-                SWAP(arr[l], arr[ir]);
-            }
-            if (arr[l + 1] > arr[ir]) {
-                SWAP(arr[l + 1],arr[ir]);
-            }
-            if (arr[l] > arr[l + 1]) {
-                SWAP(arr[l], arr[l + 1]);
-            }
-            i = l + 1; 
-            j = ir;
-            a = arr[l + 1]; 
-            for (;;) { 
-                do i++; while (arr[i] < a); 
-                do j--; while (arr[j] > a); 
-                if (j < i) break; 
-                SWAP(arr[i], arr[j]);
-            } 
-            arr[l + 1] = arr[j]; 
-            arr[j] = a;
-            if (j >= k) ir = j - 1; 
-            if (j <= k) l = i;
-        }
-    }
-}
-
-float * gausskerpar(int sx, int sy, float radius)
-{
-    float * out;
-    posix_memalign((void **)&out, ALIGNSIZE, sx * sy * sizeof(float));
-
-    float sig2 = radius * radius;
-    double sum = 0;
-    for (int x = -sx / 2; x < sx / 2 ; ++x) {
-        float dx2 = x * x;
-        for (int y = -sy / 2; y < sy / 2; ++y) {
-            float dy2 = y * y;
-            float r2 = dx2 + dy2;
-            float val = exp(-r2 / 2 / sig2);
-            sum += val;
-            int line = x;
-            int col = y;
-            if (x < 0) line += sx;
-            if (y < 0) col += sy;
-
-            out[col + line * sy] = val;
-        }
-    }
-    for (unsigned int i = 0; i < sx * sy; ++i) {
-        out[i] /= sum;
-    }
-
-    return out;
-}
 
 
 int nbconv;
@@ -204,10 +126,8 @@ void writetiff_f(const char * fname, int sx, int sy, float * img)
 }
 
 
-void minproj(const char * fname)
+void sevslproj(const char * fname)
 {
-    printf("nbimg: %d\n", nbimg);
-
     TIFF * tif = TIFFOpen(fname, "r");
     if (!tif) exit(EXIT_FAILURE);
     int slice = 0;
@@ -222,9 +142,11 @@ void minproj(const char * fname)
 
     printf("image size %d %d\n", imgheight, imgwidth);
 
-    float * img = malloc(imgheight * imgwidth * sizeof(float));
-    uint16_t * imgtmp = malloc(imgheight * imgwidth * sizeof(uint16_t));
-    float * imgstack = malloc(imgheight * imgwidth * nbimg * sizeof(float));
+    int imgsize = imgheight * imgwidth;
+    uint16_t * imgproj = malloc(imgsize * sizeof(uint16_t));
+    for (size_t i = 0; i < imgsize; ++i) {
+        imgproj[i] = 0;
+    }
 
     size_t dircount = 0;
     do {
@@ -232,27 +154,21 @@ void minproj(const char * fname)
         for (size_t row = 0; row < imgheight; row++) {
             TIFFReadScanline(tif, buf, row, 0);
             for (size_t col = 0; col < imgwidth; col++) {
-                imgstack[dircount % nbimg + col * nbimg + nbimg * row * imgwidth]
-                    = ((uint16_t *)buf)[col];
-                imgtmp[col + row * imgwidth] = ((uint16_t *)buf)[col];
+                imgproj[col + row * imgwidth] += ((uint16_t *)buf)[col];
             }
         }
-        char fnametmp[100];
-        snprintf(fnametmp, 100, "img-%05ld.tif", dircount);
-        writetiff(fnametmp, imgwidth, imgheight, imgtmp);
         
         if (dircount % nbimg == nbimg - 1) {
-            for (unsigned int i = 0; i < imgheight; ++i) {
-                for (unsigned int j = 0; j < imgwidth; ++j) {
-                    img[j + i * imgwidth] = quickselect(imgstack
-                                                        + j * nbimg
-                                                        + i * imgwidth * nbimg,
-                                                        nbimg, nbimg / 2);
-                }
+            for (size_t i = 0; i < imgsize; ++i) {
+                imgproj[i] -= 100 * (nbimg - 1);
             }
-            char fname[100];
-            snprintf(fname, 100, "smoothen-%04ld.tif", dircount / nbimg);
-            writetiff_f(fname, imgwidth, imgheight, img);
+            char fnametmp[100];
+            snprintf(fnametmp, 100, "img-%05ld.tif", dircount / nbimg);
+            writetiff(fnametmp, imgwidth, imgheight, imgproj);
+
+            for (size_t i = 0; i < imgsize; ++i) {
+                imgproj[i] = 0;
+            }
         }
         dircount++;
     } while (TIFFReadDirectory(tif));
@@ -385,11 +301,11 @@ int main(int argc, char ** argv)
     TIFFSetWarningHandler(NULL);
 
     if (argc != 2) {
-        fprintf(stderr, "%s: usage: minproj stack_file.tif\n",
+        fprintf(stderr, "%s: usage: sevslproj stack_file.tif\n",
                 prog_name);
         exit(EXIT_FAILURE);
     } else {
-        minproj(argv[1]);
+        sevslproj(argv[1]);
     }
 
     return EXIT_SUCCESS;
