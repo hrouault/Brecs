@@ -69,7 +69,7 @@ typedef float afloat __attribute__ ((__aligned__(16)));
 #endif
 
 #ifdef SEVSLPROJ_NBIMG
-static int const nbimg = SEVSL_NBIMG;
+static int const nbimg = SEVSLPROJ_NBIMG;
 #else
 static int const nbimg = 4;
 #endif
