@@ -326,6 +326,20 @@
 #  define BRECS_LOCAINTENSTHR 10
 #  define BRECS_OVERLAYMAXINT 3
 #  define BRECS_OVERLAYMININT 0.1
+#elif DATASET == 120 // Wes dataset (astigm psf)
+#  define BRECS_PIXMEAN 50
+#  define BRECS_PIXSTD 20
+#  define BRECS_KERSIZE 16
+#  define BRECS_PIXSDIV 4
+#  define BRECS_KERSIZEZ 1
+#  define BRECS_PIXSDIVZ 11
+#  define BRECS_MESOFFSET 100
+#  define BRECS_MESAMPLI 61.22
+#  define BRECS_NBITER 500
+#  define BRECS_CONVOLPIXTHR 0.4
+#  define BRECS_LOCAINTENSTHR 10
+#  define BRECS_OVERLAYMAXINT 3
+#  define BRECS_OVERLAYMININT 0.1
 #  endif
 
 /* Parameters for the generation of the artificial datasets */

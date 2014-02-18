@@ -64,10 +64,6 @@ typedef float afloat __attribute__ ((__aligned__(16)));
 #endif
 
 
-#ifndef KER_SIZE
-#define KER_SIZE 1.4
-#endif
-
 #ifdef SEVSLPROJ_NBIMG
 static int const nbimg = SEVSLPROJ_NBIMG;
 #else
@@ -77,54 +73,6 @@ static int const nbimg = 4;
 
 int nbconv;
 int iimg_stack;
-
-void writetiff(const char * fname, int sx, int sy, uint16_t * img)
-{
-    TIFF * outf = TIFFOpen(fname, "w");
-    TIFFSetField(outf, TIFFTAG_IMAGEWIDTH, sx);
-    TIFFSetField(outf, TIFFTAG_IMAGELENGTH, sy);
-    TIFFSetField(outf, TIFFTAG_SAMPLESPERPIXEL, 1);
-    TIFFSetField(outf, TIFFTAG_BITSPERSAMPLE, 16);
-    TIFFSetField(outf, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
-    TIFFSetField(outf, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-    TIFFSetField(outf, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-    TIFFSetField(outf, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
-
-    TIFFSetField(outf,
-                 TIFFTAG_ROWSPERSTRIP,
-                 TIFFDefaultStripSize(outf, 2 * sx));
-
-    for (uint32 row = 0; row < sy; row++) {
-        if (TIFFWriteScanline(outf, img + sx * row, row, 0) < 0)
-            break;
-    }
-    TIFFClose(outf);
-}
-
-void writetiff_f(const char * fname, int sx, int sy, float * img)
-{
-    TIFF * outf = TIFFOpen(fname, "w");
-    TIFFSetField(outf, TIFFTAG_IMAGEWIDTH, sx);
-    TIFFSetField(outf, TIFFTAG_IMAGELENGTH, sy);
-    TIFFSetField(outf, TIFFTAG_SAMPLESPERPIXEL, 1);
-    TIFFSetField(outf, TIFFTAG_BITSPERSAMPLE, 32);
-    TIFFSetField(outf, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
-    TIFFSetField(outf, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
-    TIFFSetField(outf, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-    TIFFSetField(outf, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-    TIFFSetField(outf, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
-
-    TIFFSetField(outf,
-                 TIFFTAG_ROWSPERSTRIP,
-                 TIFFDefaultStripSize(outf, 2 * sx));
-
-    for (uint32 row = 0; row < sy; row++) {
-        if (TIFFWriteScanline(outf, img + sx * row, row, 0) < 0)
-            break;
-    }
-    TIFFClose(outf);
-}
-
 
 void sevslproj(const char * fname)
 {
@@ -172,109 +120,6 @@ void sevslproj(const char * fname)
         }
         dircount++;
     } while (TIFFReadDirectory(tif));
-
-    //uint16_t * img = malloc(imgheight * imgwidth * sizeof(uint16_t));
-    //float * minimg = malloc(imgheight * imgwidth * sizeof(float));
-
-    /* convolution variables */
-    /*
-    int sxfft = pow(2, (int)log2(imgheight) + 1);
-    int syfft = pow(2, (int)log2(imgwidth) + 1);
-    float * imgker = gausskerpar(sxfft, syfft, KER_SIZE);
-    */
-
-    /*
-    float * imgsmoo = fftwf_malloc(sizeof(float) * sxfft * syfft);
-    fftwf_complex * out1, * out2;
-    fftwf_plan pforw1, pforw2, pbackw;
-
-    out1 = fftwf_malloc(sizeof(fftwf_complex) * sxfft * (syfft / 2 + 1));
-    out2 = fftwf_malloc(sizeof(fftwf_complex) * sxfft * (syfft / 2 + 1));
-
-    pforw1 = fftwf_plan_dft_r2c_2d(sxfft, syfft,
-                                   imgsmoo, out1,
-                                   FFTW_ESTIMATE);
-    pforw2 = fftwf_plan_dft_r2c_2d(sxfft, syfft,
-                                   imgker, out2,
-                                   FFTW_ESTIMATE);
-
-    pbackw = fftwf_plan_dft_c2r_2d(sxfft, syfft,
-                                   out1, imgsmoo,
-                                   FFTW_ESTIMATE);
-                                   
-
-    fftwf_execute(pforw2);
-    */
-
-//    for (unsigned int i = 0; i < imgheight * imgwidth; ++i) {
-//        minimg[i] = 1e8;
-//    }
-//
-//    do {
-//        //TIFFPrintDirectory(tif, stdout, 0);
-//        //printf("Treating file %d\n", slice);
-//        /* opening image */
-//        for (unsigned int i = 0; i < syfft * sxfft; ++i) {
-//            imgsmoo[i] = 0;
-//        }
-//        for (unsigned int row = 0; row < imgheight; row++) {
-//            TIFFReadScanline(tif, buf, row, 0);
-//            for (unsigned int col = 0; col < imgwidth; col++)
-//                imgsmoo[col + row * syfft] = ((uint16 *)buf)[col];
-//        }
-//
-//        writetiff_f("opened.tif", sxfft, syfft, imgsmoo);
-//
-//        /* Convolving image */
-//        /*
-//        fftwf_execute(pforw1);
-//        for (unsigned int i = 0; i < sxfft * (syfft / 2 + 1); ++i) {
-//            fftwf_complex c1, c2;
-//            c1[0] = out1[i][0];
-//            c1[1] = out1[i][1];
-//            c2[0] = out2[i][0];
-//            c2[1] = out2[i][1];
-//
-//            out1[i][0] = (c1[0] * c2[0] - c1[1] * c2[1]) / (sxfft * syfft);
-//            out1[i][1] = (c1[0] * c2[1] + c1[1] * c2[0]) / (sxfft * syfft);
-//        }
-//
-//        fftwf_execute(pbackw);
-//        */
-//
-//        //writetiff_f("smoothened.tif", sxfft, syfft, imgsmoo);
-//
-//        for (unsigned int i = 0; i < imgheight; ++i) {
-//            for (unsigned int j = 0; j < imgwidth; ++j) {
-//                float val = imgsmoo[j + i * syfft];
-//                if (val < minimg[j + i * imgwidth])
-//                    minimg[j + i * imgwidth] = val;
-//            }
-//        }
-//
-//        /* saving min image */
-//        if (slice % 100 == 99) {
-//            char fname[100];
-//            snprintf(fname, 100, "smoothen-%04d.tif", slice / 100);
-//            writetiff_f(fname, imgheight, imgwidth, minimg);
-//            /* reset minimum */
-//            for (unsigned int i = 0; i < imgheight * imgwidth; ++i) {
-//                minimg[i] = 1e8;
-//            }
-//        }
-//        slice++;
-//    } while (TIFFReadDirectory(tif));
-//
-//    fftwf_free(imgker);
-//    fftwf_destroy_plan(pforw1);
-//    fftwf_destroy_plan(pforw2);
-//    fftwf_destroy_plan(pbackw);
-//
-//
-//    _TIFFfree(buf);
-//    TIFFClose(tif);
-//
-//    fftwf_cleanup();
 }
 
 char * prog_name;

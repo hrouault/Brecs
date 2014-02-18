@@ -32,7 +32,7 @@ dist_noinst_DATA = cmdline.ggo
 cmdline.c: cmdline.ggo
 	  gengetopt --input=$<
 
-bin_PROGRAMS = Brecs gendat
+bin_PROGRAMS = Brecs gendat minproj
 
 Brecs_SOURCES = cmdline.c cmdline.h Brecs.c Brecs.h inoutimg.c inoutimg.h \
                 parameters.h
@@ -42,3 +42,7 @@ Brecs_LDADD = $(LIBPNG_LIBS) $(LIBTIFF_LIBS) $(FFTWF_LIBS)
 gendat_SOURCES = gendat.c gendat.h parameters.h
 gendat_CPPFLAGS = $(LIBTIFF_CFLAGS)
 gendat_LDADD = $(LIBTIFF_LIBS)
+
+minproj_SOURCES = minproj.c inoutimg.c inoutimg.h
+minproj_CPPFLAGS = $(LIBPNG_CFLAGS) $(LIBTIFF_CFLAGS)
+minproj_LDADD = $(LIBPNG_LIBS) $(LIBTIFF_LIBS)

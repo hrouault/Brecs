@@ -953,11 +953,9 @@ float * reconssparse(float * imgmes, float * imgnoise,
     printf("Extracting connected components\n");
     ccomp_dec ccdec;
     if (nbmesz == 1) {
-        ccdec = connectcomp_decomp2d(imgmes,
-                                               nbmesx, nbmesy);
+        ccdec = connectcomp_decomp2d(imgmes, nbmesx, nbmesy);
     } else {
-        ccdec = connectcomp_decomp3d(imgmes,
-                                               nbmesx, nbmesy, nbmesz);
+        ccdec = connectcomp_decomp3d(imgmes, nbmesx, nbmesy, nbmesz);
     }
 
 
@@ -974,7 +972,6 @@ float * reconssparse(float * imgmes, float * imgnoise,
         printf("invalid psf size: %d %d %d\n", sx, sy, sz);
         exit(EXIT_FAILURE);
     }
-    printf("check size ker ok\n");
     for (unsigned int i = 0; i < pixsdiv3 * kersize3; ++i) {
         ker2[i] = ker[i] * ker[i];
     }
@@ -1383,7 +1380,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
         imglabs[i] = 0;
     }
 
-    uint32_t plane = width * height;
+    uint32_t plane = width * height * pixsdivz;
 
     lab_t lastlab = 0;
     for (int j = 1; j < height - 1; j++) {
@@ -1439,7 +1436,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
     }
     ccdec.nbcomp = clab;
     ccdec.coordcomp = malloc(clab * 4 * sizeof(int));
-    ccdec.nbact = malloc(clab * sizeof(int));
+    ccdec.nbact = malloc(clab * pixsdivz * sizeof(int));
     ccdec.activepixcomp = malloc(clab * sizeof(int *));
     for (unsigned int i = 0; i < clab; ++i) {
         ccdec.coordcomp[4 * i] = width;
@@ -1460,7 +1457,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
                 if (i < coord[2]) coord[2] = i;
                 if (i > coord[3]) coord[3] = i;
                 imglabs[ind] = lab;
-                ccdec.nbact[lab - 1] += 1;
+                ccdec.nbact[lab - 1] += pixsdivz;
             }
         }
     }
@@ -1471,15 +1468,18 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
     int offset = pixsdiv * kersize / 2;
     int widthdef = width - pixsdiv * kersize;
     int heightdef = height - pixsdiv * kersize;
-    for (int j = 0; j < height; j++) {
-        for (int i = 0; i < width; i++) {
-            int ind = i + j * width;
+    for (size_t k = 0; k < pixsdivz; ++k) {
+        for (int j = 0; j < height; j++) {
+            for (int i = 0; i < width; i++) {
+                int ind = i + j * width;
 
-            if (img[ind]) {
-                lab_t lab = imglabs[ind];
-                ccdec.activepixcomp[lab - 1][ccdec.nbact[lab - 1]] =
-                    i - offset + (j - offset) * widthdef;
-                ccdec.nbact[lab - 1] += 1;
+                if (img[ind]) {
+                    lab_t lab = imglabs[ind];
+                    ccdec.activepixcomp[lab - 1][ccdec.nbact[lab - 1]] =
+                        i - offset + (j - offset) * widthdef
+                        + k * widthdef * heightdef;
+                    ccdec.nbact[lab - 1] += 1;
+                }
             }
         }
     }
@@ -1500,7 +1500,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
         }
     }
     free(cols);
-    writetiff_rgb("connected_comp.tif", width, height, 1, imgccmprgb);
+    writetiff_rgb("connected_comp.tif", width, height, pixsdivz, imgccmprgb);
     free(imgccmprgb);
 #endif
 
@@ -1927,6 +1927,7 @@ int main(int argc, char ** argv)
     writetiff_f("imgmes.tif", nbmesx, nbmesy, nbmesz, imgmes);
     writetiff_f("imgnoise.tif", nbmesx, nbmesy, nbmesz, imgnoise);
 #endif
+    //exit(EXIT_FAILURE);
 
     imgrecons = reconssparse(imgmes, imgnoise,
                              nbmesx, nbmesy, nbmesz);
