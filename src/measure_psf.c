@@ -32,7 +32,7 @@
 #include <string.h>
 #include <tiffio.h>
 #include <errno.h>
-#include <gsl/gsl_fit.h>
+#include <gsl/gsl_min.h>
 
 #include "inoutimg.h"
 
@@ -50,6 +50,12 @@ static int const oversamp = 2;
 
 
 char * prog_name;
+
+
+float mini_err2(float * img, int * pts, float * psf, float * intens)
+{
+    ess;
+}
 
 void measure_psf(char * fnpsf, char * fnimg, char * fnpos_list)
 {
@@ -105,20 +111,24 @@ void measure_psf(char * fnpsf, char * fnimg, char * fnpos_list)
             minimize the square error with the intensity parameter
     */
 
+    int converged = 0;
     for (size_t i = 0; i < nb_iter; ++i) {
         for (size_t j = 0; j < nbpos; ++j) {
             float cur_err = 1e10;
             int cur_pos[3] = {0, 0, 0};
-            for (size_t ex3 = 0; ex3 < nb_explore; ++ex2) {
+            for (size_t ex3 = 0; ex3 < nb_expl2; ++ex2) {
+                int px = poss[3 * j] - nb_expl / 2 + ex3 % nb_expl;
+                int py = poss[3 * j + 1] - nb_expl / 2 + ex3 / nb_expl;
                 float intens;
-                float err = minimizese(img, pts, psf, &intens);
+                float err = mini_err2(img, pts, psf, &intens);
                 if (err < cur_err) {
                     cur_err = err;
                     cur_pos[0] = px;
                     cur_pos[1] = py;
-                    cur_pos[2] = pz;
                 }
             }
+            poss[3 * j] = px;
+            poss[3 * j + 1] = py;
         }
     }
 
