@@ -32,14 +32,13 @@
 #include <string.h>
 #include <tiffio.h>
 #include <errno.h>
-#include <gsl/gsl_min.h>
 
 #include "inoutimg.h"
 
 #ifdef MESPSF_NBITER
 static int const nb_iter = MESPSF_NBITER;
 #else
-static int const nb_iter = 2;
+static int const nb_iter = 10;
 #endif
 
 #ifdef MESPSF_OVERSAMP
@@ -48,20 +47,53 @@ static int const oversamp = MESPSF_OVERSAMP;
 static int const oversamp = 2;
 #endif
 
+static int const oversamp2 = oversamp * oversamp;
+
+#ifdef MESPSF_NBEXPL
+static int const nbexpl = MESPSF_NBEXPL;
+#else
+static int const nbexpl = 5;
+#endif
 
 char * prog_name;
 
-
-float mini_err2(float * img, int * pts, float * psf, float * intens)
+float err2(float * img, int * simg, int * pos, float * psf, int * spsf)
 {
-    ess;
+    float err = 0;
+    float sumimg2 = 0;
+    float psfiimgi = 0;
+    float psf2 = 0;
+    int ipsf = pos[0] % oversamp + (pos[1] % oversamp) * oversamp;
+    float * psfsl = psf + (spsf[0] * spsf[1] * spsf[2] / oversamp2) * ipsf;
+    //for (size_t i = 0; i < spsf[0] * spsf[1] * spsf[2] / oversamp2; ++i) {
+    for (size_t i = 0; i < spsf[0] * spsf[1]; ++i) {
+        int ixy = i % (spsf[0] * spsf[1]);
+        //int iz = i / (spsf[0] * spsf[1]);
+        int iz = spsf[2] / oversamp2 / 2;
+        int px = pos[0] / oversamp - spsf[0] / 2 + ixy % spsf[0];
+        int py = pos[1] / oversamp - spsf[1] / 2 + ixy / spsf[0];
+        int pz = pos[2] - (spsf[2] / oversamp2) / 2 + iz;
+        int posimg = px + py * simg[0] + pz * simg[0] * simg[1];
+        //printf("%d %d %d\n", px, py, pz);
+
+        float vimg = img[posimg];
+        float vpsf = psfsl[i];
+        //printf("vimg, vpsf: %d %f\n", vimg, vpsf);
+        sumimg2 += vimg * vimg;
+        psfiimgi += vimg * vpsf;
+        psf2 += vpsf * vpsf;
+    }
+    //printf("err2 output, psf2: %f %f %f %f\n", sumimg2 - psfiimgi * psfiimgi / psf2, psf2, sumimg2, psfiimgi);
+
+    return sumimg2 - psfiimgi * psfiimgi / psf2;
 }
 
 void measure_psf(char * fnpsf, char * fnimg, char * fnpos_list)
 {
     /* input an approximate psf */
-    int sxpsf, sypsf, szpsf;
-    float * psf = opentiff_f(fnpsf, &sxpsf, &sypsf, &szpsf);
+    int spsf[3];
+    float * psf = opentiff_f(fnpsf, spsf, spsf + 1, spsf + 2);
+    int spsf3 = spsf[0] * spsf[1] * spsf[2];
 
     /* Retrieve list of initial guess on position */
     int nbpoints = 0;
@@ -85,7 +117,7 @@ void measure_psf(char * fnpsf, char * fnimg, char * fnpos_list)
     int nbpos = 0;
     char * tok = strtok(buffer, " \n");
     while (tok != NULL) {
-        poss[nbpos] = 3 * atoi(tok);
+        poss[nbpos] = atoi(tok);
         tok = strtok(NULL, " \n");
         nbpos++;
     }
@@ -96,44 +128,84 @@ void measure_psf(char * fnpsf, char * fnimg, char * fnpos_list)
     nbpos /= 3;
     printf("nb of positions: %d\n", nbpos);
     for (size_t i = 0; i < nbpos; ++i) {
+        poss[3 * i] *= oversamp;
+        poss[3 * i + 1] *= oversamp;
         printf("%d %d %d\n", poss[3 * i], poss[3 * i + 1], poss[3 * i + 2]);
     }
 
     /* Open image to fit */
-    int sx, sy, sz;
-    float * img = opentiff_f(fnimg, &sx, &sy, &sz);
+    printf("Opening image to fit\n");
+    int simg[3];
+    uint16_t * intimg = opentiff(fnimg, simg, simg + 1, simg + 2);
+    int simg3 = simg[0] * simg[1] * simg[2];
+    float * img = malloc(simg3 * sizeof(float));
+    double sumpix = 0;
+    for (size_t i = 0; i < simg3; ++i) {
+        img[i] = intimg[i];
+        sumpix += img[i];
+    }
+    sumpix /= simg3;
+    for (size_t i = 0; i < simg3; ++i) {
+        img[i] -= sumpix;
+    }
 
 
     /* do the actual fit */
-    /*
-    for current point positions
-        for all the positions around it
-            minimize the square error with the intensity parameter
-    */
-
+    printf("Computing the psf\n");
     int converged = 0;
-    for (size_t i = 0; i < nb_iter; ++i) {
-        for (size_t j = 0; j < nbpos; ++j) {
-            float cur_err = 1e10;
-            int cur_pos[3] = {0, 0, 0};
-            for (size_t ex3 = 0; ex3 < nb_expl2; ++ex2) {
-                int px = poss[3 * j] - nb_expl / 2 + ex3 % nb_expl;
-                int py = poss[3 * j + 1] - nb_expl / 2 + ex3 / nb_expl;
+    for (size_t j = 0; j < nbpos; ++j) {
+        for (size_t i = 0; i < nb_iter; ++i) {
+            float curerr = 1e15;
+            int curpos[3] = {0, 0, 0};
+            for (size_t ex3 = 0; ex3 < nbexpl * nbexpl; ++ex3) {
+                int pos[3];
+                pos[0] = poss[3 * j] - nbexpl / 2 + ex3 % nbexpl;
+                pos[1] = poss[3 * j + 1] - nbexpl / 2 + ex3 / nbexpl;
+                pos[2] = poss[3 * j + 2];
+                //printf("%d %d %d\n", pos[0], pos[1], pos[2]);
                 float intens;
-                float err = mini_err2(img, pts, psf, &intens);
-                if (err < cur_err) {
-                    cur_err = err;
-                    cur_pos[0] = px;
-                    cur_pos[1] = py;
+                float err = err2(img, simg, pos, psf, spsf);
+                if (err < curerr) {
+                    curerr = err;
+                    curpos[0] = pos[0];
+                    curpos[1] = pos[1];
                 }
             }
-            poss[3 * j] = px;
-            poss[3 * j + 1] = py;
+            printf("Error, position: %f %d %d\n",
+                   curerr, curpos[0], curpos[1]);
+            poss[3 * j] = curpos[0];
+            poss[3 * j + 1] = curpos[1];
         }
     }
 
     /* Output a nice psf */
+    float * outpsf = malloc(spsf3 * sizeof(float));
+    for (size_t i = 0; i < spsf3; ++i) {
+        outpsf[i] = 0;
+    }
+    for (size_t j = 0; j < nbpos; ++j) {
+        int offipsf = (poss[3 * j] % oversamp
+                       + oversamp * (poss[3 * j + 1] % oversamp))
+                      * spsf3 / oversamp2;
+        for (size_t i = 0; i < spsf3 / oversamp2; ++i) {
+            int ixy = i % (spsf[0] * spsf[1]);
+            int iz = i / (spsf[0] * spsf[1]);
+            int px = poss[3 * j] / oversamp - spsf[0] / 2 + ixy % spsf[0];
+            int py = poss[3 * j + 1] / oversamp - spsf[1] / 2 + ixy / spsf[0];
+            int pz = poss[3 * j + 2] - spsf[2] / oversamp2 / 2 + iz;
+            int posimg = px + py * simg[0] + pz * simg[0] * simg[1];
+            //printf("pos: %d %d %d %d\n", poss[3 * j], poss[3 * j + 1], poss[3 * j + 2], posimg);
 
+            float vimg = img[posimg];
+            //outpsf[i + offipsf] += vimg;
+            outpsf[i] += vimg;
+        }
+    }
+    writetiff_f("outpsf.tif", spsf[0], spsf[1], spsf[2], outpsf);
+
+
+
+    free(outpsf);
     free(poss);
     free(img);
     free(psf);

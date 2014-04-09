@@ -340,6 +340,22 @@
 #  define BRECS_LOCAINTENSTHR 10
 #  define BRECS_OVERLAYMAXINT 3
 #  define BRECS_OVERLAYMININT 0.1
+#elif DATASET == 200 // Tim's FISH
+#  define BRECS_PIXMEAN 2000
+#  define BRECS_PIXSTD 1000
+#  define BRECS_KERSIZE 16
+#  define BRECS_PIXSDIV 1
+#  define BRECS_KERSIZEZ 10
+#  define BRECS_PIXSDIVZ 1
+#  define BRECS_MESOFFSET 100
+#  define BRECS_MESAMPLI 10.00
+#  define BRECS_NBITER 2000
+#  define BRECS_DAMP1 0.01
+#  define BRECS_DAMP2 0.02
+#  define BRECS_CONVOLPIXTHR 15.0
+#  define BRECS_LOCAINTENSTHR 10
+#  define BRECS_OVERLAYMAXINT 2000
+#  define BRECS_OVERLAYMININT 5
 #  endif
 
 /* Parameters for the generation of the artificial datasets */

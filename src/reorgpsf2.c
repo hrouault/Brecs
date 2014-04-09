@@ -43,19 +43,19 @@ static int const kersize = 16;
 #ifdef BRECS_KERSIZEZ
 static int const kersizez = BRECS_KERSIZEZ;
 #else
-static int const kersizez = 4;
+static int const kersizez = 10;
 #endif
 
 #ifdef BRECS_PIXSDIV
 static int const pixsdiv = BRECS_PIXSDIV;
 #else
-static int const pixsdiv = 4;
+static int const pixsdiv = 1;
 #endif
 
 #ifdef BRECS_PIXSDIVZ
 static int const pixsdivz = BRECS_PIXSDIVZ;
 #else
-static int const pixsdivz = 8;
+static int const pixsdivz = 1;
 #endif
 
 static int const kersize2 = kersize * kersize;
@@ -83,29 +83,32 @@ int main(int argc, char ** argv)
     int sx, sy, sz;
     float * inpsf = opentiff_f(argv[1], &sx, &sy, &sz);
     float * outpsf = malloc(kersize2 * sz * pixsdiv2 * sizeof(float));
+    printf("PSF input size: %d %d %d\n", sx, sy, sz);
 
     printf("starting reorg\n");
 
+    int width = pixsdiv * (kersize + 1) - 1;
     for (size_t z = 0; z < sz; ++z) {
         for (unsigned int i = 0; i < pixsdiv2; ++i) {
             int l = i / pixsdiv;
             int c = i % pixsdiv;
             for (unsigned int j = 0; j < kersize2; ++j) {
+                int offx = pixsdiv - 1 - c + (j % kersize) * pixsdiv;
+                int offy = pixsdiv - 1 - l + (j / kersize) * pixsdiv;
                 float sum = 0;
                 for (unsigned int k = 0; k < pixsdiv2; ++k) {
                     int lk = k / pixsdiv;
                     int ck = k % pixsdiv;
-                    int width = pixsdiv * (kersize + 1) - 1;
-                    int indx = pixsdiv - 1 - c + ck + (j % kersize) * pixsdiv;
-                    int indy = pixsdiv - 1 - l + lk + (j / kersize) * pixsdiv;
+                    int indx = offx + ck;
+                    int indy = offy + lk;
                     sum += inpsf[indx + indy * width + z * width * width];
                 }
-                outpsf[j + i * kersize2 + z * kersize2 * pixsdiv2] = sum;
+                outpsf[j + z * kersize2 + i * kersize2 * sz] = sum;
             }
         }
     }
 
-    writetiff_f("outreorg.tif", kersize, kersize, pixsdiv2 * sz, outpsf);
+    writetiff_f("outreorg.tif", kersize, kersize * kersizez, pixsdiv3, outpsf);
 
     return EXIT_SUCCESS;
 }

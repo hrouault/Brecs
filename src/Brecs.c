@@ -30,6 +30,7 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <math.h>
 #include <png.h>
@@ -970,6 +971,8 @@ float * reconssparse(float * imgmes, float * imgnoise,
     ker = opentiff_f(brecs_args.psf_arg, &sx, &sy, &sz);
     if (sx != kersize || sy != kersize * kersizez || sz != pixsdiv3) {
         printf("invalid psf size: %d %d %d\n", sx, sy, sz);
+        printf("should be: %d %d %d\n", kersize, kersize * kersizez,
+                                        pixsdiv3);
         exit(EXIT_FAILURE);
     }
     for (unsigned int i = 0; i < pixsdiv3 * kersize3; ++i) {
