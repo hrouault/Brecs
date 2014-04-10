@@ -1920,7 +1920,7 @@ int main(int argc, char ** argv)
                 int ind = i + kersize / 2 + (j + kersize / 2) * nbmesx
                           + (k + kersizez / 2) * nbmesx * nbmesy;
                 imgmes[ind] = pixmes;
-                imgnoise[ind] = noiseoffset + 1.0 * val;
+                imgnoise[ind] = noiseoffset + 2.0 * val;
             }
         }
     }
