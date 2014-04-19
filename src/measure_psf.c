@@ -44,10 +44,11 @@ static int const nb_iter = 10;
 #ifdef MESPSF_OVERSAMP
 static int const oversamp = MESPSF_OVERSAMP;
 #else
+#define MESPSF_OVERSAMP 2
 static int const oversamp = 2;
 #endif
 
-static int const oversamp2 = oversamp * oversamp;
+static int const oversamp2 = MESPSF_OVERSAMP * MESPSF_OVERSAMP;
 
 #ifdef MESPSF_NBEXPL
 static int const nbexpl = MESPSF_NBEXPL;

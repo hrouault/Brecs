@@ -59,16 +59,16 @@ struct gengetopt_args_info brecs_args;
 
 /* signal noise properties */
 #ifdef BRECS_PIXMEAN
-static int const pixmean = BRECS_PIXMEAN;
+static float const pixmean = BRECS_PIXMEAN;
 #else
 #define BRECS_PIXMEAN 500
-static int const pixmean = 500;
+static float const pixmean = 500;
 #endif
 
 #ifdef BRECS_PIXSTD
-static int const pixstd = BRECS_PIXSTD;
+static float const pixstd = BRECS_PIXSTD;
 #else
-static int const pixstd = 200;
+static float const pixstd = 200;
 #endif
 
 #ifdef BRECS_RHO
@@ -89,8 +89,8 @@ static int const kersize = 8;
 #ifdef BRECS_KERSIZEZ
 static int const kersizez = BRECS_KERSIZEZ;
 #else
-#define BRECS_KERSIZEZ 4
-static int const kersizez = 4;
+#define BRECS_KERSIZEZ 1
+static int const kersizez = 1;
 #endif
 
 #ifdef BRECS_PIXSDIV
@@ -103,8 +103,8 @@ static int const pixsdiv = 8;
 #ifdef BRECS_PIXSDIVZ
 static int const pixsdivz = BRECS_PIXSDIVZ;
 #else
-#define BRECS_PIXSDIVZ 8
-static int const pixsdivz = 8;
+#define BRECS_PIXSDIVZ 1
+static int const pixsdivz = 1;
 #endif
 
 static int const kersize2 = BRECS_KERSIZE * BRECS_KERSIZE;
@@ -252,8 +252,6 @@ static inline vecfloat sumh_ps(vecfloat x) {
 
 
 
-int nbframe;
-
 
 void fafcfunc(float * out, float sig2, float r)
 {
@@ -370,7 +368,7 @@ void update_omegavmu(float * omegamu, float * vmu,
         }
     }
 #if BRECS_DISPLAYPLOTS
-    writetiff_f("omegavmu", nbmesx, nbmesy, nbmesz, omegamu);
+    writetiff_f("omegavmu.tif", nbmesx, nbmesy, nbmesz, omegamu);
 #endif
 }
 
@@ -1068,7 +1066,7 @@ lab_t * roundker2d(int diam)
             int y = j - center;
             float rad2 = x * x + y * y;
             int ind = i + j * diam;
-            if (rad2 / (center * center) < 1.0) {
+            if (rad2 < center * center) {
                 ker[ind] = 1;
             } else {
                 ker[ind] = 0;
@@ -1897,15 +1895,13 @@ int main(int argc, char ** argv)
                    kersize3 * pixsdiv3 * sizeof(float));
 
     for (unsigned int i = 0; i < nbmes3; ++i) {
-        imgnoise[i] = 1e2;
+        imgnoise[i] = 1e8;
         imgmes[i] = 0;
     }
     for (unsigned int k = 0; k < insz; ++k) {
         for (unsigned int j = 0; j < insy; ++j) {
             for (unsigned int i = 0; i < insx; ++i) {
-
                 float val = img[i + j * insx + k * insx * insy];
-
                 val = (val - mesoffset) / mesampli;
 
                 float pixmes;
@@ -1916,11 +1912,10 @@ int main(int argc, char ** argv)
                 } else {
                     pixmes = val - meanback;
                 }
-
                 int ind = i + kersize / 2 + (j + kersize / 2) * nbmesx
                           + (k + kersizez / 2) * nbmesx * nbmesy;
                 imgmes[ind] = pixmes;
-                imgnoise[ind] = noiseoffset + 2.0 * val;
+                imgnoise[ind] = noiseoffset + 1.0 * val;
             }
         }
     }
@@ -1930,7 +1925,6 @@ int main(int argc, char ** argv)
     writetiff_f("imgmes.tif", nbmesx, nbmesy, nbmesz, imgmes);
     writetiff_f("imgnoise.tif", nbmesx, nbmesy, nbmesz, imgnoise);
 #endif
-    //exit(EXIT_FAILURE);
 
     imgrecons = reconssparse(imgmes, imgnoise,
                              nbmesx, nbmesy, nbmesz);
@@ -1938,6 +1932,7 @@ int main(int argc, char ** argv)
     free(imgker);
     free(imgmes);
     free(imgnoise);
+    free(imgrecons);
 
     return EXIT_SUCCESS;
 }
