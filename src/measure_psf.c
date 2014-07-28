@@ -38,7 +38,7 @@
 #ifdef MESPSF_NBITER
 static int const nb_iter = MESPSF_NBITER;
 #else
-static int const nb_iter = 10;
+static int const nb_iter = 15;
 #endif
 
 #ifdef MESPSF_OVERSAMP
@@ -131,7 +131,7 @@ void measure_psf(char * fnpsf, char * fnimg, char * fnpos_list)
     for (size_t i = 0; i < nbpos; ++i) {
         poss[3 * i] *= oversamp;
         poss[3 * i + 1] *= oversamp;
-        printf("%d %d %d\n", poss[3 * i], poss[3 * i + 1], poss[3 * i + 2]);
+        //printf("%d %d %d\n", poss[3 * i], poss[3 * i + 1], poss[3 * i + 2]);
     }
 
     /* Open image to fit */
@@ -172,8 +172,8 @@ void measure_psf(char * fnpsf, char * fnimg, char * fnpos_list)
                     curpos[1] = pos[1];
                 }
             }
-            printf("Error, position: %f %d %d\n",
-                   curerr, curpos[0], curpos[1]);
+            //printf("Error, position: %f %d %d\n",
+            //       curerr, curpos[0], curpos[1]);
             poss[3 * j] = curpos[0];
             poss[3 * j + 1] = curpos[1];
         }
@@ -198,8 +198,8 @@ void measure_psf(char * fnpsf, char * fnimg, char * fnpos_list)
             //printf("pos: %d %d %d %d\n", poss[3 * j], poss[3 * j + 1], poss[3 * j + 2], posimg);
 
             float vimg = img[posimg];
-            //outpsf[i + offipsf] += vimg;
-            outpsf[i] += vimg;
+            outpsf[i + offipsf] += vimg;
+            //outpsf[i] += vimg;
         }
     }
     writetiff_f("outpsf.tif", spsf[0], spsf[1], spsf[2], outpsf);

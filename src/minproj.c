@@ -120,6 +120,15 @@ float quickselect(float *arr, int n, int k)
     }
 }
 
+float minselect(float *arr, int n)
+{
+    float min = arr[0];
+    for (size_t i = 0; i < n; ++i) {
+        if (arr[i] < min) min = arr[i];
+    }
+    return min;
+}
+
 int nbconv;
 int iimg_stack;
 
@@ -163,10 +172,16 @@ void minproj(const char * fname)
         if (dircount % nbimg == nbimg - 1) {
             for (unsigned int i = 0; i < imgheight; ++i) {
                 for (unsigned int j = 0; j < imgwidth; ++j) {
+                    /*
                     img[j + i * imgwidth] = quickselect(imgstack
                                                         + j * nbimg
                                                         + i * imgwidth * nbimg,
                                                         nbimg, nbimg / 2);
+                    */
+                    img[j + i * imgwidth] = minselect(imgstack
+                                                      + j * nbimg
+                                                      + i * imgwidth * nbimg,
+                                                      nbimg);
                 }
             }
             char fname[100];

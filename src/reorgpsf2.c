@@ -49,7 +49,7 @@ static int const kersizez = 10;
 #ifdef BRECS_PIXSDIV
 static int const pixsdiv = BRECS_PIXSDIV;
 #else
-static int const pixsdiv = 1;
+static int const pixsdiv = 2;
 #endif
 
 #ifdef BRECS_PIXSDIVZ
@@ -82,11 +82,12 @@ int main(int argc, char ** argv)
 
     int sx, sy, sz;
     float * inpsf = opentiff_f(argv[1], &sx, &sy, &sz);
-    float * outpsf = malloc(kersize2 * sz * pixsdiv2 * sizeof(float));
+    float * outpsf = malloc(kersize2 * sz * sizeof(float));
     printf("PSF input size: %d %d %d\n", sx, sy, sz);
 
     printf("starting reorg\n");
 
+    /*
     int width = pixsdiv * (kersize + 1) - 1;
     for (size_t z = 0; z < sz; ++z) {
         for (unsigned int i = 0; i < pixsdiv2; ++i) {
@@ -107,8 +108,32 @@ int main(int argc, char ** argv)
             }
         }
     }
+    */
 
-    writetiff_f("outreorg.tif", kersize, kersize * kersizez, pixsdiv3, outpsf);
+    /*
+    for (size_t z = 0; z < sz; ++z) {
+        for (unsigned int i = 0; i < kersize2; ++i) {
+            int l = i / kersize;
+            int c = i % kersize;
+            outpsf[c] = inpsf[i + z * kersize2];
+            for (unsigned int j = 0; j < kersize2; ++j) {
+                int offx = pixsdiv - 1 - c + (j % kersize) * pixsdiv;
+                int offy = pixsdiv - 1 - l + (j / kersize) * pixsdiv;
+                float sum = 0;
+                for (unsigned int k = 0; k < pixsdiv2; ++k) {
+                    int lk = k / pixsdiv;
+                    int ck = k % pixsdiv;
+                    int indx = offx + ck;
+                    int indy = offy + lk;
+                    sum += inpsf[indx + indy * width + z * width * width];
+                }
+                outpsf[j + z * kersize2 + i * kersize2 * sz] = sum;
+            }
+        }
+    }
+    */
+
+    writetiff_f("outreorg.tif", kersize, kersize * kersizez, pixsdiv3, inpsf);
 
     return EXIT_SUCCESS;
 }
