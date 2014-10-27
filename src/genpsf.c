@@ -31,27 +31,28 @@
 
 #include "inoutimg.h"
 
-void gaussker()
-{
-    for (int z = -sizez / 2; z < sizez / 2 ; ++z) {
-        for (int y = -sizey / 2; y < sizey / 2; ++y) {
-            for (int x = -sizex / 2; x < sizex / 2 ; ++x) {
-                float dx2 = x * x;
-                float dy2 = y * y;
-                float dz2 = z * z;
-
-                float val = exp(-radius2 / 2 / (sigpsf * sigpsf))
-                    / (2 * M_PI * sigpsf * sigpsf);
-                int line = x;
-                int col = y;
-                if (x < 0) line += sizex;
-                if (y < 0) col += sizey;
-
-                ker[col + line * sizey] = val;
-            }
-        }
-    }
-}
+/* void gaussker()
+ * {
+ *     for (int z = -sizez / 2; z < sizez / 2 ; ++z) {
+ *         for (int y = -sizey / 2; y < sizey / 2; ++y) {
+ *             for (int x = -sizex / 2; x < sizex / 2 ; ++x) {
+ *                 float dx2 = x * x;
+ *                 float dy2 = y * y;
+ *                 float dz2 = z * z;
+ * 
+ *                 float val = exp(-radius2 / 2 / (sigpsf * sigpsf))
+ *                     / (2 * M_PI * sigpsf * sigpsf);
+ *                 int line = x;
+ *                 int col = y;
+ *                 if (x < 0) line += sizex;
+ *                 if (y < 0) col += sizey;
+ * 
+ *                 ker[col + line * sizey] = val;
+ *             }
+ *         }
+ *     }
+ * }
+ */
 
 
 int main(int argc, char const *argv[])
