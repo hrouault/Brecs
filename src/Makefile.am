@@ -35,7 +35,7 @@ cmdline.c: cmdline.ggo
 bin_PROGRAMS = Brecs gendat minproj genpsf measure_psf
 
 Brecs_SOURCES = cmdline.c cmdline.h Brecs.c Brecs.h inoutimg.c inoutimg.h \
-                parameters.h
+                parameters.h error.c error.h
 Brecs_CPPFLAGS = $(LIBPNG_CFLAGS) $(LIBTIFF_CFLAGS) $(FFTWF_CFLAGS)
 Brecs_LDADD = $(LIBPNG_LIBS) $(LIBTIFF_LIBS) $(FFTWF_LIBS)
 

@@ -47,6 +47,7 @@
 
 #include "config.h"
 
+#include "error.h"
 #include "cmdline.h"
 #include "inoutimg.h"
 #include "Brecs.h"
@@ -687,7 +688,10 @@ int nbconv;
 float * gausskerpar(int sx, int sy, int sz, float radius, float radiusz)
 {
     float * out;
-    posix_memalign((void **)&out, alignsize, sx * sy * sz * sizeof(float));
+    int errnopos = posix_memalign((void **)&out,
+                                  alignsize, sx * sy * sz * sizeof(float));
+    if (!out) brecs_error("Failed to allocate memory for gaussker: ",
+                          strerror(errnopos), prog_name);
 
     float sig2 = radius * radius;
     float sig2z = radiusz * radiusz;
@@ -717,7 +721,10 @@ float * gausskerpar(int sx, int sy, int sz, float radius, float radiusz)
 float * gausskerpar2d(int sx, int sy, float radius)
 {
     float * out;
-    posix_memalign((void **)&out, alignsize, sx * sy * sizeof(float));
+    int errnopos = posix_memalign((void **)&out,
+                                  alignsize, sx * sy * sizeof(float));
+    if (!out) brecs_error("Failed to allocate memory for gaussker: ",
+                          strerror(errnopos), prog_name);
 
     float sig2 = radius * radius;
     for (int y = -sy / 2; y < sy / 2 ; ++y) {
@@ -762,34 +769,61 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
 
     float * res;
 
-    posix_memalign((void **)&imgnoisecp, alignsize, nbmes3 * sizeof(float));
+    int errnopos = posix_memalign((void **)&imgnoisecp,
+                                  alignsize, nbmes3 * sizeof(float));
+    if (!imgnoisecp) brecs_error("Failed to allocate memory for imgnoisecp: ",
+                                 strerror(errnopos), prog_name);
 
     for (unsigned int i = 0; i < nbmes3; ++i) {
         imgnoisecp[i] = imgnoise[i];
     }
 
     /* Memory allocation */
-    posix_memalign((void **)&mu_albe_A, alignsize,
-                   nbact * kersize3 * sizeof(float));
-    posix_memalign((void **)&mu_albe_B, alignsize,
-                   nbact * kersize3 * sizeof(float));
-    posix_memalign((void **)&mu_beal_A, alignsize,
-                   nbact * kersize3 * sizeof(float));
-    posix_memalign((void **)&mu_beal_B, alignsize,
-                   nbact * kersize3 * sizeof(float));
+    errnopos = posix_memalign((void **)&mu_albe_A, alignsize,
+                              nbact * kersize3 * sizeof(float));
+    if (!mu_albe_A) brecs_error("Failed to allocate memory for mu_albe_A: ",
+                                strerror(errnopos), prog_name);
+    errnopos = posix_memalign((void **)&mu_albe_B, alignsize,
+                              nbact * kersize3 * sizeof(float));
+    if (!mu_albe_B) brecs_error("Failed to allocate memory for mu_albe_B: ",
+                                strerror(errnopos), prog_name);
+    errnopos = posix_memalign((void **)&mu_beal_A, alignsize,
+                              nbact * kersize3 * sizeof(float));
+    if (!mu_beal_A) brecs_error("Failed to allocate memory for mu_beal_A: ",
+                                strerror(errnopos), prog_name);
+    errnopos = posix_memalign((void **)&mu_beal_B, alignsize,
+                              nbact * kersize3 * sizeof(float));
+    if (!mu_beal_B) brecs_error("Failed to allocate memory for mu_beal_B: ",
+                                strerror(errnopos), prog_name);
     vbeal = mu_beal_A;
     abeal = mu_beal_B;
 
-    posix_memalign((void **)&P_be_E, alignsize, nbact * sizeof(float));
-    posix_memalign((void **)&P_be_F, alignsize, nbact * sizeof(float));
-    posix_memalign((void **)&sum_mualbe_A,
-                   alignsize,
-                   nbact * shift * sizeof(float));
-    posix_memalign((void **)&sum_mualbe_B,
-                   alignsize,
-                   nbact * shift * sizeof(float));
-    posix_memalign((void **)&omegamu, alignsize, nbmes3 * sizeof(float));
-    posix_memalign((void **)&vmu, alignsize, nbmes3 * sizeof(float));
+    errnopos = posix_memalign((void **)&P_be_E,
+                              alignsize, nbact * sizeof(float));
+    if (!P_be_E) brecs_error("Failed to allocate memory for P_be_E: ",
+                             strerror(errnopos), prog_name);
+    errnopos = posix_memalign((void **)&P_be_F,
+                              alignsize, nbact * sizeof(float));
+    if (!P_be_F) brecs_error("Failed to allocate memory for P_be_F: ",
+                             strerror(errnopos), prog_name);
+    errnopos = posix_memalign((void **)&sum_mualbe_A,
+                              alignsize, nbact * shift * sizeof(float));
+    if (!sum_mualbe_A)
+        brecs_error("Failed to allocate memory for sum_mualbe_A: ",
+                    strerror(errnopos), prog_name);
+    errnopos = posix_memalign((void **)&sum_mualbe_B,
+                   alignsize, nbact * shift * sizeof(float));
+    if (!sum_mualbe_B)
+        brecs_error("Failed to allocate memory for sum_mualbe_B: ",
+                    strerror(errnopos), prog_name);
+    errnopos = posix_memalign((void **)&omegamu,
+                              alignsize, nbmes3 * sizeof(float));
+    if (!omegamu) brecs_error("Failed to allocate memory for omegamu ",
+                              strerror(errnopos), prog_name);
+    errnopos = posix_memalign((void **)&vmu,
+                              alignsize, nbmes3 * sizeof(float));
+    if (!vmu) brecs_error("Failed to allocate memory for vmu ",
+                          strerror(errnopos), prog_name);
 
     float Binit = rho * pixmean * Ainit;
 
@@ -849,7 +883,9 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
 
     if (relerr < 1.01 * relerrthr) nbconv++;
 
-    posix_memalign((void **)&res, alignsize, size3 * sizeof(float));
+    errnopos = posix_memalign((void **)&res, alignsize, size3 * sizeof(float));
+    if (!res) brecs_error("Failed to allocate memory for res ",
+                          strerror(errnopos), prog_name);
 
     for (int i = 0; i < size3; ++i) {
         res[i] = 0;
@@ -960,8 +996,10 @@ float * reconssparse(float * imgmes, float * imgnoise,
 
     float * ker;
     float * ker2;
-    posix_memalign((void **)&ker2, alignsize,
+    int errnopos = posix_memalign((void **)&ker2, alignsize,
                    pixsdiv3 * kersize3 * sizeof(float));
+    if (!ker2) brecs_error("Failed to allocate memory for ker2 ",
+                           strerror(errnopos), prog_name);
 
     /* Initialize kernels */
     printf("Initializing kernel\n");
@@ -992,6 +1030,7 @@ float * reconssparse(float * imgmes, float * imgnoise,
 
     printf("recons first comp\n");
     for (unsigned int i = 0; i < ccdec.nbcomp; ++i) {
+    //for (unsigned int i = 0; i < 2; ++i) {
         printf("Processing connected component %40d / %d\r",
                i + 1, ccdec.nbcomp);
         fflush(stdout);
@@ -1872,8 +1911,9 @@ int main(int argc, char ** argv)
                              &binsy,
                              &binsz);
         if (binsx != insx || binsy != insy || binsz != insz) {
-            printf("img and background size do not match\n");
-            exit(EXIT_FAILURE);
+            brecs_error("img and background size do not match",
+                        0,
+                        prog_name);
         }
     }
 
@@ -1888,11 +1928,19 @@ int main(int argc, char ** argv)
     unsigned long int size2 = sizex * sizey;
     unsigned long int size3 = size2 * sizez;
 
-    posix_memalign((void **)&imgmes, alignsize, nbmes3 * sizeof(float));
-    posix_memalign((void **)&imgnoise, alignsize, nbmes3 * sizeof(float));
+    int errnopos = posix_memalign((void **)&imgmes,
+                                  alignsize, nbmes3 * sizeof(float));
+    if (!imgmes) brecs_error("Failed to allocate memory for imgmes: ",
+                             strerror(errnopos), prog_name);
+    errnopos = posix_memalign((void **)&imgnoise,
+                           alignsize, nbmes3 * sizeof(float));
+    if (!imgnoise) brecs_error("Failed to allocate memory for imgnoise: ",
+                               strerror(errnopos), prog_name);
 
-    posix_memalign((void **)&imgker, alignsize,
+    errnopos = posix_memalign((void **)&imgker, alignsize,
                    kersize3 * pixsdiv3 * sizeof(float));
+    if (!imgker) brecs_error("Failed to allocate memory for imgker: ",
+                             strerror(errnopos), prog_name);
 
     for (unsigned int i = 0; i < nbmes3; ++i) {
         imgnoise[i] = 1e8;
