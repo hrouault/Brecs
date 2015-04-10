@@ -401,15 +401,15 @@
 #  define BRECS_PIXSDIVZ 1
 #  define BRECS_MESOFFSET 0
 #  define BRECS_NOISEOFFSET 1000
-#  define BRECS_MEANBACK 50
-#  define BRECS_MESAMPLI 10.00
-#  define BRECS_NBITER 200
-#  define BRECS_DAMP1 0.01
-#  define BRECS_DAMP2 0.02
+#  define BRECS_MEANBACK 60
+#  define BRECS_MESAMPLI 5.00
+#  define BRECS_NBITER 800
+#  define BRECS_DAMP1 0.02
+#  define BRECS_DAMP2 0.04
 #  define BRECS_CONVOLPIXTHR 8.0
 #  define BRECS_LOCAINTENSTHR 10
 #  define BRECS_OVERLAYMAXINT 2000
-#  define BRECS_OVERLAYMININT 5.0
+#  define BRECS_OVERLAYMININT 40.0
 #  endif
 
 /* Parameters for the generation of the artificial datasets */

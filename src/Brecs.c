@@ -303,7 +303,7 @@ void fafcfunc(float * out, float sig2, float r)
 void update_omegavmu(float * omegamu, float * vmu,
                      float * ker, float * ker2,
                      float * abeal, float * vbeal,
-                     int nbact, int * activepix,
+                     size_t nbact, int * activepix,
                      int sizex, int sizey, int sizez)
 {
     const vecfloat zero = VFUNC(set1_ps) (0);
@@ -379,7 +379,7 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
                   afloat * omegamu, afloat * vmu,
                   afloat * ker, afloat * ker2,
                   afloat * imgnoise, afloat * imgmes,
-                  int nbact, int * activepix,
+                  size_t nbact, int * activepix,
                   int sizex, int sizey, int sizez)
 {
     const vecfloat zero = VFUNC(set1_ps) (0);
@@ -397,7 +397,7 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
     update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, nbact, activepix,
                     sizex, sizey, sizez);
 
-    for (unsigned int k = 0; k < nbact; ++k) {
+    for (size_t k = 0; k < nbact; ++k) {
         int i = activepix[k];
         float * caA = mu_albe_A + k * kersize3;
         float * caB = mu_albe_B + k * kersize3;
@@ -485,7 +485,7 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
                    float * omegamu, float * vmu,
                    float * ker, float * ker2,
                    float * imgnoise, float * imgmes,
-                   int nbact, int * activepix,
+                   size_t nbact, int * activepix,
                    int sizex, int sizey, int sizez)
 {
     update_Palbe(mu_albe_A, mu_albe_B,
@@ -499,7 +499,7 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
 
     const vecfloat zero = VFUNC(set1_ps) (0);
     const vecfloat oneosk = VFUNC(set1_ps) (1.0f / kersize3);
-    for (unsigned int k = 0; k < nbact; ++k) {
+    for (size_t k = 0; k < nbact; ++k) {
         float * caA = mu_albe_A + k * kersize3;
         float * caB = mu_albe_B + k * kersize3;
         float * cPA = vbeal + k * kersize3;
@@ -542,7 +542,7 @@ void update_mubeal(float * vbeal, float * abeal,
                    float * mu_albe_A, float * mu_albe_B,
                    float * P_be_E, float * P_be_F,
                    float * sum_mualbe_A, float * sum_mualbe_B,
-                   int nbact, int * activepix)
+                   size_t nbact, int * activepix)
 {
     const float rat = ((float)kersize3 - 1) / kersize3;
     const vecfloat one = VFUNC(set1_ps) (1.0);
@@ -550,7 +550,7 @@ void update_mubeal(float * vbeal, float * abeal,
     const vecfloat thrmax = VFUNC(set1_ps) (1e-5);
     const vecfloat thrmin2 = VFUNC(set1_ps) (1e12);
 
-    for (unsigned int k = 0; k < nbact; ++k) {
+    for (size_t k = 0; k < nbact; ++k) {
         float * caA = mu_albe_A + k * kersize3;
         float * caB = mu_albe_B + k * kersize3;
         float * cabeal = abeal + k * kersize3;
@@ -587,7 +587,7 @@ void update_mubeal(float * vbeal, float * abeal,
 
 float update_pbe(float * P_be_E, float * P_be_F,
                  float * P_albe_A, float * P_albe_B,
-                 int nbact, int * activepix,
+                 size_t nbact, int * activepix,
                  int iterpbe)
 {
     /* The coefficient should be equal after convergence, we choose to take
@@ -599,7 +599,7 @@ float update_pbe(float * P_be_E, float * P_be_F,
     int nberr = 0;
     float errmeantot = 0;
     float errvartot = 0;
-    for (unsigned int k = 0; k < nbact; ++k) {
+    for (size_t k = 0; k < nbact; ++k) {
         float * cA = P_albe_A + k * kersize3;
         float * cB = P_albe_B + k * kersize3;
 
@@ -663,7 +663,7 @@ float update_pbe(float * P_be_E, float * P_be_F,
     return relerr;
 }
 
-int on_border(int i, int * activepix, int nbact, int sizex, int size2)
+int on_border(int i, int * activepix, size_t nbact, int sizex, int size2)
 {
     int p1 = i - sizex;
     int p2 = i - 1;
@@ -690,7 +690,7 @@ float * gausskerpar(int sx, int sy, int sz, float radius, float radiusz)
     float * out;
     int errnopos = posix_memalign((void **)&out,
                                   alignsize, sx * sy * sz * sizeof(float));
-    if (!out) brecs_error("Failed to allocate memory for gaussker: ",
+    if (errnopos) brecs_error("Failed to allocate memory for gaussker: ",
                           strerror(errnopos), prog_name);
 
     float sig2 = radius * radius;
@@ -723,7 +723,7 @@ float * gausskerpar2d(int sx, int sy, float radius)
     float * out;
     int errnopos = posix_memalign((void **)&out,
                                   alignsize, sx * sy * sizeof(float));
-    if (!out) brecs_error("Failed to allocate memory for gaussker: ",
+    if (errnopos) brecs_error("Failed to allocate memory for gaussker: ",
                           strerror(errnopos), prog_name);
 
     float sig2 = radius * radius;
@@ -745,7 +745,7 @@ float * gausskerpar2d(int sx, int sy, float radius)
 }
 
 float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
-                     int * activepix, int nbact,
+                     int * activepix, size_t nbact,
                      float * ker, float * ker2,
                      int sizex, int sizey, int sizez)
 {
@@ -771,7 +771,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
 
     int errnopos = posix_memalign((void **)&imgnoisecp,
                                   alignsize, nbmes3 * sizeof(float));
-    if (!imgnoisecp) brecs_error("Failed to allocate memory for imgnoisecp: ",
+    if (errnopos) brecs_error("Failed to allocate memory for imgnoisecp: ",
                                  strerror(errnopos), prog_name);
 
     for (unsigned int i = 0; i < nbmes3; ++i) {
@@ -781,53 +781,53 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
     /* Memory allocation */
     errnopos = posix_memalign((void **)&mu_albe_A, alignsize,
                               nbact * kersize3 * sizeof(float));
-    if (!mu_albe_A) brecs_error("Failed to allocate memory for mu_albe_A: ",
+    if (errnopos) brecs_error("Failed to allocate memory for mu_albe_A: ",
                                 strerror(errnopos), prog_name);
     errnopos = posix_memalign((void **)&mu_albe_B, alignsize,
                               nbact * kersize3 * sizeof(float));
-    if (!mu_albe_B) brecs_error("Failed to allocate memory for mu_albe_B: ",
+    if (errnopos) brecs_error("Failed to allocate memory for mu_albe_B: ",
                                 strerror(errnopos), prog_name);
     errnopos = posix_memalign((void **)&mu_beal_A, alignsize,
                               nbact * kersize3 * sizeof(float));
-    if (!mu_beal_A) brecs_error("Failed to allocate memory for mu_beal_A: ",
+    if (errnopos) brecs_error("Failed to allocate memory for mu_beal_A: ",
                                 strerror(errnopos), prog_name);
     errnopos = posix_memalign((void **)&mu_beal_B, alignsize,
                               nbact * kersize3 * sizeof(float));
-    if (!mu_beal_B) brecs_error("Failed to allocate memory for mu_beal_B: ",
+    if (errnopos) brecs_error("Failed to allocate memory for mu_beal_B: ",
                                 strerror(errnopos), prog_name);
     vbeal = mu_beal_A;
     abeal = mu_beal_B;
 
     errnopos = posix_memalign((void **)&P_be_E,
                               alignsize, nbact * sizeof(float));
-    if (!P_be_E) brecs_error("Failed to allocate memory for P_be_E: ",
+    if (errnopos) brecs_error("Failed to allocate memory for P_be_E: ",
                              strerror(errnopos), prog_name);
     errnopos = posix_memalign((void **)&P_be_F,
                               alignsize, nbact * sizeof(float));
-    if (!P_be_F) brecs_error("Failed to allocate memory for P_be_F: ",
+    if (errnopos) brecs_error("Failed to allocate memory for P_be_F: ",
                              strerror(errnopos), prog_name);
     errnopos = posix_memalign((void **)&sum_mualbe_A,
                               alignsize, nbact * shift * sizeof(float));
-    if (!sum_mualbe_A)
+    if (errnopos)
         brecs_error("Failed to allocate memory for sum_mualbe_A: ",
                     strerror(errnopos), prog_name);
     errnopos = posix_memalign((void **)&sum_mualbe_B,
                    alignsize, nbact * shift * sizeof(float));
-    if (!sum_mualbe_B)
+    if (errnopos)
         brecs_error("Failed to allocate memory for sum_mualbe_B: ",
                     strerror(errnopos), prog_name);
     errnopos = posix_memalign((void **)&omegamu,
-                              alignsize, nbmes3 * sizeof(float));
-    if (!omegamu) brecs_error("Failed to allocate memory for omegamu ",
+                              alignsize, (nbmes3 + shift) * sizeof(float));
+    if (errnopos) brecs_error("Failed to allocate memory for omegamu ",
                               strerror(errnopos), prog_name);
     errnopos = posix_memalign((void **)&vmu,
-                              alignsize, nbmes3 * sizeof(float));
-    if (!vmu) brecs_error("Failed to allocate memory for vmu ",
+                              alignsize, (nbmes3 + shift) * sizeof(float));
+    if (errnopos) brecs_error("Failed to allocate memory for vmu ",
                           strerror(errnopos), prog_name);
 
     float Binit = rho * pixmean * Ainit;
 
-    for (unsigned int i = 0; i < nbact * kersize3; ++i) {
+    for (size_t i = 0; i < nbact * kersize3; ++i) {
         mu_albe_A[i] = Ainit;
         mu_albe_B[i] = Binit;
         vbeal[i] = Ainit;
@@ -835,7 +835,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
     }
     vecfloat vAinit = VFUNC(set1_ps) (Ainit);
     vecfloat vBinit = VFUNC(set1_ps) (Binit);
-    for (unsigned int i = 0; i < nbact; ++i) {
+    for (size_t i = 0; i < nbact; ++i) {
         P_be_E[i] = Ainit;
         P_be_F[i] = Binit;
 
@@ -884,14 +884,14 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
     if (relerr < 1.01 * relerrthr) nbconv++;
 
     errnopos = posix_memalign((void **)&res, alignsize, size3 * sizeof(float));
-    if (!res) brecs_error("Failed to allocate memory for res ",
+    if (errnopos) brecs_error("Failed to allocate memory for res ",
                           strerror(errnopos), prog_name);
 
     for (int i = 0; i < size3; ++i) {
         res[i] = 0;
     }
     // if (relerr < 1.1 * relerrthr){
-        for (unsigned int k = 0; k < nbact; ++k) {
+        for (size_t k = 0; k < nbact; ++k) {
             float val = P_be_F[k] / P_be_E[k];
             res[activepix[k]] += val;
             //res[activepix[k]] = 100;
@@ -998,7 +998,7 @@ float * reconssparse(float * imgmes, float * imgnoise,
     float * ker2;
     int errnopos = posix_memalign((void **)&ker2, alignsize,
                    pixsdiv3 * kersize3 * sizeof(float));
-    if (!ker2) brecs_error("Failed to allocate memory for ker2 ",
+    if (errnopos) brecs_error("Failed to allocate memory for ker2 ",
                            strerror(errnopos), prog_name);
 
     /* Initialize kernels */
@@ -1028,7 +1028,6 @@ float * reconssparse(float * imgmes, float * imgnoise,
         reconspic[i] = 0;
     }
 
-    printf("recons first comp\n");
     for (unsigned int i = 0; i < ccdec.nbcomp; ++i) {
     //for (unsigned int i = 0; i < 2; ++i) {
         printf("Processing connected component %40d / %d\r",
@@ -1930,16 +1929,16 @@ int main(int argc, char ** argv)
 
     int errnopos = posix_memalign((void **)&imgmes,
                                   alignsize, nbmes3 * sizeof(float));
-    if (!imgmes) brecs_error("Failed to allocate memory for imgmes: ",
+    if (errnopos) brecs_error("Failed to allocate memory for imgmes: ",
                              strerror(errnopos), prog_name);
     errnopos = posix_memalign((void **)&imgnoise,
                            alignsize, nbmes3 * sizeof(float));
-    if (!imgnoise) brecs_error("Failed to allocate memory for imgnoise: ",
+    if (errnopos) brecs_error("Failed to allocate memory for imgnoise: ",
                                strerror(errnopos), prog_name);
 
     errnopos = posix_memalign((void **)&imgker, alignsize,
                    kersize3 * pixsdiv3 * sizeof(float));
-    if (!imgker) brecs_error("Failed to allocate memory for imgker: ",
+    if (errnopos) brecs_error("Failed to allocate memory for imgker: ",
                              strerror(errnopos), prog_name);
 
     for (unsigned int i = 0; i < nbmes3; ++i) {
