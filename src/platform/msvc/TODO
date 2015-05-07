@@ -1,0 +1,10 @@
+TODO
+
+[ ] brecs_memalign and maybe the symetric free
+[ ] replace command line parser/or delete the msvc cmdline.h or something
+
+[ ] cplusplus header guards
+[ ] document dependencies
+[ ] check for avx vs sse2 and add to cflags
+
+[ ] ? FFTW binaries seem to have SSE2.  Is it important for them to have AVX?

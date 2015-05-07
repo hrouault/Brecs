@@ -33,7 +33,7 @@
 typedef unsigned short int lab_t;
 
 typedef struct {
-    int nbcomp;
+    unsigned nbcomp;
     lab_t * imglab;
     int * coordcomp;
     int * nbact;
@@ -47,8 +47,8 @@ ccomp_dec connectcomp_decomp2d(float * img,
 
 extern char * prog_name;
 
-float min(float * img, int size);
-float max(float * img, int size);
+// float min(float * img, int size); //? used
+// float max(float * img, int size);
 float maxra(float * num, float * den, int size);
 float minra(float * num, float * den, int size);
 

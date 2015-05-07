@@ -30,17 +30,13 @@
 #ifndef INOUTIMG_H_86QYO34Z
 #define INOUTIMG_H_86QYO34Z
 
-#include <png.h>
-#include <inttypes.h>
-
-
 void plot_image(int sx, int sy,
                 float * img,
                 const char * filen,
                 int flags);
 
 void plot_imagergb(int sx, int sy,
-                   png_byte * img,
+                   unsigned char * img,
                    const char * filen);
 
 void saveimage(float * img, int size, const char * fname);
