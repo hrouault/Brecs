@@ -12,7 +12,7 @@ if(MSVC)
         add_library(fftw SHARED IMPORTED GLOBAL)
         set_target_properties(fftw PROPERTIES IMPORTED_LOCATION "${libdir}/libfftw3f-3.dll"
                                               INCLUDE_DIRECTORIES  "${incdir}"
-                                              IMPORTED_IMPLIB "${libdir}/libfftw3f-3.def"
+                                              IMPORTED_IMPLIB "${libdir}/libfftw3f-3.lib"
                                               INTERFACE_INCLUDE_DIRECTORIES  "${incdir}")
     endif()
 endif()

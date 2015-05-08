@@ -1,3 +1,5 @@
+add_subdirectory(3rdParty)
+
 file(GLOB SRCS *.c *.h)
 
 add_library(platform STATIC ${SRCS})
