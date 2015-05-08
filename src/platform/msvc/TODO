@@ -1,7 +1,9 @@
 TODO
 
-[ ] brecs_memalign and maybe the symetric free
-[ ] replace command line parser/or delete the msvc cmdline.h or something
+[/] Image IO on windows
+
+[ ] brecs_memalign and maybe the symmetric free
+[x] replace command line parser/or delete the msvc cmdline.h or something
 
 [ ] cplusplus header guards
 [ ] document dependencies
