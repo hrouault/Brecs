@@ -2,6 +2,11 @@
 # Copyright (c) 2014 Nathan Clack, All Rights Reserved
 #
 
+macro(showhere)
+    message("At ${CMAKE_CURRENT_LIST_FILE}:${CMAKE_CURRENT_LIST_LINE}")
+    message("At ${CMAKE_CURRENT_LIST_FILE}:${CMAKE_CURRENT_LIST_LINE}")
+endmacro()
+
 macro(show v)
   message("${v} is ${${v}}")
 endmacro()

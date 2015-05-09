@@ -248,9 +248,9 @@ static void help(struct gengetopt_args_info *opts)
 { usage(); exit(0); 
 }
 
-#define CALLBACK(iopt,opts)      if(SPEC[iopt].callback) SPEC[iopt].callback(&opts)
+#define CALLBACK(iopt,opts)      if(SPEC[iopt].callback) SPEC[iopt].callback(opts)
 #define VALIDATE(iopt,str)       (SPEC[iopt].validate==NULL || SPEC[iopt].validate(str))
-#define PARSE(iopt,opts,str)     (SPEC[iopt].parse==NULL || SPEC[iopt].parse(&opts,str))
+#define PARSE(iopt,opts,str)     (SPEC[iopt].parse==NULL || SPEC[iopt].parse(opts,str))
 
 #define SAME(a,b) ((b!=0)&&strcmp(a,b)==0)
 
