@@ -5,5 +5,17 @@
 #include "afloat.h" // for alignsize
 
 int brecs_memalign(void **memptr,size_t size)
-{ exit(-1);
+{ 
+    *memptr=_aligned_malloc(size,alignsize);    
+    return errno;
+}
+
+void *brecs_alloc(size_t size)
+{
+    return _aligned_malloc(size,alignsize);
+}
+
+void brecs_free(void* p) {
+    if(!p) return;
+    _aligned_free(p);
 }

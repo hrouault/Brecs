@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __clpusplus
+extern "C" {
+#endif
+
 #include <xmmintrin.h>
 
 #ifdef __AVX__
@@ -16,4 +20,8 @@ typedef __declspec (align(32)) float afloat;
 #  define VFUNC(name) _mm_ ## name
 typedef __m128 vecfloat;
 typedef __declspec (align(16)) float afloat;
+#endif
+
+#ifdef __clpusplus
+}
 #endif

@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __clpusplus
+extern "C" {
+#endif
+
 /*
 Disabled warnings
 C4305: Loss of precision (usually a double to float)
@@ -20,3 +24,7 @@ C4996: Use of an "unsafe" string function from the C runtime library.
 /* Just ignore this on windows, since we're not using libtiff
 */
 #define TIFFSetWarningHandler(...)
+
+#ifdef __clpusplus
+}
+#endif

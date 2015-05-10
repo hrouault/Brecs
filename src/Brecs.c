@@ -898,17 +898,17 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
             }
         }
 
-    free(mu_albe_A);
-    free(mu_albe_B);
-    free(mu_beal_A);
-    free(mu_beal_B);
-    free(P_be_E);
-    free(P_be_F);
-    free(sum_mualbe_A);
-    free(sum_mualbe_B);
-    free(omegamu);
-    free(vmu);
-    free(imgnoisecp);
+    brecs_free(mu_albe_A);
+    brecs_free(mu_albe_B);
+    brecs_free(mu_beal_A);
+    brecs_free(mu_beal_B);
+    brecs_free(P_be_E);
+    brecs_free(P_be_F);
+    brecs_free(sum_mualbe_A);
+    brecs_free(sum_mualbe_B);
+    brecs_free(omegamu);
+    brecs_free(vmu);
+    brecs_free(imgnoisecp);
 
     return res;
 }
@@ -926,7 +926,7 @@ void plot_overlay(float * imgmes, float * imgrecons,
     unsigned int long nbmes2 = mx * my;
     unsigned int long nbmes3 = mx * my * mz;
 
-    uint8_t * img_data = malloc(3 * size3 * sizeof(uint8_t));
+    uint8_t * img_data = brecs_alloc(3 * size3 * sizeof(uint8_t));
     float maxrc = 0;
     for (i = 0 ; i < size3 ; i++) {
         if (maxrc < imgrecons[i]) maxrc = imgrecons[i];
@@ -962,6 +962,7 @@ void plot_overlay(float * imgmes, float * imgrecons,
         }
     }
     writetiff_rgb(fname, sx, sy, sz, img_data);
+    // (ngc) FIXME? img_data leaked
 }
 
 
@@ -1007,7 +1008,7 @@ float * reconssparse(float * imgmes, float * imgnoise,
     unsigned sizez = pixsdivz * (nbmesz - kersizez + kersizez % 2);
     unsigned size3 = sizex * sizey * sizez;
 
-    float * reconspic = malloc(size3 * sizeof(float));
+    float * reconspic = brecs_alloc(size3 * sizeof(float));
     for (unsigned int i = 0; i < size3; ++i) {
         reconspic[i] = 0;
     }
@@ -1025,16 +1026,16 @@ float * reconssparse(float * imgmes, float * imgnoise,
         for (unsigned int i = 0; i < size3; ++i) {
             reconspic[i] += rectmp[i];
         }
-        free(rectmp);
+        brecs_free(rectmp);
     }
     printf("\n");
     for (unsigned int i = 0; i < ccdec.nbcomp; ++i) {
-        free(ccdec.activepixcomp[i]);
+        brecs_free(ccdec.activepixcomp[i]);
     }
-    free(ccdec.nbact);
-    free(ccdec.coordcomp);
-    free(ccdec.activepixcomp);
-    free(ccdec.imglab);
+    brecs_free(ccdec.nbact);
+    brecs_free(ccdec.coordcomp);
+    brecs_free(ccdec.activepixcomp);
+    brecs_free(ccdec.imglab);
 
 #if BRECS_DISPLAYPLOTS
     plot_overlay(imgmes, reconspic,
@@ -1046,7 +1047,7 @@ float * reconssparse(float * imgmes, float * imgnoise,
         writetiff_f(brecs_args.output_arg, sizex, sizey, sizez, reconspic);
     }
 
-    free(reconspic);
+    brecs_free(reconspic);
     printf("Converged: %i / %i\n", nbconv, ccdec.nbcomp);
 
     return NULL;
@@ -1058,7 +1059,7 @@ lab_t * roundker(int diam, int diamz)
 {
     int center = diam / 2;
     int centerz = diamz / 2;
-    lab_t * ker = malloc(diam * diam * diamz * sizeof(lab_t));
+    lab_t * ker = brecs_alloc(diam * diam * diamz * sizeof(lab_t));
     for (size_t k = 0; k < diamz; k++) {
         for (size_t j = 0; j < diam; j++) {
             for (size_t i = 0; i < diam; i++) {
@@ -1082,7 +1083,7 @@ lab_t * roundker(int diam, int diamz)
 lab_t * roundker2d(int diam)
 {
     int center = diam / 2;
-    lab_t * ker = malloc(diam * diam * sizeof(lab_t));
+    lab_t * ker = brecs_alloc(diam * diam * sizeof(lab_t));
     for (size_t j = 0; j < diam; j++) {
         for (size_t i = 0; i < diam; i++) {
             size_t x = i - center;
@@ -1176,7 +1177,7 @@ lab_t neighb2d(lab_t * img, int width, int height, int x, int y)
 lab_t * dilate(lab_t * img, int width, int height, int depth,
                lab_t * ker, int diam, int diamz)
 {
-    lab_t * res = malloc(width * height * depth * sizeof(lab_t));
+    lab_t * res = brecs_alloc(width * height * depth * sizeof(lab_t));
     for (size_t i = 0; i < width * height * depth; ++i) {
         res[i] = img[i];
     }
@@ -1195,7 +1196,7 @@ lab_t * dilate(lab_t * img, int width, int height, int depth,
 
 lab_t * dilate2d(lab_t * img, int width, int height, lab_t * ker, int diam)
 {
-    lab_t * res = malloc(width * height * sizeof(lab_t));
+    lab_t * res = brecs_alloc(width * height * sizeof(lab_t));
     for (size_t i = 0; i < width * height; ++i) {
         res[i] = img[i];
     }
@@ -1222,7 +1223,7 @@ void unionsets(lab_t * labs, int lastlab, int parentlab, int lab)
 }
 
 uint8_t * genrandomcolo(lab_t nbcol) {
-    uint8_t * cols = malloc(3 * nbcol * sizeof(uint8_t));
+    uint8_t * cols = brecs_alloc(3 * nbcol * sizeof(uint8_t));
     uint8_t mix[3] = {240, 240, 240};
     for (unsigned int i = 0; i < nbcol; ++i) {
         uint8_t red   = (uint8_t)(drand48() * 256); 
@@ -1243,7 +1244,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil,
     ccomp_dec ccdec;
     lab_t labs[MAX_LABEL];
 
-    lab_t * imglabs = malloc(width * height * depth * sizeof(lab_t));
+    lab_t * imglabs = brecs_alloc(width * height * depth * sizeof(lab_t));
 
     for (int i = 0; i < width * height * depth; i++) {
         imglabs[i] = 0;
@@ -1316,9 +1317,9 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil,
         }
     }
     ccdec.nbcomp = clab;
-    ccdec.coordcomp = malloc(clab * 4 * sizeof(int));
-    ccdec.nbact = malloc(clab * sizeof(int));
-    ccdec.activepixcomp = malloc(clab * sizeof(int *));
+    ccdec.coordcomp = brecs_alloc(clab * 4 * sizeof(int));
+    ccdec.nbact = brecs_alloc(clab * sizeof(int));
+    ccdec.activepixcomp = brecs_alloc(clab * sizeof(int *));
     for (int i = 0; i < clab; ++i) {
         ccdec.coordcomp[4 * i] = width;
         ccdec.coordcomp[4 * i + 1] = 0;
@@ -1345,7 +1346,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil,
         }
     }
     for (int i = 0; i < clab; ++i) {
-        ccdec.activepixcomp[i] = malloc(ccdec.nbact[i] * sizeof(int));
+        ccdec.activepixcomp[i] = brecs_alloc(ccdec.nbact[i] * sizeof(int));
         ccdec.nbact[i] = 0;
     }
     int offset = pixsdiv * kersize / 2;
@@ -1370,7 +1371,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil,
 
 #if BRECS_DISPLAYPLOTS
     uint8_t * cols = genrandomcolo(clab);
-    uint8_t * imgccmprgb = malloc(plane * depth * 3 * sizeof(uint8_t));
+    uint8_t * imgccmprgb = brecs_alloc(plane * depth * 3 * sizeof(uint8_t));
 
     for (unsigned int i = 0; i < plane * depth; ++i) {
         if (img[i]) {
@@ -1383,9 +1384,9 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil,
             imgccmprgb[2 + 3 * i] = 0;
         }
     }
-    free(cols);
+    brecs_free(cols);
     writetiff_rgb("connected_comp.tif", width, height, depth, imgccmprgb);
-    free(imgccmprgb);
+    brecs_free(imgccmprgb);
 #endif
 
     ccdec.imglab = imglabs;
@@ -1398,7 +1399,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
     ccomp_dec ccdec;
     lab_t labs[MAX_LABEL];
 
-    lab_t * imglabs = malloc(width * height * sizeof(lab_t));
+    lab_t * imglabs = brecs_alloc(width * height * sizeof(lab_t));
 
     for (int i = 0; i < width * height; i++) {
         imglabs[i] = 0;
@@ -1459,9 +1460,9 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
         }
     }
     ccdec.nbcomp = clab;
-    ccdec.coordcomp = malloc(clab * 4 * sizeof(int));
-    ccdec.nbact = malloc(clab * pixsdivz * sizeof(int));
-    ccdec.activepixcomp = malloc(clab * sizeof(int *));
+    ccdec.coordcomp = brecs_alloc(clab * 4 * sizeof(int));
+    ccdec.nbact = brecs_alloc(clab * pixsdivz * sizeof(int));
+    ccdec.activepixcomp = brecs_alloc(clab * sizeof(int *));
     for (int i = 0; i < clab; ++i) {
         ccdec.coordcomp[4 * i] = width;
         ccdec.coordcomp[4 * i + 1] = 0;
@@ -1486,7 +1487,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
         }
     }
     for (int i = 0; i < clab; ++i) {
-        ccdec.activepixcomp[i] = malloc(ccdec.nbact[i] * sizeof(int));
+        ccdec.activepixcomp[i] = brecs_alloc(ccdec.nbact[i] * sizeof(int));
         ccdec.nbact[i] = 0;
     }
     int offset = pixsdiv * kersize / 2;
@@ -1510,7 +1511,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
 
 #if BRECS_DISPLAYPLOTS
     uint8_t * cols = genrandomcolo(clab);
-    uint8_t * imgccmprgb = malloc(plane * 3 * sizeof(uint8_t));
+    uint8_t * imgccmprgb = brecs_alloc(plane * 3 * sizeof(uint8_t));
 
     for (unsigned int i = 0; i < plane; ++i) {
         if (img[i]) {
@@ -1523,9 +1524,9 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
             imgccmprgb[2 + 3 * i] = 0;
         }
     }
-    free(cols);
+    brecs_free(cols);
     writetiff_rgb("connected_comp.tif", width, height, pixsdivz, imgccmprgb);
-    free(imgccmprgb);
+    brecs_free(imgccmprgb);
 #endif
 
     ccdec.imglab = imglabs;
@@ -1619,7 +1620,7 @@ ccomp_dec connectcomp_decomp3d(float * imgmes,
     writetiff_f("smoothedimg.tif", sxfft, syfft, szfft, imgsmoo);
 #endif
 
-    lab_t * imgccmp = malloc(size3 * sizeof(lab_t));
+    lab_t * imgccmp = brecs_alloc(size3 * sizeof(lab_t));
     for (unsigned int i = 0; i < size3; ++i) {
         imgccmp[i] = 0;
     }
@@ -1636,7 +1637,7 @@ ccomp_dec connectcomp_decomp3d(float * imgmes,
         }
     }
 
-    uint8_t * imgthrrgb = malloc(3 * size3 * sizeof(uint8_t));
+    uint8_t * imgthrrgb = brecs_alloc(3 * size3 * sizeof(uint8_t));
     for (unsigned int k = 0; k < sizez; ++k) {
         for (unsigned int j = 0; j < sizey; ++j) {
             for (unsigned int i = 0; i < sizex; ++i) {
@@ -1666,7 +1667,7 @@ ccomp_dec connectcomp_decomp3d(float * imgmes,
     printf("dilation over\n");
 
 #if BRECS_DISPLAYPLOTS
-    uint8_t * imgdilrgb = malloc(3 * size3 * sizeof(uint8_t));
+    uint8_t * imgdilrgb = brecs_alloc(3 * size3 * sizeof(uint8_t));
     for (unsigned int k = 0; k < sizez; ++k) {
         for (unsigned int j = 0; j < sizey; ++j) {
             for (unsigned int i = 0; i < sizex; ++i) {
@@ -1684,14 +1685,14 @@ ccomp_dec connectcomp_decomp3d(float * imgmes,
         }
     }
     writetiff_rgb("imgdilrgb.tif", sizex, sizey, sizez, imgdilrgb);
-    free(imgdilrgb);
+    brecs_free(imgdilrgb);
 #endif
 
-    free(rker);
+    brecs_free(rker);
     ccomp_dec ccdec = aggregate(imgccmp, imgdil, sizex, sizey, sizez);
 
-    free(imgdil);
-    free(imgccmp);
+    brecs_free(imgdil);
+    brecs_free(imgccmp);
     fftwf_free(out1);
     fftwf_free(out2);
     fftwf_free(imgsmoo);
@@ -1777,7 +1778,7 @@ ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
     writetiff_f("smoothedimg.tif", sxfft, syfft, 1, imgsmoo);
 #endif
 
-    lab_t * imgccmp = malloc(size2 * sizeof(lab_t));
+    lab_t * imgccmp = brecs_alloc(size2 * sizeof(lab_t));
     for (unsigned int i = 0; i < size2; ++i) {
         imgccmp[i] = 0;
     }
@@ -1792,7 +1793,7 @@ ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
     }
 
 #if BRECS_DISPLAYPLOTS
-    uint8_t * imgthrrgb = malloc(3 * size2 * sizeof(uint8_t));
+    uint8_t * imgthrrgb = brecs_alloc(3 * size2 * sizeof(uint8_t));
     for (unsigned int j = 0; j < sizey; ++j) {
         for (unsigned int i = 0; i < sizex; ++i) {
             int ind = i + j * sizex;
@@ -1816,7 +1817,7 @@ ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
                               pixsdiv * kersize / 2);
 
 #if BRECS_DISPLAYPLOTS
-    uint8_t * imgdilrgb = malloc(3 * size2 * sizeof(uint8_t));
+    uint8_t * imgdilrgb = brecs_alloc(3 * size2 * sizeof(uint8_t));
     for (unsigned int j = 0; j < sizey; ++j) {
         for (unsigned int i = 0; i < sizex; ++i) {
             int ind = i + j * sizex;
@@ -1832,14 +1833,14 @@ ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
         }
     }
     writetiff_rgb("imgdilrgb.tif", sizex, sizey, 1, imgdilrgb);
-    free(imgdilrgb);
+    brecs_free(imgdilrgb);
 #endif
 
-    free(rker);
+    brecs_free(rker);
     ccomp_dec ccdec = aggregate2d(imgccmp, imgdil, sizex, sizey);
 
-    free(imgdil);
-    free(imgccmp);
+    brecs_free(imgdil);
+    brecs_free(imgccmp);
     fftwf_free(out1);
     fftwf_free(out2);
     fftwf_free(imgsmoo);
@@ -1951,7 +1952,7 @@ int main(int argc, char ** argv)
             }
         }
     }
-    free(img);
+    brecs_free(img);
 
 #if BRECS_DISPLAYPLOTS
     writetiff_f("imgmes.tif", nbmesx, nbmesy, nbmesz, imgmes);
@@ -1961,10 +1962,10 @@ int main(int argc, char ** argv)
     imgrecons = reconssparse(imgmes, imgnoise,
                              nbmesx, nbmesy, nbmesz);
 
-    free(imgker);
-    free(imgmes);
-    free(imgnoise);
-    free(imgrecons);
+    brecs_free(imgker);
+    brecs_free(imgmes);
+    brecs_free(imgnoise);
+    brecs_free(imgrecons);
 
     return EXIT_SUCCESS;
 }

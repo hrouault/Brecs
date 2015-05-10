@@ -1,6 +1,10 @@
 // rand.h
 #pragma once
 
+#ifdef __clpusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 double   drand48();
@@ -10,3 +14,7 @@ double   erand48(uint64_t *state);
 uint64_t eseed48(uint32_t seedval);
 void     dseed48(uint32_t seedval);
 */
+
+#ifdef __clpusplus
+}
+#endif

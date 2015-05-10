@@ -1,23 +1,10 @@
-/* TODO
 
-    [x] ascii to wide character copy for filenames
-    [x] write multiple frames to tiff
-    [x] test what happens if file already exists
-        [~] test behavior in event of failure
-            Leave off by default.  Can comment back in if desired and in a position to test.
-    [x] encoding a float pixel type does NOT work with WIC at the moment.
-        I think it coerces to grey16
-
-    [x] Decoder
-    [ ] Buffer allocation for decoder: which allocator to choose? which free 
-        is used?
-
-*/
 
 #include <windows.h>
 #include <wincodec.h>
 #include <strsafe.h>
 #include <stdint.h>
+#include "brecs_memory.h"
 
 #define ERR(e) do{if(!(e)) {onerr(1,#e,__FILE__,__LINE__,__FUNCTION__); goto Error;}}while(0)
 #define WARN(e) do{if(!(e)) {onerr(0,#e,__FILE__,__LINE__,__FUNCTION__); }}while(0)
@@ -67,7 +54,7 @@ static wchar_t* wide(const char* fname) {
     int n;
     ERR(n=MultiByteToWideChar(GetConsoleCP(),0,fname,(int)strlen(fname),buf,0));
     if(len<n) {
-        ERR(buf=LocalAlloc(LMEM_ZEROINIT,(n+1)*sizeof(wchar_t)));
+        ERR(buf=LocalReAlloc(buf,(n+1)*sizeof(wchar_t),LMEM_ZEROINIT));
         len=n;
     }
     ERR(MultiByteToWideChar(GetConsoleCP(),0,fname,(int)strlen(fname),buf,len));
@@ -96,7 +83,7 @@ static void* readtiff_(const char * fname, int * sx_, int * sy_, int * sz_,
         CALL(decoder,GetFrame,iframe,&frame); // the frame is an IWICBitmapSource
         if(buf==0) {
             CALL(frame,GetSize,&sx,&sy);
-            ERR(buf=VirtualAlloc(0,sx*sy*sz*Bpp,MEM_RESERVE,PAGE_READWRITE));
+            ERR(buf=brecs_alloc(sx*sy*sz*Bpp));
             img=buf;
         }
         CALL(converter,Initialize,(IWICBitmapSource*)frame,
@@ -205,3 +192,18 @@ void writetiff_rgb(const char * fname, int sx, int sy, int sz, uint8_t * img)
     writetiff_(fname,sx,sy,sz,img,3,
                GUID_WICPixelFormat24bppBGR,WICTiffCompressionDontCare);
 }
+
+
+/* TODO (ngc: May 2015)
+[x] ascii to wide character copy for filenames
+[x] write multiple frames to tiff
+[x] test what happens if file already exists
+[~] test behavior in event of failure
+    Leave off by default.  Can comment back in if desired and in a position to test.
+[x] encoding a float pixel type does NOT work with WIC at the moment.
+    I think it coerces to grey16
+
+[x] Decoder
+[x] Buffer allocation for decoder: which allocator to choose? which free 
+    is used?
+*/
