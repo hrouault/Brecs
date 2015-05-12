@@ -9,10 +9,13 @@ TODO
 
 [x] cplusplus header guards (although not necessary)
 [x] document dependencies
-[ ] check for avx vs sse2 and add to cflags
+[x] check for avx vs sse2 and add to cflags
 
 [x] ? FFTW binaries seem to have SSE2.  Is it important for them to have AVX? (No)
 
 [ ] Configure install package 
-    [ ] fftw dlls
+    [x] fftw dlls
     [ ] c runtime dlls
+
+[X] packaging ("cpack -G ZIP -C Debug ." from build dir)
+[ ] parameters

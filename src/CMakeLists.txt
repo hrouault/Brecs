@@ -6,3 +6,4 @@ add_subdirectory(platform)
 
 add_executable(brecs brecs.h brecs.c parameters.h error.c error.h)
 target_add_platform(brecs)
+install(TARGETS brecs DESTINATION ".")

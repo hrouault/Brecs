@@ -15,10 +15,15 @@ if(MSVC)
                                               IMPORTED_IMPLIB "${libdir}/libfftw3f-3.lib"
                                               INTERFACE_INCLUDE_DIRECTORIES  "${incdir}")
     endif()
+
 endif()
 
 function(target_add_fftw tgt)
     target_link_libraries(${tgt} fftw)
-    # TODO: add install
-    # TODO: copy DLLs to build?
+
+    set(arch x86)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(arch x64)
+    endif()
+    install(FILES "${FFTW_SOURCE_DIR}/${arch}/libfftw3f-3.dll" DESTINATION ".")
 endfunction()
