@@ -30,6 +30,8 @@
 #ifndef INOUTIMG_H_86QYO34Z
 #define INOUTIMG_H_86QYO34Z
 
+#include <stdint.h>
+
 /* (ngc) are these functions used? */
 #if 0
 void plot_image(int sx, int sy,

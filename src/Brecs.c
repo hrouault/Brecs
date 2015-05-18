@@ -43,8 +43,8 @@
 
 // #include <cpuid.h> /* __get_cpuid_max, __get_cpuid */
 // #include <mmintrin.h> /* MMX instrinsics  __m64 integer type  */
-#include <xmmintrin.h> /* SSE  __m128  float */
-#include <pmmintrin.h>
+//#include <xmmintrin.h> /* SSE  __m128  float */
+//#include <pmmintrin.h>
 // #include <immintrin.h>
 
 // #include <bzlib.h>

@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include <x86intrin.h>
 #ifdef __AVX__
 static int const shift = 8;
 static int const alignsize = 32;

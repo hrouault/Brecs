@@ -6,5 +6,6 @@ if(WIN32)
     add_definitions(/arch:AVX2)
 elseif(APPLE)
 else() # linux
+    add_definitions(-std=c99 -mavx)
 endif()
 

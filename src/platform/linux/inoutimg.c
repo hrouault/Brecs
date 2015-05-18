@@ -26,7 +26,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
+#include "brecs_memory.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -231,7 +231,7 @@ float * opentiff_f(const char * fname, int * sx, int * sy, int * sz)
     } while (TIFFReadDirectory(tif));
     TIFFSetDirectory(tif, 0);
     *sz = dircount;
-    posix_memalign((void **)&img, 32,
+    brecs_memalign((void **)&img,
             *sx * *sy * *sz * sizeof(float));
 
     buf = _TIFFmalloc(scanline);

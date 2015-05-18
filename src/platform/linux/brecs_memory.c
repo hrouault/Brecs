@@ -11,7 +11,7 @@ int brecs_memalign(void **memptr,size_t size)
 void* brecs_alloc(size_t size)
 {
     void *p;
-    if(posix_memalign(&p,size)==0)
+    if(posix_memalign(&p,alignsize,size)==0)
         return p;
     return 0;
 }
