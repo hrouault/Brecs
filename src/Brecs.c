@@ -36,25 +36,15 @@
 #undef max
 #include <string.h>
 #include <math.h>
-// #include <png.h>
-// #include <tiffio.h>
 
 #include <fftw3.h>
-
-// #include <cpuid.h> /* __get_cpuid_max, __get_cpuid */
-// #include <mmintrin.h> /* MMX instrinsics  __m64 integer type  */
-#include <xmmintrin.h> /* SSE  __m128  float */
-#include <pmmintrin.h>
-// #include <immintrin.h>
-
-// #include <bzlib.h>
-
-// #include "config.h"
 
 #include "error.h"
 #include "cmdline.h"
 #include "inoutimg.h"
 #include "Brecs.h"
+#include "parser.h"
+
 
 /* Command line variable */
 struct gengetopt_args_info brecs_args;
@@ -1850,15 +1840,89 @@ ccomp_dec connectcomp_decomp2d(float * imgmes, int nbmesx, int nbmesy)
     return ccdec;
 }
 
+/* Notes: calls exit on error. */
+void brecs(struct images images,struct params params) {
+    float * imgmes;
+    float * imgker;
+    float * imgnoise;
+    float * imgrecons;
+
+    const int insx=images.insz.x;
+    const int insy=images.insz.y;
+    const int insz=images.insz.z;
+
+    const unsigned long int nbmesx = insx + kersize;
+    const unsigned long int nbmesy = insy + kersize;
+    const unsigned long int nbmesz = insz + kersizez - kersizez % 2;
+    const unsigned long int nbmes2 = nbmesx * nbmesy;
+    const unsigned long int nbmes3 = nbmes2 * nbmesz;
+    const unsigned long int sizex = insx * pixsdiv;
+    const unsigned long int sizey = insy * pixsdiv;
+    const unsigned long int sizez = insz * pixsdivz;
+    const unsigned long int size2 = sizex * sizey;
+    const unsigned long int size3 = size2 * sizez;
+
+    int errnopos = brecs_memalign((void **)&imgmes,
+                                 nbmes3 * sizeof(float));
+    if (!imgmes) brecs_error("Failed to allocate memory for imgmes: ",
+                             strerror(errnopos), prog_name);
+    errnopos = brecs_memalign((void **)&imgnoise,
+                          nbmes3 * sizeof(float));
+    if (!imgnoise) brecs_error("Failed to allocate memory for imgnoise: ",
+                               strerror(errnopos), prog_name);
+
+    errnopos = brecs_memalign((void **)&imgker,
+                   kersize3 * pixsdiv3 * sizeof(float));
+    if (!imgker) brecs_error("Failed to allocate memory for imgker: ",
+                             strerror(errnopos), prog_name);
+
+    for (unsigned int i = 0; i < nbmes3; ++i) {
+        imgnoise[i] = 1e8;
+        imgmes[i] = 0;
+    }
+    for (unsigned int k = 0; k < (unsigned)insz; ++k) {
+        for (unsigned int j = 0; j < (unsigned)insy; ++j) {
+            for (unsigned int i = 0; i < (unsigned)insx; ++i) {
+                float val = images.img[i + j * insx + k * insx * insy];
+                val = (val - mesoffset) / mesampli;
+
+                float pixmes;
+                if (brecs_args.background_arg) {
+                    float valback = images.imgback[i + j * insx + k * insx * insy];
+                    valback = (valback - mesoffset) / mesampli;
+                    pixmes = val - valback;
+                } else {
+                    pixmes = val - meanback;
+                }
+                int ind = i + kersize / 2 + (j + kersize / 2) * nbmesx
+                          + (k + kersizez / 2) * nbmesx * nbmesy;
+                imgmes[ind] = pixmes;
+                imgnoise[ind] = noiseoffset + 1.0f * val;
+            }
+        }
+    }
+    brecs_free(images.img);
+
+#if BRECS_DISPLAYPLOTS
+    writetiff_f("imgmes.tif", nbmesx, nbmesy, nbmesz, imgmes);
+    writetiff_f("imgnoise.tif", nbmesx, nbmesy, nbmesz, imgnoise);
+#endif
+
+    imgrecons = reconssparse(imgmes, imgnoise,
+                             nbmesx, nbmesy, nbmesz);
+
+    brecs_free(imgker);
+    brecs_free(imgmes);
+    brecs_free(imgnoise);
+    brecs_free(imgrecons);
+}
+
 char * prog_name;
 
 int main(int argc, char ** argv)
 {
-    float * imgmes;
-    float * imgker;
-
-    float * imgnoise;
-    float * imgrecons;
+    struct images images;
+    struct params params=read_params("parameters.sqlite3");
 
 #ifdef __DEBUG__
     _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID
@@ -1883,15 +1947,13 @@ int main(int argc, char ** argv)
     int insy;
     int insz;
 
-    uint16_t * img;
-    img = opentiff(brecs_args.filename_arg, &insx, &insy, &insz);
+    images.img = opentiff(brecs_args.filename_arg, &insx, &insy, &insz);
 
-    float * imgback;
     if (brecs_args.background_arg) {
         int binsx;
         int binsy;
         int binsz;
-        imgback = opentiff_f(brecs_args.background_arg,
+        images.imgback = opentiff_f(brecs_args.background_arg,
                              &binsx,
                              &binsy,
                              &binsz);
@@ -1902,71 +1964,7 @@ int main(int argc, char ** argv)
         }
     }
 
-    unsigned long int nbmesx = insx + kersize;
-    unsigned long int nbmesy = insy + kersize;
-    unsigned long int nbmesz = insz + kersizez - kersizez % 2;
-    unsigned long int nbmes2 = nbmesx * nbmesy;
-    unsigned long int nbmes3 = nbmes2 * nbmesz;
-    unsigned long int sizex = insx * pixsdiv;
-    unsigned long int sizey = insy * pixsdiv;
-    unsigned long int sizez = insz * pixsdivz;
-    unsigned long int size2 = sizex * sizey;
-    unsigned long int size3 = size2 * sizez;
-
-    int errnopos = brecs_memalign((void **)&imgmes,
-                                 nbmes3 * sizeof(float));
-    if (!imgmes) brecs_error("Failed to allocate memory for imgmes: ",
-                             strerror(errnopos), prog_name);
-    errnopos = brecs_memalign((void **)&imgnoise,
-                          nbmes3 * sizeof(float));
-    if (!imgnoise) brecs_error("Failed to allocate memory for imgnoise: ",
-                               strerror(errnopos), prog_name);
-
-    errnopos = brecs_memalign((void **)&imgker,
-                   kersize3 * pixsdiv3 * sizeof(float));
-    if (!imgker) brecs_error("Failed to allocate memory for imgker: ",
-                             strerror(errnopos), prog_name);
-
-    for (unsigned int i = 0; i < nbmes3; ++i) {
-        imgnoise[i] = 1e8;
-        imgmes[i] = 0;
-    }
-    for (unsigned int k = 0; k < (unsigned)insz; ++k) {
-        for (unsigned int j = 0; j < (unsigned)insy; ++j) {
-            for (unsigned int i = 0; i < (unsigned)insx; ++i) {
-                float val = img[i + j * insx + k * insx * insy];
-                val = (val - mesoffset) / mesampli;
-
-                float pixmes;
-                if (brecs_args.background_arg) {
-                    float valback = imgback[i + j * insx + k * insx * insy];
-                    valback = (valback - mesoffset) / mesampli;
-                    pixmes = val - valback;
-                } else {
-                    pixmes = val - meanback;
-                }
-                int ind = i + kersize / 2 + (j + kersize / 2) * nbmesx
-                          + (k + kersizez / 2) * nbmesx * nbmesy;
-                imgmes[ind] = pixmes;
-                imgnoise[ind] = noiseoffset + 1.0f * val;
-            }
-        }
-    }
-    brecs_free(img);
-
-#if BRECS_DISPLAYPLOTS
-    writetiff_f("imgmes.tif", nbmesx, nbmesy, nbmesz, imgmes);
-    writetiff_f("imgnoise.tif", nbmesx, nbmesy, nbmesz, imgnoise);
-#endif
-
-    imgrecons = reconssparse(imgmes, imgnoise,
-                             nbmesx, nbmesy, nbmesz);
-
-    brecs_free(imgker);
-    brecs_free(imgmes);
-    brecs_free(imgnoise);
-    brecs_free(imgrecons);
-
+    brecs(images,params);
     return EXIT_SUCCESS;
 }
 
