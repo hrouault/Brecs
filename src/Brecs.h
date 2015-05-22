@@ -66,6 +66,7 @@ struct params {
     int      nbiter;       /* = BRECS_NBITER; */
     float    prefacradcc;  /* = BRECS_PREFACRADCC; */
     float    convolpixthr; /* = BRECS_CONVOLPIXTHR; */
+    float    ainitpfact;
     float    Ainit;        /* = BRECS_AINITPFACT / (BRECS_PIXMEAN * BRECS_PIXMEAN); */
     float    meanback;     /* = BRECS_MEANBACK; */
     float    locaintensthr;/* = BRECS_LOCAINTENSTHR; */

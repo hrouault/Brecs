@@ -6,9 +6,9 @@ add_subdirectory(platform)
 
 add_executable(brecs 
                brecs.h brecs.c 
-               parser.h parser.c
+               cmdline.h cmdline.c
+               parameter.io.h parameter.io.c
                sqlite3.c sqlite3.h
-               parameters.h 
                error.c error.h)
 target_add_platform(brecs)
 install(TARGETS brecs DESTINATION ".")
