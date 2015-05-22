@@ -1,4 +1,5 @@
 # This file is for setting platform-dependent build properties that apply to the whole project tree.
+#
 
 if(WIN32)
     include_directories(SYSTEM "$ENV{UniversalCRTSdkDir}Include/ucrt")
@@ -6,6 +7,7 @@ if(WIN32)
     add_definitions(/arch:AVX2)
 elseif(APPLE)
 else() # linux
-    add_definitions(-std=c99 -mavx)
+#    add_definitions(-std=c99 -mavx)
+    add_definitions(-std=c99 -msse3) # use of mm_hadd_ps makes this the minimum target
 endif()
 

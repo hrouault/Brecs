@@ -5,7 +5,7 @@ include(cmake/platform.cmake)
 add_subdirectory(platform)
 
 add_executable(brecs 
-               Brecs.h bBrecs.c
+               Brecs.h Brecs.c
                cmdline.h cmdline.c
                parameter.io.h parameter.io.c
                sqlite3.c sqlite3.h

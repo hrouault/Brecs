@@ -27,6 +27,7 @@
   #define S_ISDIR(B) ((B)&_S_IFDIR)
   #undef max
 #else
+  #include <alloca.h>
   #define PATHSEP '/'
 #endif
 

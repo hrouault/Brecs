@@ -1,6 +1,6 @@
 #pragma once 
 
-#include "brecs.h"
+#include "Brecs.h"
 int           initialize_params_file(const char* filename);
 struct params read_params(const char* filename,int dataset);
 //int          write_params(const char* filename,const struct params *params, const char *description);
