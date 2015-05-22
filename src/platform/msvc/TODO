@@ -17,5 +17,10 @@ TODO
     [x] fftw dlls
     [ ] c runtime dlls
 
-[X] packaging ("cpack -G ZIP -C Debug ." from build dir)
+[/] packaging ("cpack -G ZIP -C Debug ." from build dir)
+    [x] basics
+    [/] Make sure MSVCRT is also packaged. confirm w VS2013 Release.
+    [ ] LICENSE
+    [ ] other options?
+
 [ ] parameters
