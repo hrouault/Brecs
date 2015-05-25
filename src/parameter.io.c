@@ -20,6 +20,11 @@
 #define DBG(...)
 #endif
 
+#ifdef WIN32
+#pragma warning (disable:4996)  /* use of snprintf causes a security warning */
+#define snprintf _snprintf
+#endif
+
 #define countof(e) (sizeof(e)/sizeof(*(e)))
 
 static struct column_mapping{

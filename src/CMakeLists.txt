@@ -11,4 +11,4 @@ add_executable(brecs
                sqlite3.c sqlite3.h
                error.c error.h)
 target_add_platform(brecs)
-install(TARGETS brecs DESTINATION ".")
+install(TARGETS brecs DESTINATION bin)
