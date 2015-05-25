@@ -13,12 +13,6 @@
 #define  kersizez      (params.kersizez)
 #define  pixsdiv3      (params.pixsdiv3)
 
-/*
- *  MAIN
- */
-
-
-
 /* Command line variable */
 struct gengetopt_args_info brecs_args;
 
