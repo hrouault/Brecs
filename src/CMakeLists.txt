@@ -12,7 +12,7 @@ add_library(libbrecs STATIC
                error.c error.h)
 target_add_platform(libbrecs)
 install(TARGETS libbrecs DESTINATION lib)
-install(FILES brecs.h DESTINATION include)
+install(FILES Brecs.h DESTINATION include)
 
 
 add_library(libbrecs-shared SHARED
