@@ -79,16 +79,22 @@ struct params {
     float damp2;           /* = BRECS_DAMP2; */
 };
 
+extern struct params params;
+
 struct images {
     uint16_t * img;
     float * imgback;
-    struct size {int x,y,z;} insz;
+    float * ker;
+    float * reconspic;
+    struct size {int x,y,z;} insz,outsz;
 };
 
 ccomp_dec connectcomp_decomp3d(float * img,
                                int nbmesx, int nbmesy, int nbmesz);
 ccomp_dec connectcomp_decomp2d(float * img,
                                int nbmesx, int nbmesy);
+
+void brecs(struct images images);
 
 extern char * prog_name;
 

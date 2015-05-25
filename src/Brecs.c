@@ -38,24 +38,25 @@
 #include <math.h>
 
 #include <fftw3.h>
-
-#include "error.h"
-#include "cmdline.h"
-#include "inoutimg.h"
 #include "Brecs.h"
-#include "parameter.io.h"
 
-
-/* Command line variable */
-struct gengetopt_args_info brecs_args;
 
 /* Constant definitions */
 #if 0
-#include "parameters.h"
-#include "parameter.bindings.h"
+#include "old/parameters.h"
+#include "old/parameter.bindings.h"
 #else
+#include "parameter.io.h"
+#include "error.h"
+#include "inoutimg.h"
 
-    /* The parameter set is stored as a global that is intened to be filled in
+/* prog_name
+
+    Used to identify the module during error handling. 
+*/
+char * prog_name="BRECS";
+
+/* The parameter set is stored as a global that is intened to be filled in
        just before the call to brecs().
 
        This isn't the cleanest, but it is a convenient way of adapting the
@@ -64,7 +65,7 @@ struct gengetopt_args_info brecs_args;
        the parameter set around using a const restrict pointer.  The macros 
        below can be modified to make that work if necessary.
     */
-    static struct params params={0};
+    struct params params={0};
 
     /* Alias parameters                                                  */
     /* Params is loaded at runtime just before executing the brecs call  */
@@ -768,9 +769,9 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
             int z = i / size2;
             if (res[i] > locaintensthr
                 && !on_border(i, activepix, nbact, sizex, size2)) {
-                printf("%d %s %.2f %.2f %.2f %.2f\n",
+                printf("%d %.2f %.2f %.2f %.2f\n",
                         nbfluo,
-                        brecs_args.filename_arg,
+                        //brecs_args.filename_arg,
                         (c - kersize / 2 * pixsdiv) * spixnm + spixnm / 2,
                         (l - kersize / 2 * pixsdiv) * spixnm + spixnm / 2,
                         z * spixznm,
@@ -848,9 +849,10 @@ void plot_overlay(float * imgmes, float * imgrecons,
 
 
 
-float * reconssparse(float * imgmes, float * imgnoise,
-                     int nbmesx, int nbmesy, int nbmesz)
-{
+float * reconssparse(float * imgmes,float * imgnoise,
+                     int nbmesx, int nbmesy, int nbmesz, 
+                     struct images* images
+){
     printf("Extracting connected components\n");
     ccomp_dec ccdec;
     if (nbmesz == 1) {
@@ -860,7 +862,7 @@ float * reconssparse(float * imgmes, float * imgnoise,
     }
 
 
-    float * ker;
+    float * ker=images->ker;
     float * ker2;
     int errnopos = brecs_memalign((void **)&ker2,
                    pixsdiv3 * kersize3 * sizeof(float));
@@ -869,14 +871,7 @@ float * reconssparse(float * imgmes, float * imgnoise,
 
     /* Initialize kernels */
     printf("Initializing kernel\n");
-    int sx, sy, sz;
-    ker = opentiff_f(brecs_args.psf_arg, &sx, &sy, &sz);
-    if (sx != kersize || sy != kersize * kersizez || sz != pixsdiv3) {
-        printf("invalid psf size: %d %d %d\n", sx, sy, sz);
-        printf("should be: %d %d %d\n", kersize, kersize * kersizez,
-                                        pixsdiv3);
-        exit(EXIT_FAILURE);
-    }
+
     for (unsigned int i = 0; i < pixsdiv3 * kersize3; ++i) {
         ker2[i] = ker[i] * ker[i];
     }
@@ -924,11 +919,12 @@ float * reconssparse(float * imgmes, float * imgnoise,
                  "overlay.tif");
 #endif
 
-    if (brecs_args.output_arg){
-        writetiff_f(brecs_args.output_arg, sizex, sizey, sizez, reconspic);
-    }
+    
+    images->reconspic=reconspic; /* callee is responsible for freeing with brecs_free */
+    images->outsz.x=sizex;
+    images->outsz.y=sizey;
+    images->outsz.z=sizez;
 
-    brecs_free(reconspic);
     printf("Converged: %i / %i\n", nbconv, ccdec.nbcomp);
 
     return NULL;
@@ -1778,7 +1774,7 @@ void brecs(struct images images) {
                 val = (val - mesoffset) / mesampli;
 
                 float pixmes;
-                if (brecs_args.background_arg) {
+                if (images.imgback) {
                     float valback = images.imgback[i + j * insx + k * insx * insy];
                     valback = (valback - mesoffset) / mesampli;
                     pixmes = val - valback;
@@ -1800,66 +1796,11 @@ void brecs(struct images images) {
 #endif
 
     imgrecons = reconssparse(imgmes, imgnoise,
-                             nbmesx, nbmesy, nbmesz);
+                             nbmesx, nbmesy, nbmesz,
+                             &images);
 
     brecs_free(imgker);
     brecs_free(imgmes);
     brecs_free(imgnoise);
     brecs_free(imgrecons);
 }
-
-/*
- *  MAIN
- */
-
-char * prog_name;
-
-int main(int argc, char ** argv)
-{
-    struct images images;
-    params=read_params("brecs_parameters.sqlite3",-1);
-
-#ifdef __DEBUG__
-    _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID
-            & ~_MM_MASK_OVERFLOW & ~_MM_MASK_DIV_ZERO);
-#endif
-
-    /* Remove libtiff warnings */
-    TIFFSetWarningHandler(NULL);
-
-    /* Command line parser */
-    char * arg0 = argv[0];
-    arg0 = strrchr(arg0, '/');
-    if (arg0)
-        prog_name = arg0 + 1;
-    else
-        prog_name = argv[0];
-
-    if (cmdline_parser(argc, argv, & brecs_args) != 0)
-        exit(EXIT_FAILURE);
-
-    int insx;
-    int insy;
-    int insz;
-
-    images.img = opentiff(brecs_args.filename_arg, &insx, &insy, &insz);
-
-    if (brecs_args.background_arg) {
-        int binsx;
-        int binsy;
-        int binsz;
-        images.imgback = opentiff_f(brecs_args.background_arg,
-                             &binsx,
-                             &binsy,
-                             &binsz);
-        if (binsx != insx || binsy != insy || binsz != insz) {
-            brecs_error("img and background size do not match",
-                        0,
-                        prog_name);
-        }
-    }
-
-    brecs(images);
-    return EXIT_SUCCESS;
-}
-
