@@ -12,6 +12,7 @@
 #define LOG2(msg1,msg2) printf("%s(%d): %s()\n\t%s\n\t%s\n",__FILE__,__LINE__,__FUNCTION__,msg1,msg2)
 #define HERE LOG("HERE");
 #define SQLITE_ERR(e) do{ int ecode_=(e); if(ecode_!=SQLITE_OK){LOG2(sqlite3_errstr(ecode_),sqlite3_errmsg(db)); goto Error;}}while(0)
+#define SQLITE_SILENT_ERR(e) do{if((e)!=SQLITE_OK){goto Error;}}while(0)
 #define ERR(e)        do{ if(!(e)){LOG2("Expression evaluated as false.",#e); goto Error;}}while(0)
 
 #if 0
@@ -94,7 +95,7 @@ static int initdb(sqlite3 *db) {
     c=cat(c,"insert into `parameters` default values;\n");
     c=cat(c,"create table `datasets` (`dataset` INTEGER primary key autoincrement unique,`description` TEXT);");
     c=cat(c,"insert into `datasets` values (1,\"Default values\");\n");
-    SQLITE_ERR(sqlite3_exec(db,sql,0,0,&emsg));
+    SQLITE_SILENT_ERR(sqlite3_exec(db,sql,0,0,&emsg));
     isok=1;
 Finalize:
     return 1;

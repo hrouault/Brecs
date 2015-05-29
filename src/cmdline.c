@@ -66,8 +66,9 @@ typedef struct _arg_t
 //-- SPEC ----------------------------------------------------------------------
 static void help(struct gengetopt_args_info *opts);
 static int  validate_path(const char* s);
+static int  validate_file(const char* s);
 static int  is_positive_int(const char* s);
-static int  validate_optional_path(const char* s);
+static int  validate_optional_file(const char* s);
 
 //static int  frame(struct gengetopt_args_info *ctx,const char *s);
 static int  filename(struct gengetopt_args_info *ctx,const char *s);
@@ -82,8 +83,8 @@ static opt_t SPEC[]=
   {NULL,                  NULL,      help,1,"-h","--help",      NULL,"Display this help message.",{0}},
   {validate_file,         filename,  NULL,0,"-f","--filename",  NULL,"Filename of the image",{ 0 } },
   {validate_file,         psf,       NULL,0,"--psf","",         NULL,"PSF image in tiff format",{ 0 } },
-  {validate_optional_path,background,NULL,0,"--background","",  NULL,"background image in raw format",{ 0 } },
-  {validate_optional_path,output,    NULL,0,"-o","--output",    NULL,"Tiff output image",{ 0 } },
+  {validate_optional_file,background,NULL,0,"--background","",  NULL,"background image in raw format",{ 0 } },
+  {NULL                  ,output,    NULL,0,"-o","--output",    NULL,"Tiff output image",{ 0 } },
 
 //{ is_positive_int,frame,NULL,"-n","--frame",0,"Picture number in the file (for raw images)",{ 0 } },
 
@@ -106,13 +107,22 @@ static int validate_path(const char *path)
 
 static int validate_file(const char *path)
 { struct stat s={0};
-  if (!path) return 0;
-  if(stat(path,&s)<0) return 0;
-  return S_ISREG(s.st_mode);
+  if(!path)               goto NotSpecified;
+  if(stat(path,&s)<0)     goto Missing; 
+  if(!S_ISREG(s.st_mode)) goto NotFile;
+  return 1;
+NotSpecified:
+    return 0;
+Missing:
+    PRINT("File not found: %s\n",path);
+    return 0;
+NotFile:
+    PRINT("Could not open as a regular file: %s\n",path);
+    return 0;
 }
 
-static int validate_optional_path(const char* s)
-{ if(s) return validate_path(s);
+static int validate_optional_file(const char* s)
+{ if(s) return validate_file(s);
   return 1; // NULL is ok
 }
 
@@ -141,7 +151,9 @@ static char *basename(char* argv0)
 
 static void reporter(const char *file,int line,const char* function,const char*fmt,...)
 { va_list ap;
+#if 0
   fprintf(stdout,"At %s(%d) - %s()\n",file,line,function);
+#endif
   va_start(ap,fmt);
   vfprintf(stdout,fmt,ap);
   va_end(ap);
