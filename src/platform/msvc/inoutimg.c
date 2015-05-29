@@ -24,7 +24,7 @@ static void onerr(int iserror,const char* expr,const char*file,int line,const ch
                     sizeof(emsg),
                     0);
     StringCbPrintf(str,sizeof(str)
-                    ,"%s(%d) - %s()\n\tExpression evaluated to false\n\t%s\n\t%s\n"
+                    ,"%s(%d) - %s()\n\tExpression evaluated to false\n\t%s\n\tLast Windows Error Message: %s\n"
                     ,file,line,function,expr,emsg);
                     
     OutputDebugString(str);
@@ -46,7 +46,7 @@ Error:
 
 /* Not thread safe 
 
-   Assumes the string to convert was recieved from the console.
+   Assumes the string to convert was received from the console.
 */
 static wchar_t* wide(const char* fname) {
     static wchar_t *buf=0;
@@ -54,7 +54,9 @@ static wchar_t* wide(const char* fname) {
     int n;
     ERR(n=MultiByteToWideChar(GetConsoleCP(),0,fname,(int)strlen(fname),buf,0));
     if(len<n) {
-        ERR(buf=LocalReAlloc(buf,(n+1)*sizeof(wchar_t),LMEM_ZEROINIT));
+        if(buf)
+            VirtualFree(buf,0,MEM_RELEASE);
+        ERR(buf=VirtualAlloc(0,(n+1)*sizeof(wchar_t),MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE));
         len=n;
     }
     ERR(MultiByteToWideChar(GetConsoleCP(),0,fname,(int)strlen(fname),buf,len));
@@ -70,8 +72,9 @@ static void* readtiff_(const char * fname, int * sx_, int * sy_, int * sz_,
                 int Bpp, WICPixelFormatGUID pixfmt) {
     unsigned sx,sy,sz;
     uint8_t* buf=0,*img;
-    IWICBitmapDecoder *decoder;
+    IWICBitmapDecoder *decoder=0;
 
+    init();
     CALL(factory,CreateDecoderFromFilename,
          wide(fname),0,GENERIC_READ,
          WICDecodeMetadataCacheOnDemand,&decoder);
