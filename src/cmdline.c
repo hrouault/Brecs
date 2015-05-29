@@ -25,6 +25,7 @@
   #define snprintf    _snprintf
   #define PATHSEP    '\\'
   #define S_ISDIR(B) ((B)&_S_IFDIR)
+  #define S_ISREG(B) ((B)&_S_IFREG)
   #undef max
 #else
   #include <alloca.h>
@@ -79,8 +80,8 @@ static char** ARGV;
 static opt_t SPEC[]=
 { 
   {NULL,                  NULL,      help,1,"-h","--help",      NULL,"Display this help message.",{0}},
-  {validate_path,         filename,  NULL,0,"-f","--filename",  NULL,"Filename of the image",{ 0 } },
-  {validate_path,         psf,       NULL,0,"--psf","",         NULL,"PSF image in tiff format",{ 0 } },
+  {validate_file,         filename,  NULL,0,"-f","--filename",  NULL,"Filename of the image",{ 0 } },
+  {validate_file,         psf,       NULL,0,"--psf","",         NULL,"PSF image in tiff format",{ 0 } },
   {validate_optional_path,background,NULL,0,"--background","",  NULL,"background image in raw format",{ 0 } },
   {validate_optional_path,output,    NULL,0,"-o","--output",    NULL,"Tiff output image",{ 0 } },
 
@@ -101,6 +102,13 @@ static int validate_path(const char *path)
   if (!path) return 0;
   if(stat(path,&s)<0) return 0;
   return S_ISDIR(s.st_mode);
+}
+
+static int validate_file(const char *path)
+{ struct stat s={0};
+  if (!path) return 0;
+  if(stat(path,&s)<0) return 0;
+  return S_ISREG(s.st_mode);
 }
 
 static int validate_optional_path(const char* s)
