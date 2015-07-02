@@ -410,6 +410,22 @@
 #  define BRECS_LOCAINTENSTHR 10
 #  define BRECS_OVERLAYMAXINT 2000
 #  define BRECS_OVERLAYMININT 40.0
+#elif DATASET == 400 // Test for brecs port
+#  define BRECS_PIXMEAN 5000
+#  define BRECS_PIXSTD 500
+#  define BRECS_KERSIZE 16
+#  define BRECS_PIXSDIV 8
+#  define BRECS_MESOFFSET 0
+#  define BRECS_NOISEOFFSET 1000
+#  define BRECS_MEANBACK 200
+#  define BRECS_MESAMPLI 1.00
+#  define BRECS_NBITER 1000
+#  define BRECS_DAMP1 0.01
+#  define BRECS_DAMP2 0.02
+#  define BRECS_CONVOLPIXTHR 200.0
+#  define BRECS_LOCAINTENSTHR 100
+#  define BRECS_OVERLAYMAXINT 2000
+#  define BRECS_OVERLAYMININT 40.0
 #  endif
 
 /* Parameters for the generation of the artificial datasets */

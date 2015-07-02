@@ -17,9 +17,9 @@ AS_IF([test x"$ac_cv_prog_cc_c99" = xno],
 #fi
 
 
-AC_CHECK_LIB([m],[cos])
-AC_CHECK_LIB([bz2],[BZ2_bzWriteOpen])
-AC_CHECK_LIB([tiff],[TIFFOpen])
+AC_CHECK_LIB([m],[cos], [], [AC_MSG_ERROR([standard math library required.])])
+AC_CHECK_LIB([bz2],[BZ2_bzWriteOpen], [], [AC_MSG_ERROR([bz2 library required.])])
+AC_CHECK_LIB([tiff],[TIFFOpen], [], [AC_MSG_ERROR([libtiff library required.])])
 
 # Checks for libraries with pkg-config
 PKG_CHECK_MODULES(LIBPNG, libpng, [], [AC_MSG_ERROR([libpng library required.])])
