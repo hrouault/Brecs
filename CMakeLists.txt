@@ -5,5 +5,11 @@ set_property(GLOBAL PROPERTY USE_FOLDERS TRUE) # Organize Visual Studio and XCod
 include(CPack)
 include(InstallRequiredSystemLibraries)
 
+if (APPLE)
+    FIND_PACKAGE(BZIP2 REQUIRED)
+    FIND_PACKAGE(JNI REQUIRED)
+endif()
+
+
 add_subdirectory(src)
 

@@ -19,6 +19,13 @@ target_add_platform(brecs)
 install(TARGETS brecs DESTINATION lib)
 install(FILES Brecs.h DESTINATION include)
 
+if (JNI_FOUND)
+    include_directories(${JNI_INCLUDE_DIRS})
+    add_library(fiji-brecs SHARED
+        javainter.c)
+    target_link_libraries (fiji-brecs ${JNI_LIBRARIES})
+endif (JNI_FOUND)
+
 add_executable(brecs-reconsparse 
                brecs.main.c
                parameter.io.h parameter.io.c
