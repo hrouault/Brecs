@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+		http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>net.imagej</groupId>
+		<artifactId>pom-imagej</artifactId>
+		<version>5.2.5</version>
+		<relativePath />
+	</parent>
+
+	<groupId>sc.fiji</groupId>
+	<artifactId>B_recs</artifactId>
+	<version>0.1.0-SNAPSHOT</version>
+
+	<name>plugins/B_recs.jar</name>
+	<description>A Maven project implementing the Brecs plugin</description>
+
+	<developers>
+		<developer>
+			<id>rouaulth</id>
+			<name>Herve Rouault</name>
+			<email>rouaulth@janelia.hhmi.org</email>
+			<organization>Janelia Farm, HHMI</organization>
+			<organizationUrl></organizationUrl>
+			<roles>
+				<role>scientist</role>
+			</roles>
+			<timezone></timezone>
+		</developer>
+	</developers>
+
+    <!--
+	<scm>
+		<connection>git@bitbucket.org:transimcon/brecs.git</connection>
+		<developerConnection>git@bitbucket.org:transimcon/brecs.git</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://bitbucket.org/transimcon/brecs</url>
+	</scm>
+    -->
+
+	<properties>
+		<main-class>Process_Pixels</main-class>
+        <sqlite4java.version>1.0.392</sqlite4java.version>
+	</properties>
+    
+	<dependencies>
+		<dependency>
+			<groupId>net.imagej</groupId>
+			<artifactId>ij</artifactId>
+            <version>1.45b</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifest>
+							<mainClass>${main-class}</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
