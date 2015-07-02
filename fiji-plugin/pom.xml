@@ -8,7 +8,7 @@
 	<parent>
 		<groupId>net.imagej</groupId>
 		<artifactId>pom-imagej</artifactId>
-		<version>5.2.5</version>
+		<version>7.0.0</version>
 		<relativePath />
 	</parent>
 
@@ -44,14 +44,13 @@
 
 	<properties>
 		<main-class>Process_Pixels</main-class>
-        <sqlite4java.version>1.0.392</sqlite4java.version>
 	</properties>
     
 	<dependencies>
 		<dependency>
 			<groupId>net.imagej</groupId>
 			<artifactId>ij</artifactId>
-            <version>1.45b</version>
+            <version>1.49c</version>
 		</dependency>
 	</dependencies>
 

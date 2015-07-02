@@ -27,6 +27,9 @@ public class B_recs implements PlugIn {
     public static final String PLUGIN_VERSION = "0.1";
 	protected ImagePlus image;
 
+    // Native functions (test)
+    public native String returnHello(String text);
+
 	// image property members
 	private int width;
 	private int height;
@@ -35,12 +38,16 @@ public class B_recs implements PlugIn {
 	public double value;
 	public String name;
 
-    public native void helloWorld();
-
     public void run(String ignored) {
+        System.loadLibrary("B_recs");
+
+        B_recs brecs = new B_recs();
+        String btext = brecs.returnHello("JAVA");
+
         GenericDialog gd = new GenericDialog("B-recs (version: "
                                              + PLUGIN_VERSION + ")");
 
+        gd.addStringField("Brecs test", btext);
         gd.addStringField("Image to reconstruct", "input.tif");
         gd.addStringField("background (optional)", "back.tif");
         gd.addStringField("PSF file", "psf.tif");
