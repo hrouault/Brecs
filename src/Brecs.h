@@ -30,25 +30,76 @@
 #ifndef BRECS_H_GWC5RGBI
 #define BRECS_H_GWC5RGBI
 
+#include <stdint.h>
+ 
 typedef unsigned short int lab_t;
 
 typedef struct {
-    int nbcomp;
+    unsigned nbcomp;
     lab_t * imglab;
     int * coordcomp;
     int * nbact;
     int ** activepixcomp;
 } ccomp_dec;
 
+struct params {
+    int isok; /* valid? */
+
+    /* signal noise properties */
+    float    pixmean;      /*= BRECS_PIXMEAN; */
+    float    pixstd;       /*= BRECS_PIXSTD; */
+    float    rho;          /*= BRECS_RHO; */
+    /* Sizes of the images */
+    int      kersize;      /* = BRECS_KERSIZE; */
+    int      kersizez;     /* = BRECS_KERSIZEZ; */
+    int      pixsdiv;      /* = BRECS_PIXSDIV; */
+    int      pixsdivz;     /* = BRECS_PIXSDIVZ; */
+    unsigned kersize2;     /* = BRECS_KERSIZE * BRECS_KERSIZE; */
+    unsigned kersize3;     /* = BRECS_KERSIZE * BRECS_KERSIZE * BRECS_KERSIZEZ; */
+    unsigned pixsdiv2;     /* = BRECS_PIXSDIV * BRECS_PIXSDIV; */
+    unsigned pixsdiv3;     /* = BRECS_PIXSDIV * BRECS_PIXSDIV * BRECS_PIXSDIVZ; */
+    float    spixnm;       /* = BRECS_SPIXNM; */
+    float    spixznm;      /* = BRECS_SPIXZNM; */
+    float    mesoffset;    /* = BRECS_MESOFFSET; */
+    float    mesampli;     /* = BRECS_MESAMPLI; */
+    float    noiseoffset;  /* = BRECS_NOISEOFFSET; */
+    int      nbiter;       /* = BRECS_NBITER; */
+    float    prefacradcc;  /* = BRECS_PREFACRADCC; */
+    float    convolpixthr; /* = BRECS_CONVOLPIXTHR; */
+    float    ainitpfact;
+    float    Ainit;        /* = BRECS_AINITPFACT / (BRECS_PIXMEAN * BRECS_PIXMEAN); */
+    float    meanback;     /* = BRECS_MEANBACK; */
+    float    locaintensthr;/* = BRECS_LOCAINTENSTHR; */
+    float    overlaymaxint;/* = BRECS_OVERLAYMAXINT; */
+    float    overlayminint;/* = BRECS_OVERLAYMININT; */
+    float    relerrthr;    /* = BRECS_RELERRTHR; */
+    float    nbinternloop; /* = BRECS_NBINTERNLOOP; */
+
+    float damp1;           /* = BRECS_DAMP1; */
+    float damp2;           /* = BRECS_DAMP2; */
+};
+
+extern struct params params;
+
+struct images {
+    uint16_t * img;
+    float * imgback;
+    float * ker;
+    float * reconspic;
+    struct size {int x,y,z;} insz,outsz;
+};
+
 ccomp_dec connectcomp_decomp3d(float * img,
                                int nbmesx, int nbmesy, int nbmesz);
 ccomp_dec connectcomp_decomp2d(float * img,
                                int nbmesx, int nbmesy);
 
+void brecs(struct images images);
+
 extern char * prog_name;
 
-float min(float * img, int size);
-float max(float * img, int size);
+// float min(float * img, int size); //? used
+// float max(float * img, int size);
 float maxra(float * num, float * den, int size);
 float minra(float * num, float * den, int size);
 
