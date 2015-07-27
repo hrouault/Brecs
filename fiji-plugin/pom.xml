@@ -5,18 +5,19 @@
 		http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>net.imagej</groupId>
-		<artifactId>pom-imagej</artifactId>
-		<version>7.0.0</version>
-		<relativePath />
-	</parent>
+
+    <parent>
+        <groupId>net.imagej</groupId>
+        <artifactId>pom-imagej</artifactId>
+        <version>7.0.0</version>
+        <relativePath />
+    </parent>
 
 	<groupId>sc.fiji</groupId>
 	<artifactId>B_recs</artifactId>
 	<version>0.1.0-SNAPSHOT</version>
 
-	<name>plugins/B_recs.jar</name>
+    <name>plugins/B_recs.jar</name>
 	<description>A Maven project implementing the Brecs plugin</description>
 
 	<developers>
@@ -33,6 +34,16 @@
 		</developer>
 	</developers>
 
+
+    <dependencies>
+        <dependency>
+            <groupId>net.imagej</groupId>
+            <artifactId>ij</artifactId>
+            <version>1.49v</version>
+        </dependency>
+    </dependencies>
+
+
     <!--
 	<scm>
 		<connection>git@bitbucket.org:transimcon/brecs.git</connection>
@@ -41,32 +52,5 @@
 		<url>https://bitbucket.org/transimcon/brecs</url>
 	</scm>
     -->
-
-	<properties>
-		<main-class>Process_Pixels</main-class>
-	</properties>
-    
-	<dependencies>
-		<dependency>
-			<groupId>net.imagej</groupId>
-			<artifactId>ij</artifactId>
-            <version>1.49c</version>
-		</dependency>
-	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<artifactId>maven-jar-plugin</artifactId>
-				<configuration>
-					<archive>
-						<manifest>
-							<mainClass>${main-class}</mainClass>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
 
 </project>

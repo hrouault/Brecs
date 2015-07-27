@@ -1,9 +1,9 @@
 /* Copyright (c) , Herve Rouault <rouaulth@janelia.hhmi.org>,
  * Howard Hughes Medical Institute.
  * All rights reserved.
- * 
+ *
  * This file is part of Brecs.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
  *     * Neither the name of the Howard Hughes Medical Institute nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -31,82 +31,104 @@
 #define BRECS_H_GWC5RGBI
 
 #include <stdint.h>
- 
-typedef unsigned short int lab_t;
+#include <stdlib.h>
+#include <platform.h>
+
+#include "Brecssimp.h"
+
+typedef uint16_t lab_t;
 
 typedef struct {
     unsigned nbcomp;
     lab_t * imglab;
+    uint32_t * rgbimg;
     int * coordcomp;
     int * nbact;
     int ** activepixcomp;
 } ccomp_dec;
 
-struct params {
-    int isok; /* valid? */
-
+typedef struct {
     /* signal noise properties */
-    float    pixmean;      /*= BRECS_PIXMEAN; */
-    float    pixstd;       /*= BRECS_PIXSTD; */
-    float    rho;          /*= BRECS_RHO; */
+    float    pixmean;
+    float    pixstd;
+    float    rho;
     /* Sizes of the images */
-    int      kersize;      /* = BRECS_KERSIZE; */
-    int      kersizez;     /* = BRECS_KERSIZEZ; */
-    int      pixsdiv;      /* = BRECS_PIXSDIV; */
-    int      pixsdivz;     /* = BRECS_PIXSDIVZ; */
-    unsigned kersize2;     /* = BRECS_KERSIZE * BRECS_KERSIZE; */
-    unsigned kersize3;     /* = BRECS_KERSIZE * BRECS_KERSIZE * BRECS_KERSIZEZ; */
-    unsigned pixsdiv2;     /* = BRECS_PIXSDIV * BRECS_PIXSDIV; */
-    unsigned pixsdiv3;     /* = BRECS_PIXSDIV * BRECS_PIXSDIV * BRECS_PIXSDIVZ; */
-    float    spixnm;       /* = BRECS_SPIXNM; */
-    float    spixznm;      /* = BRECS_SPIXZNM; */
-    float    mesoffset;    /* = BRECS_MESOFFSET; */
-    float    mesampli;     /* = BRECS_MESAMPLI; */
-    float    noiseoffset;  /* = BRECS_NOISEOFFSET; */
-    int      nbiter;       /* = BRECS_NBITER; */
-    float    prefacradcc;  /* = BRECS_PREFACRADCC; */
-    float    convolpixthr; /* = BRECS_CONVOLPIXTHR; */
+    int      kersize;
+    int      kersizez;
+    int      pixsdiv;
+    int      pixsdivz;
+
+    float    spixnm;
+    float    spixznm;
+
+    float    mesoffset;
+    float    mesampli;
+    float    noiseoffset;
+    int      nbiter;
+    float    prefacradcc;
+    float    convolpixthr;
     float    ainitpfact;
-    float    Ainit;        /* = BRECS_AINITPFACT / (BRECS_PIXMEAN * BRECS_PIXMEAN); */
-    float    meanback;     /* = BRECS_MEANBACK; */
-    float    locaintensthr;/* = BRECS_LOCAINTENSTHR; */
-    float    overlaymaxint;/* = BRECS_OVERLAYMAXINT; */
-    float    overlayminint;/* = BRECS_OVERLAYMININT; */
-    float    relerrthr;    /* = BRECS_RELERRTHR; */
-    float    nbinternloop; /* = BRECS_NBINTERNLOOP; */
+    float    Ainit;
+    float    meanback;
+    float    locaintensthr;
+    float    overlaymaxint;
+    float    overlayminint;
+    float    relerrthr;
+    float    nbinternloop;
 
-    float damp1;           /* = BRECS_DAMP1; */
-    float damp2;           /* = BRECS_DAMP2; */
-};
+    float damp1;
+    float damp2;
+} params_t;
 
-extern struct params params;
-
-struct images {
+typedef struct {
     uint16_t * img;
+    float * imgmes;
+    float * imgnoise;
     float * imgback;
     float * ker;
     float * reconspic;
-    struct size {int x,y,z;} insz,outsz;
-};
+    sizeimg_t insize;
+    sizeimg_t outsize;
+    sizeimg_t imgmessize;
+} images_t;
+
+typedef struct {
+    afloat * mu_albe_A;
+    afloat * mu_albe_B;
+    afloat * abeal;
+    afloat * vbeal;
+    float * sum_mualbe_A;
+    float * sum_mualbe_B;
+    afloat * omegamu;
+    afloat * vmu;
+    afloat * ker;
+    afloat * ker2;
+    afloat * imgnoise;
+    afloat * imgmes;
+    unsigned int nbact;
+    int * activepix;
+} simdarrays;
 
 ccomp_dec connectcomp_decomp3d(float * img,
-                               int nbmesx, int nbmesy, int nbmesz);
+                               int nbmesx, int nbmesy, int nbmesz,
+                               params_t * par);
 ccomp_dec connectcomp_decomp2d(float * img,
-                               int nbmesx, int nbmesy);
+                               int nbmesx, int nbmesy,
+                               params_t * par);
 
-void brecs(struct images images);
+uint8_t * imgrgb_ccomp(ccomp_dec * ccomp, int nbmesx, int nbmesy,
+                       params_t * par);
+
+float * reconssparse(float * imgmes,float * imgnoise,
+                     int nbmesx, int nbmesy, int nbmesz,
+                     images_t * images, params_t * par);
+
+void brecs_initimgmes(images_t * images, params_t * par);
+void brecs(images_t * images, params_t * par);
 
 extern char * prog_name;
 
-// float min(float * img, int size); //? used
-// float max(float * img, int size);
 float maxra(float * num, float * den, int size);
 float minra(float * num, float * den, int size);
-
-#define PLOT_NO_RESCALE 0
-#define PLOT_RESCALE 1
-
-#define MAX_LABEL 65355
-
 
 #endif /* end of include guard: BRECS_H_GWC5RGBI */

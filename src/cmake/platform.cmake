@@ -7,6 +7,7 @@ if(WIN32)
 
     add_definitions(/arch:AVX2)
 elseif(APPLE)
+    add_definitions(-std=c99 -mavx) # use of mm_hadd_ps makes this the minimum target
 else() # linux
 #    add_definitions(-std=c99 -mavx)
     add_definitions(-std=c99 -msse3) # use of mm_hadd_ps makes this the minimum target

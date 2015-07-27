@@ -6,8 +6,10 @@ add_subdirectory(platform)
 
 
 add_library(brecs-static STATIC
-               Brecs.h Brecs.c
-               error.c error.h)
+            Brecs.h Brecs.c
+            error.c error.h)
+        set_property(TARGET brecs-static APPEND PROPERTY INCLUDE_DIRECTORIES ${TIFF_INCLUDE_DIRS} ${FFTW_INCLUDE_DIRS})
+    set_property(TARGET brecs-static APPEND PROPERTY LINK_DIRECTORIES ${FFTW_LIBRARY_DIRS} ${TIFF_LIBRARY_DIRS})
 set_property(TARGET brecs-static PROPERTY POSITION_INDEPENDENT_CODE TRUE)
 target_add_platform(brecs-static)
 install(TARGETS brecs-static DESTINATION lib)
@@ -15,14 +17,17 @@ install(TARGETS brecs-static DESTINATION lib)
 add_library(brecs SHARED
                Brecs.h Brecs.c
                error.c error.h)
+    set_property(TARGET brecs APPEND PROPERTY LINK_DIRECTORIES ${FFTW_LIBRARY_DIRS} ${TIFF_LIBRARY_DIRS})
+set_property(TARGET brecs APPEND PROPERTY INCLUDE_DIRECTORIES ${TIFF_INCLUDE_DIRS} ${FFTW_INCLUDE_DIRS})
 target_add_platform(brecs)
 install(TARGETS brecs DESTINATION lib)
 install(FILES Brecs.h DESTINATION include)
 
 if (JNI_FOUND)
     include_directories(${JNI_INCLUDE_DIRS})
-    add_library(fiji-brecs SHARED
-        javainter.c)
+    add_library(fiji-brecs SHARED Brecs.h Brecs.c error.c error.h
+                Brecs_wrap.c Brecssimp.c Brecssimp.h)
+    target_add_platform_static(fiji-brecs)
     target_link_libraries (fiji-brecs ${JNI_LIBRARIES})
 endif (JNI_FOUND)
 

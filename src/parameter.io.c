@@ -35,35 +35,35 @@ static struct column_mapping{
     unsigned    o;    /* byte offset of corresponding field in params struct */
     unsigned    read; /* a flag that marks the column as read: used for validation */
 } column_mapping[] = {
-      {"pixmean",      "REAL",   "500",  offsetof(struct params,pixmean),      0}
-     ,{"pixstd",       "REAL",   "200",  offsetof(struct params,pixstd),       0}
-     ,{"rho",          "REAL",   "0.001",offsetof(struct params,rho),          0}
-     ,{"kersize",      "INTEGER","8",    offsetof(struct params,kersize),      0}
-     ,{"kersizez",     "INTEGER","1",    offsetof(struct params,kersizez),     0}
-     ,{"pixsdiv",      "INTEGER","8",    offsetof(struct params,pixsdiv),      0}
-     ,{"pixsdivz",     "INTEGER","1",    offsetof(struct params,pixsdivz),     0}
-     ,{"spixnm",       "REAL",   "133.0",offsetof(struct params,spixnm),       0}
-     ,{"spixznm",      "REAL",   "300.0",offsetof(struct params,spixznm),      0}
-     ,{"mesoffset",    "REAL",   "80",   offsetof(struct params,mesoffset),    0}
-     ,{"mesampli",     "REAL",   "20",   offsetof(struct params,mesampli),     0}
-     ,{"noiseoffset",  "REAL",   "1",    offsetof(struct params,noiseoffset),  0}
-     ,{"nbiter",       "INTEGER","200",  offsetof(struct params,nbiter),       0}
-     ,{"prefacradcc",  "REAL",   "1.0",  offsetof(struct params,prefacradcc),  0}
-     ,{"convolpixthr", "REAL",   "40.0", offsetof(struct params,convolpixthr), 0}
-     ,{"ainitpfact",   "REAL",   "1.0",  offsetof(struct params,ainitpfact),   0}
-     ,{"meanback",     "REAL",   "0",    offsetof(struct params,meanback),     0}
-     ,{"locaintensthr","REAL",   "1000", offsetof(struct params,locaintensthr),0}
-     ,{"overlaymaxint","REAL",   "50.4", offsetof(struct params,overlaymaxint),0}
-     ,{"overlayminint","REAL",   "0.1",  offsetof(struct params,overlayminint),0}
-     ,{"relerrthr",    "REAL",   "0.001",offsetof(struct params,relerrthr),    0}
-     ,{"nbinternloop", "REAL",   "1",    offsetof(struct params,nbinternloop), 0}
-     ,{"damp1",        "REAL",   "0.05", offsetof(struct params,damp1),        0}
-     ,{"damp2",        "REAL",   "0.1",  offsetof(struct params,damp2),        0}
+      {"pixmean",      "REAL",   "500",  offsetof(params_t, pixmean),      0}
+     ,{"pixstd",       "REAL",   "200",  offsetof(params_t, pixstd),       0}
+     ,{"rho",          "REAL",   "0.001",offsetof(params_t, rho),          0}
+     ,{"kersize",      "INTEGER","8",    offsetof(params_t, kersize),      0}
+     ,{"kersizez",     "INTEGER","1",    offsetof(params_t, kersizez),     0}
+     ,{"pixsdiv",      "INTEGER","8",    offsetof(params_t, pixsdiv),      0}
+     ,{"pixsdivz",     "INTEGER","1",    offsetof(params_t, pixsdivz),     0}
+     ,{"spixnm",       "REAL",   "133.0",offsetof(params_t, spixnm),       0}
+     ,{"spixznm",      "REAL",   "300.0",offsetof(params_t, spixznm),      0}
+     ,{"mesoffset",    "REAL",   "80",   offsetof(params_t, mesoffset),    0}
+     ,{"mesampli",     "REAL",   "20",   offsetof(params_t, mesampli),     0}
+     ,{"noiseoffset",  "REAL",   "1",    offsetof(params_t, noiseoffset),  0}
+     ,{"nbiter",       "INTEGER","200",  offsetof(params_t, nbiter),       0}
+     ,{"prefacradcc",  "REAL",   "1.0",  offsetof(params_t, prefacradcc),  0}
+     ,{"convolpixthr", "REAL",   "40.0", offsetof(params_t, convolpixthr), 0}
+     ,{"ainitpfact",   "REAL",   "1.0",  offsetof(params_t, ainitpfact),   0}
+     ,{"meanback",     "REAL",   "0",    offsetof(params_t, meanback),     0}
+     ,{"locaintensthr","REAL",   "1000", offsetof(params_t, locaintensthr),0}
+     ,{"overlaymaxint","REAL",   "50.4", offsetof(params_t, overlaymaxint),0}
+     ,{"overlayminint","REAL",   "0.1",  offsetof(params_t, overlayminint),0}
+     ,{"relerrthr",    "REAL",   "0.001",offsetof(params_t, relerrthr),    0}
+     ,{"nbinternloop", "REAL",   "1",    offsetof(params_t, nbinternloop), 0}
+     ,{"damp1",        "REAL",   "0.05", offsetof(params_t, damp1),        0}
+     ,{"damp2",        "REAL",   "0.1",  offsetof(params_t, damp2),        0}
 };
 
 static int findname(const char *key) {
     int i;
-    for(i=0;i<countof(column_mapping);++i) {
+    for(i = 0 ; i < countof(column_mapping) ; ++i) {
         if(strcmp(key,column_mapping[i].name)==0)
             return i;
     }
@@ -117,11 +117,11 @@ Error:
     return 0;
 }
 
-struct params read_params(const char* filename,int dataset){
-    struct params params={0};
-    sqlite3 *db=0;
-    sqlite3_stmt *stmt=0;
-    int ecode=0;
+params_t * read_params(const char* filename, int dataset){
+    params_t * par = malloc(sizeof(params_t));
+    sqlite3 *db = 0;
+    sqlite3_stmt *stmt = 0;
+    int ecode = 0;
     int i;
 
     DBG("###############\n");
@@ -141,10 +141,10 @@ struct params read_params(const char* filename,int dataset){
             column_mapping[j].read=1;
             switch(sqlite3_column_type(stmt,i)) {
                 case SQLITE_INTEGER:
-                    *(int*)(((char*)&params)+column_mapping[j].o)=sqlite3_column_int(stmt,i);
+                    *(int*)(((char*)par)+column_mapping[j].o)=sqlite3_column_int(stmt,i);
                     break;
                 case SQLITE_FLOAT:
-                    *(float*)(((char*)&params)+column_mapping[j].o)=(float)sqlite3_column_double(stmt,i);
+                    *(float*)(((char*)par)+column_mapping[j].o)=(float)sqlite3_column_double(stmt,i);
                     break;
                 default:
                     LOG("Unexpected column type.\n"); 
@@ -156,26 +156,18 @@ struct params read_params(const char* filename,int dataset){
     if(ecode!=SQLITE_DONE)
         SQLITE_ERR(ecode);
 
-    /* compute dependant parameters */
-    params.kersize2 = params.kersize * params.kersize;
-    params.kersize3 = params.kersize * params.kersize * params.kersizez;
-    params.pixsdiv2 = params.pixsdiv * params.pixsdiv;
-    params.pixsdiv3 = params.pixsdiv * params.pixsdiv * params.pixsdivz;
-
-    params.Ainit = params.ainitpfact / (params.pixmean * params.pixmean);
+    par->Ainit = par->ainitpfact / (par->pixmean * par->pixmean);
 
     /* check that all required parameters were found */    
-    params.isok=1;
-    for(i=0;i<countof(column_mapping);++i) if(column_mapping[i].read==0)
-        params.isok=0;
+    for (i = 0; i < countof(column_mapping) ; ++i)
+        if (column_mapping[i].read == 0) exit(1);
     
 Finalize:
     sqlite3_finalize(stmt);
     sqlite3_close(db);
     DBG("###############\n");
-    return params;
+    return par;
 Error:
-    params.isok=0;
     goto Finalize;
 }
 
