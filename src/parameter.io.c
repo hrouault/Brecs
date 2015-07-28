@@ -62,54 +62,54 @@ static struct column_mapping{
 };
 
 static int findname(const char *key) {
-    int i;
-    for(i = 0 ; i < countof(column_mapping) ; ++i) {
-        if(strcmp(key,column_mapping[i].name)==0)
+    for (int i = 0 ; i < countof(column_mapping) ; ++i) {
+        if (strcmp(key, column_mapping[i].name) == 0)
             return i;
     }
     return -1;
 }
 
-static char* cat(char * dst,const char* src) {
-    size_t n=strlen(src);
-    memcpy(dst,src,n);
-    return dst+n;
+static char * cat(char * dst, const char * src) {
+    size_t n = strlen(src);
+    memcpy(dst, src, n);
+    return dst + n;
 }
 
-static int initdb(sqlite3 *db) {
-    char *emsg=0;
-    char sql[4096]={0},*c; /* make bigger as necessary */
-    int isok=0;
-    int i;
-    /* transaction will only go through if parameters table doesn't exist yet. */
-    c=cat(sql,"create table `parameters` (\n");
-    c=cat(c,"\t`dataset` INTEGER not null primary key autoincrement unique,\n");
-    for(i=0;i<countof(column_mapping);++i){
-        char buf[256]={0};
-        const struct column_mapping *co=&column_mapping[i];
-        snprintf(buf,sizeof(buf),"\t`%s` %s default %s,\n",co->name,co->type,co->def);
-        c=cat(c,buf);
-    }    
-    c-=2; /* erase the last comma and new line by backing up over them */
-    c=cat(c,");\n");
-    c=cat(c,"insert into `parameters` default values;\n");
-    c=cat(c,"create table `datasets` (`dataset` INTEGER primary key autoincrement unique,`description` TEXT);");
-    c=cat(c,"insert into `datasets` values (1,\"Default values\");\n");
-    SQLITE_SILENT_ERR(sqlite3_exec(db,sql,0,0,&emsg));
-    isok=1;
+static int initdb(sqlite3 * db) {
+    char * emsg = 0;
+    char sql[4096] = {0}, *c; /* make bigger as necessary */
+    int isok = 0;
+    /* transaction will only go through if parameters table doesn't exist yet.
+     */
+    c = cat(sql,"create table `parameters` (\n");
+    c = cat(c, "\t`dataset` INTEGER not null primary key autoincrement unique,\n");
+    for (int i = 0 ; i < countof(column_mapping) ; ++i){
+        char buf[256] = {0};
+        const struct column_mapping *co = &column_mapping[i];
+        snprintf(buf, sizeof(buf), "\t`%s` %s default %s,\n",
+                 co->name, co->type, co->def);
+        c = cat(c, buf);
+    }
+    c -= 2; /* erase the last comma and new line by backing up over them */
+    c = cat(c, ");\n");
+    c = cat(c,"insert into `parameters` default values;\n");
+    c = cat(c,"create table `datasets` (`dataset` INTEGER primary key autoincrement unique,`description` TEXT);");
+    c = cat(c,"insert into `datasets` values (1,\"Default values\");\n");
+    SQLITE_SILENT_ERR(sqlite3_exec(db, sql, 0, 0, &emsg));
+    isok = 1;
 Finalize:
     return 1;
 Error:
-    isok=0;
+    isok = 0;
     sqlite3_free(emsg);
     goto Finalize;
 }
 
-int initialize_params_file(const char* filename) {
-    int isok=0;
-    sqlite3 *db=0;
-    SQLITE_ERR(sqlite3_open(filename,&db));
-    isok=initdb(db);
+int initialize_params_file(const char * filename) {
+    int isok = 0;
+    sqlite3 *db = 0;
+    SQLITE_ERR(sqlite3_open(filename, &db));
+    isok = initdb(db);
     sqlite3_close(db);
     return isok;
 Error:
@@ -125,12 +125,14 @@ params_t * read_params(const char* filename, int dataset){
     int i;
 
     DBG("###############\n");
-    SQLITE_ERR(sqlite3_open(filename,&db));
+    SQLITE_ERR(sqlite3_open(filename, &db));
     initdb(db);
-    if(dataset>=0){
-        char sql[1024]={0};
-        snprintf(sql,sizeof(sql),"select * from parameters where dataset=%d limit 1",dataset);
-        SQLITE_ERR(sqlite3_prepare_v2(db,"select * from parameters limit 1;",-1,&stmt,0));
+    if (dataset >= 0){
+        char sql[1024] = {0};
+        snprintf(sql, sizeof(sql),
+                 "select * from parameters where dataset=%d limit 1",dataset);
+        SQLITE_ERR(sqlite3_prepare_v2(db, "select * from parameters limit 1;",
+                                      -1, &stmt, 0));
     } else
         SQLITE_ERR(sqlite3_prepare_v2(db,"select * from parameters limit 1;",-1,&stmt,0));
     while((ecode=sqlite3_step(stmt))==SQLITE_ROW) {
@@ -147,7 +149,7 @@ params_t * read_params(const char* filename, int dataset){
                     *(float*)(((char*)par)+column_mapping[j].o)=(float)sqlite3_column_double(stmt,i);
                     break;
                 default:
-                    LOG("Unexpected column type.\n"); 
+                    LOG("Unexpected column type.\n");
                     goto Error;
             }
             DBG("%s is %f\n",sqlite3_column_name(stmt,i),sqlite3_column_double(stmt,i));
@@ -158,10 +160,10 @@ params_t * read_params(const char* filename, int dataset){
 
     par->Ainit = par->ainitpfact / (par->pixmean * par->pixmean);
 
-    /* check that all required parameters were found */    
+    /* check that all required parameters were found */
     for (i = 0; i < countof(column_mapping) ; ++i)
         if (column_mapping[i].read == 0) exit(1);
-    
+
 Finalize:
     sqlite3_finalize(stmt);
     sqlite3_close(db);
@@ -175,8 +177,9 @@ Error:
 
  - Evolving parameter schemes
 
-   To maintain backwards compatibility as the application evolves, it might be neccessary to support
-   multiple types of parameter sets in the database at the same time.  If that happens, I'd recommend
-   adding a table for each parameter set schema (parameters_v0,parameters_v1, etc...) and then use the
+   To maintain backwards compatibility as the application evolves, it might be
+   neccessary to support multiple types of parameter sets in the database at
+   the same time.  If that happens, I'd recommend adding a table for each
+   parameter set schema (parameters_v0,parameters_v1, etc...) and then use the
    datasets table to record which parameter table to use.
 */

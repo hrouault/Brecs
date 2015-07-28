@@ -90,5 +90,8 @@ void brecs_initpsf(imagessimp_t * images, paramssimp_t * par,
 void brecs_addpsfslice(imagessimp_t * images, paramssimp_t * par,
                        float * psfsl, int islice);
 void brecs_initimgmessimp(imagessimp_t * images, paramssimp_t * params);
+void recopy(imagessimp_t * image,
+            float * ker_redisp, float * imgmes_redisp,
+            uint32_t * ccomp_redisp, float * recons_redisp);
 
 #endif /* end of include guard: BRECSSIMP_H_GNX1TYHI */

@@ -920,12 +920,6 @@ float * reconssparse(float * imgmes,float * imgnoise,
     unsigned int sizez = pixsdivz * (nbmesz - kersizez + kersizez % 2);
     unsigned int size3 = sizex * sizey * sizez;
 
-    sizex = pixsdiv * nbmesx;
-    sizey = pixsdiv * nbmesy;
-    size2 = sizex * sizey;
-    sizez = pixsdivz * 1;
-    size3 = sizex * sizey * sizez;
-
     float * reconspic = brecs_alloc(size3 * sizeof(float));
     for (unsigned int i = 0; i < size3; ++i) {
         reconspic[i] = 0;
@@ -974,7 +968,6 @@ float * reconssparse(float * imgmes,float * imgnoise,
 }
 
 /* Decompose an image into connected components */
-
 lab_t * roundker(int diam, int diamz)
 {
     int center = diam / 2;

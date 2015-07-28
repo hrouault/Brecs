@@ -56,8 +56,8 @@ void brecs_initpsf(imagessimp_t * images, paramssimp_t * par,
     images->ker->img = malloc(pixsdiv * pixsdiv
                               * kersize * kersize * sizeof(float));
     images->ker->size.sx = kersize;
-    images->ker->size.sy = kersize;
-    images->ker->size.sz = pixsdiv * pixsdiv;
+    images->ker->size.sy = kersize * pixsdiv * pixsdiv;
+    images->ker->size.sz = 1;
 }
 
 void brecs_addpsfslice(imagessimp_t * images, paramssimp_t * par,
@@ -105,7 +105,7 @@ void brecs_initimgmessimp(imagessimp_t * images, paramssimp_t * params)
     par->spixznm = 133;
     par->ainitpfact = 1.0;
     par->Ainit = par->ainitpfact / (par->pixmean * par->pixmean);
-    printf("ainit %f\n", par->Ainit);
+    printf("ainitpfact ainit %f %e\n", par->ainitpfact, par->Ainit);
     par->locaintensthr = 1000.0;
     par->overlaymaxint = 50.0;
     par->overlayminint = 0.1;
@@ -148,10 +148,36 @@ void brecs_initimgmessimp(imagessimp_t * images, paramssimp_t * params)
     reconssparse(imgs->imgmes, imgs->imgnoise,
                  nbmesx, nbmesy, nbmesz, imgs, par);
     images->recons = malloc(sizeof(fimg_t));
-    images->recons->size.sx = nbmesx * par->pixsdiv;
-    images->recons->size.sy = nbmesy * par->pixsdiv;
+    images->recons->size.sx = imgs->outsize.sx;
+    images->recons->size.sy = imgs->outsize.sy;
     images->recons->size.sz = 1;
     images->recons->img = imgs->reconspic;
     printf("Reconstruction done\n");
     //free(imgs);
+}
+
+void recopy(imagessimp_t * image,
+            float * ker_redisp, float * imgmes_redisp,
+            uint32_t * ccomp_redisp, float * recons_redisp)
+{
+    size_t wker = image->ker->size.sx;
+    size_t hker = image->ker->size.sy;
+    for (size_t i = 0; i < wker * hker; ++i) {
+        ker_redisp[i] = image->ker->img[i];
+    }
+    size_t wmes = image->imgmes->size.sx;
+    size_t hmes = image->imgmes->size.sy;
+    for (size_t i = 0; i < wmes * hmes; ++i) {
+        imgmes_redisp[i] = image->imgmes->img[i];
+    }
+    size_t wccomp = image->ccomp->size.sx;
+    size_t hccomp = image->ccomp->size.sy;
+    for (size_t i = 0; i < wccomp * hccomp; ++i) {
+        ccomp_redisp[i] = image->ccomp->img[i];
+    }
+    size_t wres = image->recons->size.sx;
+    size_t hres = image->recons->size.sy;
+    for (size_t i = 0; i < wres * hres; ++i) {
+        recons_redisp[i] = image->recons->img[i];
+    }
 }

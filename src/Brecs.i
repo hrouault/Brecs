@@ -30,15 +30,15 @@
 %include "arrays_java.i"
 %typemap(out) float[] {
     $result = SWIG_JavaArrayOutFloat(jenv, (float *)$1,
-                                     (arg1)->size.sx * (arg1)->size.sy * (arg1)->size.sz);
+                   (arg1)->size.sx * (arg1)->size.sy * (arg1)->size.sz);
 }
 %typemap(out) short[] {
     $result = SWIG_JavaArrayOutShort(jenv, (int16_t *)$1,
-                                     (arg1)->size.sx * (arg1)->size.sy * (arg1)->size.sz);
+                   (arg1)->size.sx * (arg1)->size.sy * (arg1)->size.sz);
 }
 %typemap(out) int[] {
     $result = SWIG_JavaArrayOutInt(jenv, (int32_t *)$1,
-                                     (arg1)->size.sx * (arg1)->size.sy * (arg1)->size.sz);
+                   (arg1)->size.sx * (arg1)->size.sy * (arg1)->size.sz);
 }
 
 %apply float[] {float *};
@@ -100,6 +100,10 @@ void brecs_initpsf(imagessimp_t * images, paramssimp_t * par,
 void brecs_initimgmessimp(imagessimp_t * images, paramssimp_t * params);
 void brecs_addpsfslice(imagessimp_t * images, paramssimp_t * par,
                        float * psfsl, int islice);
+void recopy(imagessimp_t * image,
+            float * ker_redisp, float * imgmes_redisp,
+            uint32_t * ccomp_redisp, float * recons_redisp);
+
 %}
 
 typedef struct {
@@ -153,3 +157,6 @@ void brecs_initpsf(imagessimp_t * images, paramssimp_t * par,
 void brecs_initimgmessimp(imagessimp_t * images, paramssimp_t * params);
 void brecs_addpsfslice(imagessimp_t * images, paramssimp_t * par,
                        float * psfsl, int islice);
+void recopy(imagessimp_t * image,
+            float * ker_redisp, float * imgmes_redisp,
+            uint32_t * ccomp_redisp, float * recons_redisp);

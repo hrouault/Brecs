@@ -11,32 +11,15 @@ import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import cz.adamh.utils.NativeUtils;
 import java.io.IOException;
-//import ij.io.Button;
 
 
 public class B_recs implements PlugIn {
-    private static String image_to_analyze = "";
-    private static String psf = "";
 
     public static final String PLUGIN_VERSION = "0.1";
-	//protected ImagePlus image;
 
-    // Native functions (test)
-    public native String returnHello(String text);
-
-	// image property members
-	private int width;
-	private int height;
-
-	// plugin parameters
-	public double value;
-	public String name;
-
-    // image files
     private static String title_recons = "";
     private static String title_psf = "";
 
-    //public void run(String ignored) {
     public void run(String arg) {
         try {
             NativeUtils.loadLibraryFromJar("/libB_recs.jnilib");
@@ -44,7 +27,6 @@ public class B_recs implements PlugIn {
             // This is probably not the best way to handle exception :-)
             e.printStackTrace();
         }
-        //System.loadLibrary("B_recs");
 
         int[] wList = WindowManager.getIDList();
         if (wList==null) {
@@ -60,7 +42,6 @@ public class B_recs implements PlugIn {
                 titles[i] = "";
         }
 
-
         GenericDialog gd = new GenericDialog("B-recs (version: "
                 + PLUGIN_VERSION + ")");
 
@@ -70,6 +51,7 @@ public class B_recs implements PlugIn {
 		else
 			defaultItem = title_recons;
         gd.addChoice("Image to reconstruct:", titles, defaultItem);
+
         if (title_psf.equals(""))
 			defaultItem = titles[0];
 		else
@@ -87,9 +69,9 @@ public class B_recs implements PlugIn {
             return;
         }
 
-        int index_recons = gd.getNextChoiceIndex();
-        ImagePlus img_recons = WindowManager.getImage(wList[index_recons]);
-        if (img_recons.getBitDepth() != 16) {
+        int index_source = gd.getNextChoiceIndex();
+        ImagePlus img_source = WindowManager.getImage(wList[index_source]);
+        if (img_source.getBitDepth() != 16) {
             IJ.showMessage("Error",
                            "The input image pixel depth should be 16 bit");
             return;
@@ -102,6 +84,7 @@ public class B_recs implements PlugIn {
             return;
         }
 
+        // Launch the linked Brecs library
         Brecs brecsrun = new Brecs();
 
         imagessimp_t image = new imagessimp_t();
@@ -113,62 +96,60 @@ public class B_recs implements PlugIn {
         params.setNbiter((float)gd.getNextNumber());
         params.setMeanback((float)gd.getNextNumber());
 
-        ImageProcessor ipin = img_recons.getChannelProcessor();
-        short [] pixels = (short [])(ipin.getPixels());
-        int meswidth = ipin.getWidth();
-        int mesheight = ipin.getHeight();
+        ImageProcessor ipsource = img_source.getChannelProcessor();
+        short [] pixels = (short [])(ipsource.getPixels());
+        int meswidth = ipsource.getWidth();
+        int mesheight = ipsource.getHeight();
         brecsrun.brecs_initin(image, pixels, meswidth, mesheight);
 
         int kersize = img_psf.getChannelProcessor().getWidth();
         int stacksize = img_psf.getImageStackSize();
         int pixsdiv = (int)Math.sqrt(stacksize);
         brecsrun.brecs_initpsf(image, params, kersize, pixsdiv);
-        float [] psf;
         for (int i = 0; i < stacksize; i++) {
             img_psf.setSliceWithoutUpdate(i + 1);
-            psf = (float [])(img_psf.getChannelProcessor().getPixels());
+            float [] psf = (float [])(img_psf.getChannelProcessor().getPixels());
             brecsrun.brecs_addpsfslice(image, params, psf, i);
         }
 
         brecsrun.brecs_initimgmessimp(image, params);
 
-
-        System.out.println("redisplay images: imgker");
+        System.out.println("redisplay images");
         // Redisplay images
-        int widthker = (int)image.getKer().getSize().getSx();
-        int heightker = (int)image.getKer().getSize().getSy()
-                        * (int)image.getKer().getSize().getSz();
-        ImageProcessor ipker = new FloatProcessor(widthker, heightker);
-        ipker.setPixels(image.getKer().getImg());
-        ImagePlus imgker = new ImagePlus(
-                "Replotted psf", ipker);
+        int kerheight = kersize * pixsdiv * pixsdiv;
+        float [] ker_redisp = new float[kersize * kerheight];
+        int widthmes = (int)image.getImgmes().getSize().getSx();
+        int heightmes = (int)image.getImgmes().getSize().getSy();
+        float [] imgmes_redisp = new float[widthmes * heightmes];
+        int widthcc = (int)image.getCcomp().getSize().getSx();
+        int heightcc = (int)image.getCcomp().getSize().getSy();
+        int [] ccomp_redisp = new int[widthcc * heightcc];
+        int widthrec = (int)image.getRecons().getSize().getSx();
+        int heightrec = (int)image.getRecons().getSize().getSy();
+        float [] recons_redisp = new float[widthrec * heightrec];
+        brecsrun.recopy(image, ker_redisp, imgmes_redisp,
+                        ccomp_redisp, recons_redisp);
+
+        ImageProcessor ipker = new FloatProcessor(kersize, kerheight);
+        ipker.setPixels(ker_redisp);
+        ImagePlus imgker = new ImagePlus("Replotted psf", ipker);
         imgker.show();
 
-        System.out.println("redisplay images: imgmes");
-        int width = (int)image.getImgmes().getSize().getSx();
-        int height = (int)image.getImgmes().getSize().getSy();
-        ImageProcessor ipmes = new FloatProcessor(width, height);
-        ipmes.setPixels(image.getImgmes().getImg());
+        ImageProcessor ipmes = new FloatProcessor(widthmes, heightmes);
+        ipmes.setPixels(imgmes_redisp);
         ImagePlus imgmes = new ImagePlus(
                 "Image in number of photons, background substracted", ipmes);
         imgmes.show();
 
-        System.out.println("redisplay images: ccomp");
-        int widthcc = (int)image.getImgmes().getSize().getSx() * 8;
-        int heightcc = (int)image.getImgmes().getSize().getSy() * 8;
-        System.out.println(widthcc);
-        System.out.println(heightcc);
         ImageProcessor ipcc = new ColorProcessor(widthcc, heightcc);
-        ipcc.setPixels(image.getCcomp().getImg());
+        ipcc.setPixels(ccomp_redisp);
         ImagePlus imgcc = new ImagePlus(
                 "Connected component decomposition", ipcc);
         imgcc.show();
 
-        System.out.println("redisplay images: recons");
-        ImageProcessor ipres = new FloatProcessor(widthcc / 2, heightcc / 2);
-        ipres.setPixels(image.getRecons().getImg());
-        ImagePlus imgres = new ImagePlus(
-                "Reconstruction", ipres);
+        ImageProcessor ipres = new FloatProcessor(widthrec, heightrec);
+        ipres.setPixels(recons_redisp);
+        ImagePlus imgres = new ImagePlus("Reconstruction", ipres);
         imgres.show();
 
         return;
