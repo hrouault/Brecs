@@ -34,9 +34,13 @@
 #include <stdlib.h>
 #include <platform.h>
 
-#include "Brecssimp.h"
-
 typedef uint16_t lab_t;
+
+typedef struct {
+    unsigned int x;
+    unsigned int y;
+    unsigned int z;
+} veci3;
 
 typedef struct {
     unsigned nbcomp;
@@ -87,9 +91,9 @@ typedef struct {
     float * imgback;
     float * ker;
     float * reconspic;
-    sizeimg_t insize;
-    sizeimg_t outsize;
-    sizeimg_t imgmessize;
+    veci3 insize;
+    veci3 outsize;
+    veci3 imgmessize;
 } images_t;
 
 typedef struct {
@@ -107,7 +111,7 @@ typedef struct {
     afloat * imgmes;
     unsigned int nbact;
     int * activepix;
-} simdarrays;
+} simdarrays_t;
 
 ccomp_dec connectcomp_decomp3d(float * img,
                                int nbmesx, int nbmesy, int nbmesz,

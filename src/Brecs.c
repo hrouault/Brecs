@@ -115,8 +115,7 @@ void update_omegavmu(float * omegamu, float * vmu,
                      float * ker, float * ker2,
                      float * abeal, float * vbeal,
                      unsigned nbact, int * activepix,
-                     int sizex, int sizey, int sizez,
-                     params_t * par)
+                     veci3 * srec, params_t * par)
 {
     const vecfloat zero = VFUNC(set1_ps) (0);
 
@@ -128,13 +127,13 @@ void update_omegavmu(float * omegamu, float * vmu,
     int kersizez = par->kersizez;
     int kersize3 = kersize * kersizez;
 
-    int nbmesx = sizex / pixsdiv + kersize;
-    int nbmesy = sizey / pixsdiv + kersize;
-    int nbmesz = sizez / pixsdivz + kersizez - kersizez % 2;
+    int nbmesx = srec->x / pixsdiv + kersize;
+    int nbmesy = srec->y / pixsdiv + kersize;
+    int nbmesz = srec->z / pixsdivz + kersizez - kersizez % 2;
     int nbmes2 = nbmesx * nbmesy;
     int nbmes3 = nbmes2 * nbmesz;
 
-    int size2 = sizex * sizey;
+    int size2 = srec->x * srec->y;
 
 
     for (int mu = 0; mu < nbmes3; mu += shift) {
@@ -147,13 +146,13 @@ void update_omegavmu(float * omegamu, float * vmu,
         float * cabeal = abeal + k * kersize3;
         float * cvbeal = vbeal + k * kersize3;
 
-        int ci = ((i % size2) % sizex) % pixsdiv;
-        int li = ((i % size2) / sizex) % pixsdiv;
+        int ci = ((i % size2) % srec->x) % pixsdiv;
+        int li = ((i % size2) / srec->x) % pixsdiv;
         int zi = (i / size2) % pixsdivz;
         int ikeri = ci + li * pixsdiv + zi * pixsdiv2;
 
-        int cmu0 = ((i % size2) % sizex) / pixsdiv + kersize / 2;
-        int lmu0 = ((i % size2) / sizex) / pixsdiv + kersize / 2;
+        int cmu0 = ((i % size2) % srec->x) / pixsdiv + kersize / 2;
+        int lmu0 = ((i % size2) / srec->x) / pixsdiv + kersize / 2;
         int zmu0 = (i / size2) / pixsdivz + kersizez / 2;
 
         float * cker = ker + ikeri * kersize3;
@@ -200,8 +199,7 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
                   afloat * ker, afloat * ker2,
                   afloat * imgnoise, afloat * imgmes,
                   unsigned nbact, int * activepix,
-                  int sizex, int sizey, int sizez,
-                  params_t * par)
+                  veci3 * srec, params_t * par)
 {
     int pixsdiv = par->pixsdiv;
     int pixsdivz = par->pixsdivz;
@@ -216,15 +214,15 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
     const vecfloat oneosk = VFUNC(set1_ps) (1.0f / kersize3);
     const vecfloat lowv = VFUNC(set1_ps) (1e8);
 
-    int nbmesx = sizex / pixsdiv + kersize;
-    int nbmesy = sizey / pixsdiv + kersize;
+    int nbmesx = srec->x / pixsdiv + kersize;
+    int nbmesy = srec->y / pixsdiv + kersize;
     int nbmes2 = nbmesx * nbmesy;
-    int nbmes3 = nbmes2 * (sizez / pixsdivz + kersizez - kersizez % 2);
+    int nbmes3 = nbmes2 * (srec->z / pixsdivz + kersizez - kersizez % 2);
 
-    int size2 = sizex * sizey;
+    int size2 = srec->x * srec->y;
 
     update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, nbact, activepix,
-                    sizex, sizey, sizez, par);
+                    srec, par);
 
     for (unsigned int k = 0; k < nbact; ++k) {
         int i = activepix[k];
@@ -233,13 +231,13 @@ void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
         float * cabeal = abeal + k * kersize3;
         float * cvbeal = vbeal + k * kersize3;
 
-        int ci = ((i % size2) % sizex) % pixsdiv;
-        int li = ((i % size2) / sizex) % pixsdiv;
+        int ci = ((i % size2) % srec->x) % pixsdiv;
+        int li = ((i % size2) / srec->x) % pixsdiv;
         int zi = (i / size2) % pixsdivz;
         int ikeri = ci + li * pixsdiv + zi * pixsdiv2;
 
-        int cmu0 = ((i % size2) % sizex) / pixsdiv + kersize / 2;
-        int lmu0 = ((i % size2) / sizex) / pixsdiv + kersize / 2;
+        int cmu0 = ((i % size2) % srec->x) / pixsdiv + kersize / 2;
+        int lmu0 = ((i % size2) / srec->x) / pixsdiv + kersize / 2;
         int zmu0 = (i / size2) / pixsdivz + kersizez / 2;
 
         float * cker = ker + ikeri * kersize3;
@@ -315,8 +313,7 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
                    float * ker, float * ker2,
                    float * imgnoise, float * imgmes,
                    unsigned nbact, int * activepix,
-                   int sizex, int sizey, int sizez,
-                   params_t * par)
+                   veci3 * srec, params_t * par)
 {
     int pixsdiv = par->pixsdiv;
     int pixsdivz = par->pixsdivz;
@@ -333,7 +330,7 @@ void update_mualbe(float * mu_albe_A, float * mu_albe_B,
                  ker, ker2,
                  imgnoise, imgmes,
                  nbact, activepix,
-                 sizex, sizey, sizez, par);
+                 srec, par);
 
     const vecfloat zero = VFUNC(set1_ps) (0);
     const vecfloat oneosk = VFUNC(set1_ps) (1.0f / kersize3);
@@ -604,8 +601,7 @@ float * gausskerpar2d(int sx, int sy, float radius)
 float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
                      int * activepix, unsigned nbact,
                      float * ker, float * ker2,
-                     int sizex, int sizey, int sizez,
-                     params_t * par)
+                     veci3 * srec, params_t * par)
 {
     int pixsdiv = par->pixsdiv;
     int pixsdivz = par->pixsdivz;
@@ -638,8 +634,8 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
     float * omegamu;
     float * vmu;
 
-    int size2 = sizex * sizey;
-    int size3 = size2 * sizez;
+    int size2 = srec->x * srec->y;
+    int size3 = size2 * srec->z;
 
 
     float * res;
@@ -747,7 +743,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
                     ker, ker2,
                     imgnoisecp, imgmes,
                     nbact, activepix,
-                    sizex, sizey, sizez, par);
+                    srec, par);
             // printf("relerr: %f\n", relerr);
         }
 
@@ -781,11 +777,11 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
         }
         static int nbfluo = 1;
         for (int i = 0; i < size3; ++i) {
-            int c = (i % size2) % sizex;
-            int l = (i % size2) / sizex;
+            int c = (i % size2) % srec->x;
+            int l = (i % size2) / srec->x;
             int z = i / size2;
             if (res[i] > locaintensthr
-                && !on_border(i, activepix, nbact, sizex, size2)) {
+                && !on_border(i, activepix, nbact, srec->x, size2)) {
                 printf("%d %.2f %.2f %.2f %.2f\n",
                         nbfluo,
                         //brecs_args.filename_arg,
@@ -812,69 +808,66 @@ float * recons_ccomp(float * imgmes, float * imgnoise, int nbmes3,
     return res;
 }
 
-/* void plot_overlay(float * imgmes, float * imgrecons, */
-/*                   unsigned int sx, unsigned int sy, unsigned int sz, */
-/*                   unsigned int mx, unsigned int my, unsigned int mz, */
-/*                   const char * fname, params_t * par) */
-/* { */
-/*     float overlaymaxint = par->overlaymaxint; */
-/*     float overlayminint = par->overlayminint; */
-/*     int pixsdiv = par->pixsdiv; */
-/*     int pixsdivz = par->pixsdivz; */
-/*     int pixsdiv2 = pixsdiv * pixsdiv; */
-/*     int kersize = par->kersize; */
-/*     int kersize2 = kersize * kersize; */
-/*     int kersizez = par->kersizez; */
-/*     int kersize3 = kersize * kersizez; */
+uint8_t * create_overlay(float * imgmes, float * imgrecons,
+                         veci3 * srec, veci3 * smes, params_t * par)
+{
+    float overlaymaxint = par->overlaymaxint;
+    float overlayminint = par->overlayminint;
+    int pixsdiv = par->pixsdiv;
+    int pixsdivz = par->pixsdivz;
+    int pixsdiv2 = pixsdiv * pixsdiv;
+    int kersize = par->kersize;
+    int kersize2 = kersize * kersize;
+    int kersizez = par->kersizez;
+    int kersize3 = kersize * kersizez;
 
-/*     unsigned i; */
+    unsigned i;
 
-/*     unsigned int long size2 = sx * sy; */
-/*     unsigned int long size3 = sx * sy * sz; */
+    unsigned int long size2 = srec->x * srec->y;
+    unsigned int long size3 = srec->x * srec->y * srec->z;
 
-/*     unsigned int long nbmes2 = mx * my; */
-/*     unsigned int long nbmes3 = mx * my * mz; */
+    unsigned int long nbmes2 = smes->x * smes->y;
+    unsigned int long nbmes3 = nbmes2 * smes->z;
 
-/*     uint8_t * img_data = brecs_alloc(3 * size3 * sizeof(uint8_t)); */
-/*     float maxrc = 0; */
-/*     for (i = 0 ; i < size3 ; i++) { */
-/*         if (maxrc < imgrecons[i]) maxrc = imgrecons[i]; */
-/*     } */
-/*     printf("Maxrecons : %f\n", maxrc); */
+    uint8_t * img_data = brecs_alloc(3 * size3 * sizeof(uint8_t));
+    float maxrc = 0;
+    for (i = 0 ; i < size3 ; i++) {
+        if (maxrc < imgrecons[i]) maxrc = imgrecons[i];
+    }
+    printf("Maxrecons : %f\n", maxrc);
 
-/*     float max2 = 0; */
-/*     float min2 = 0; */
-/*     for (i = 0 ; i < nbmes3 ; i++) { */
-/*         if (max2 < imgmes[i]) max2 = imgmes[i]; */
-/*         if (min2 > imgmes[i]) min2 = imgmes[i]; */
-/*     } */
+    float max2 = 0;
+    float min2 = 0;
+    for (i = 0 ; i < nbmes3 ; i++) {
+        if (max2 < imgmes[i]) max2 = imgmes[i];
+        if (min2 > imgmes[i]) min2 = imgmes[i];
+    }
 
-/*     for (unsigned i = 0; i < size3; ++i) { */
-/*         int x = i % sx; */
-/*         int y = (i % size2) / sx; */
-/*         int z = i / size2; */
-/*         float val = imgrecons[i]; */
-/*         uint8_t * cimgd = img_data + i * 3; */
-/*         if (val > overlayminint) { */
-/*             if (val > overlaymaxint) val = overlaymaxint; */
-/*             cimgd[0] = (uint8_t)(255.0 * (log(val) - log(overlayminint)) */
-/*                 / (log(overlaymaxint) - log(overlayminint))); */
-/*             cimgd[1] = 0; */
-/*             cimgd[2] = 0; */
-/*         } else { */
-/*             uint8_t val = (uint8_t)( 255 / (max2 - min2) */
-/*                 * (imgmes[(y / pixsdiv + kersize / 2) * mx + x / pixsdiv + kersize / 2 */
-/*                           + (z / pixsdivz + kersizez / 2) * nbmes2] - min2)); */
-/*             cimgd[0] = val; */
-/*             cimgd[1] = val; */
-/*             cimgd[2] = val; */
-/*         } */
-/*     } */
-/*     writetiff_rgb(fname, sx, sy, sz, img_data); */
-/*     // (ngc) FIXME? img_data leaked */
-/* } */
-
-
+    for (unsigned i = 0; i < size3; ++i) {
+        int x = i % srec->x;
+        int y = (i % size2) / srec->x;
+        int z = i / size2;
+        float val = imgrecons[i];
+        uint8_t * cimgd = img_data + i * 3;
+        if (val > overlayminint) {
+            if (val > overlaymaxint) val = overlaymaxint;
+            cimgd[0] = (uint8_t)(255.0 * (log(val) - log(overlayminint))
+                / (log(overlaymaxint) - log(overlayminint)));
+            cimgd[1] = 0;
+            cimgd[2] = 0;
+        } else {
+            size_t ind = (y / pixsdiv + kersize / 2) * smes->x
+                         + x / pixsdiv + kersize / 2
+                         + (z / pixsdivz + kersizez / 2) * nbmes2;
+            uint8_t val = (uint8_t)(255 / (max2 - min2)
+                                    * (imgmes[ind] - min2));
+            cimgd[0] = val;
+            cimgd[1] = val;
+            cimgd[2] = val;
+        }
+    }
+    return img_data;
+}
 
 float * reconssparse(float * imgmes,float * imgnoise,
                      int nbmesx, int nbmesy, int nbmesz,
@@ -925,6 +918,16 @@ float * reconssparse(float * imgmes,float * imgnoise,
         reconspic[i] = 0;
     }
 
+    veci3 srec;
+    srec.x = sizex;
+    srec.y = sizey;
+    srec.z = sizez;
+
+    veci3 smes;
+    smes.x = nbmesx;
+    smes.y = nbmesy;
+    smes.z = nbmesz;
+
     printf("recons first comp\n");
     for (unsigned int i = 0; i < ccdec.nbcomp; ++i) {
     //for (unsigned int i = 0; i < 2; ++i) {
@@ -933,8 +936,7 @@ float * reconssparse(float * imgmes,float * imgnoise,
         fflush(stdout);
         float * rectmp = recons_ccomp(imgmes, imgnoise, nbmesx * nbmesy * nbmesz,
                                       ccdec.activepixcomp[i], ccdec.nbact[i],
-                                      ker, ker2,
-                                      sizex, sizey, sizez, par);
+                                      ker, ker2, &srec, par);
         for (unsigned int i = 0; i < size3; ++i) {
             reconspic[i] += rectmp[i];
         }
@@ -954,17 +956,15 @@ float * reconssparse(float * imgmes,float * imgnoise,
                  sizex, sizey, sizez, nbmesx, nbmesy, nbmesz,
                  "overlay.tif");
 #endif
-
+    uint8_t * overlay = create_overlay(imgmes, reconspic, &srec, &smes, par);
 
     images->reconspic = reconspic; /* callee is responsible for freeing with
                                       brecs_free */
-    images->outsize.sx = sizex;
-    images->outsize.sy = sizey;
-    images->outsize.sz = sizez;
+    images->outsize = srec;
 
     printf("Converged: %i / %i\n", nbconv, ccdec.nbcomp);
 
-    return NULL;
+    return reconspic;
 }
 
 /* Decompose an image into connected components */
@@ -1861,9 +1861,9 @@ void brecs_initimgmes(images_t * images, params_t * par) {
     float * imgnoise;
     float * imgrecons;
 
-    const int insx = images->insize.sx;
-    const int insy = images->insize.sy;
-    const int insz = images->insize.sz;
+    const int insx = images->insize.x;
+    const int insy = images->insize.y;
+    const int insz = images->insize.z;
 
     printf("Initializing brecs...\n");
     printf("sizes %d %d %d\n", insx, insy, insz);
@@ -1918,9 +1918,9 @@ void brecs_initimgmes(images_t * images, params_t * par) {
     }
     printf("Image copy done!\n");
     images->imgmes = imgmes;
-    images->imgmessize.sx = nbmesx;
-    images->imgmessize.sy = nbmesy;
-    images->imgmessize.sz = nbmesz;
+    images->imgmessize.x = nbmesx;
+    images->imgmessize.y = nbmesy;
+    images->imgmessize.z = nbmesz;
 
     images->imgnoise = imgnoise;
 
@@ -1949,9 +1949,9 @@ void brecs(images_t * images, params_t * par) {
     float * imgnoise;
     float * imgrecons;
 
-    const int insx = images->insize.sx;
-    const int insy = images->insize.sy;
-    const int insz = images->insize.sz;
+    const int insx = images->insize.x;
+    const int insy = images->insize.y;
+    const int insz = images->insize.z;
 
     const unsigned long int nbmesx = insx + kersize;
     const unsigned long int nbmesy = insy + kersize;

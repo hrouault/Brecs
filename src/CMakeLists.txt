@@ -26,7 +26,7 @@ install(FILES Brecs.h DESTINATION include)
 if (JNI_FOUND)
     include_directories(${JNI_INCLUDE_DIRS})
     add_library(fiji-brecs SHARED Brecs.h Brecs.c error.c error.h
-                Brecs_wrap.c Brecssimp.c Brecssimp.h)
+                Brecs_wrap.c javainterf.c javainterf.h)
     target_add_platform_static(fiji-brecs)
     target_link_libraries (fiji-brecs ${JNI_LIBRARIES})
 endif (JNI_FOUND)

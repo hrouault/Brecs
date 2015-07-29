@@ -58,3 +58,4 @@ src/brecs-reconsparse
 src/libbrecs-static.a
 src/platform/osx/libplatform.a
 
+*.cmake
