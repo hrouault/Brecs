@@ -15,16 +15,14 @@ struct gengetopt_args_info brecs_args;
 
 int main(int argc, char ** argv)
 {
-    images_t * images;
+    images_t images;
     params_t * par = read_params("brecs_parameters.sqlite3", -1);
     int pixsdiv = par->pixsdiv;
     int pixsdivz = par->pixsdivz;
     int pixsdiv2 = pixsdiv * pixsdiv;
     int pixsdiv3 = pixsdivz * pixsdiv2;
     int kersize = par->kersize;
-    int kersize2 = kersize * kersize;
     int kersizez = par->kersizez;
-    int kersize3 = kersizez * kersize2;
 
 #ifdef __DEBUG__
     _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID
@@ -49,25 +47,30 @@ int main(int argc, char ** argv)
     int insy;
     int insz;
 
-    images->img = opentiff(brecs_args.filename_arg, &insx, &insy, &insz);
+    images.img = opentiff(brecs_args.filename_arg, &insx, &insy, &insz);
 
     if (brecs_args.background_arg) {
         int binsx;
         int binsy;
         int binsz;
-        images->imgback = opentiff_f(brecs_args.background_arg,
-                                     &binsx,
-                                     &binsy,
-                                     &binsz);
+        images.imgback = opentiff_f(brecs_args.background_arg,
+                                    &binsx,
+                                    &binsy,
+                                    &binsz);
         if (binsx != insx || binsy != insy || binsz != insz) {
             brecs_error("img and background size do not match",
                         0,
                         prog_name);
         }
+    } else {
+        images.imgback = NULL;
     }
 
-    int sx,sy,sz;
-    images->ker = opentiff_f(brecs_args.psf_arg, &sx, &sy, &sz);
+    images.insize.x = insx;
+    images.insize.y = insy;
+    images.insize.z = insz;
+    int sx, sy, sz;
+    images.ker = opentiff_f(brecs_args.psf_arg, &sx, &sy, &sz);
     if (sx != kersize || sy != kersize * kersizez || sz != pixsdiv3) {
         printf("invalid psf size: %d %d %d\n",sx,sy,sz);
         printf("should be: %d %d %d\n",kersize,kersize * kersizez,
@@ -75,12 +78,12 @@ int main(int argc, char ** argv)
         exit(EXIT_FAILURE);
     }
 
-    brecs(images, par);
+    brecs(&images, par);
 
-    if(brecs_args.output_arg) {
+    if (brecs_args.output_arg) {
         writetiff_f(brecs_args.output_arg,
-                    images->outsize.sx, images->outsize.sy, images->outsize.sz,
-                    images->reconspic);
+                    images.outsize.x, images.outsize.y, images.outsize.z,
+                    images.reconspic);
     }
 
     return EXIT_SUCCESS;

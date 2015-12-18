@@ -11,7 +11,6 @@ extern "C" {
 
 #include "afloat.h"
 #include "brecs_memory.h"
-#include <tiffio.h>
 
 #ifdef __clpusplus
 }
