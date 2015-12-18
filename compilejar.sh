@@ -1,5 +1,5 @@
 cd ~/postdoc/superres/Brecs/src
-swig -java Brecs.i
+swig -java javainterf.i
 mv *.java ../fiji-plugin/src/main/java/
 cd ../buildcmake
 make fiji-brecs
