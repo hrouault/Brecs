@@ -1,9 +1,9 @@
 /* Copyright (c) , Herve Rouault <rouaulth@janelia.hhmi.org>,
  * Howard Hughes Medical Institute.
  * All rights reserved.
- * 
+ *
  * This file is part of Brecs.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
  *     * Neither the name of the Howard Hughes Medical Institute nor the
  *       names of its contributors may be used to endorse or promote products
  *       derived from this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -32,24 +32,23 @@
 
 #include "inoutimg.h"
 
-#define OVERSAMP 10
 
-void gaussker2d(double sigma, size_t shift, size_t sizepsf)
+float * gaussker2d(double sigma,
+                   size_t shift, size_t sizepsf, size_t oversamp)
 {
-    size_t pixsize = shift * OVERSAMP;
-    size_t pixsize2 = pixsize * pixsize;
+    size_t pixsize = shift * oversamp;
     size_t nbpixhighres = sizepsf * pixsize;
     size_t sizeimg = nbpixhighres + 2 * pixsize;
     double * psfhighres = malloc(sizeimg * sizeimg * sizeof(double));
     float * psfpic = malloc(sizeimg * sizeimg * sizeof(float));
 
     /* Calculation of the psf value */
-    for (int y = 0; y < sizeimg; ++y) {
+    for (size_t y = 0; y < sizeimg; ++y) {
         double dy = y - (double)(nbpixhighres + pixsize) / 2 + 0.5;
-        for (int x = 0; x < sizeimg; ++x) {
+        for (size_t x = 0; x < sizeimg; ++x) {
             double dx = x - (double)(nbpixhighres + pixsize) / 2 + 0.5;
             double r2 = dx * dx + dy * dy;
-            double sigma2res = sigma * OVERSAMP * shift;
+            double sigma2res = sigma * oversamp * shift;
             sigma2res *= sigma2res;
             double val = exp(-r2 / 2 / sigma2res) / (2 * M_PI * sigma2res);
             psfhighres[y * nbpixhighres + x] = val;
@@ -60,7 +59,6 @@ void gaussker2d(double sigma, size_t shift, size_t sizepsf)
     for (size_t i = 0; i < sizeimg * sizeimg; ++i) {
         sum += psfhighres[i];
     }
-    printf("%f\n", sum);
     float * psfpicshift = malloc(shift * shift * sizepsf * sizepsf
                                  * sizeof(float));
     double * psfshift = malloc(shift * shift * sizepsf * sizepsf
@@ -71,28 +69,31 @@ void gaussker2d(double sigma, size_t shift, size_t sizepsf)
             for (size_t k = 0; k < pixsize * pixsize; ++k) {
                 size_t xres = k % pixsize + pixsize
                               + j % sizepsf * pixsize
-                              - i % shift * OVERSAMP
-                              - (shift + 1) % 2 * OVERSAMP / 2;
+                              - i % shift * oversamp
+                              - (shift + 1) % 2 * oversamp / 2;
                 size_t yres = k / pixsize + pixsize
                               + j / sizepsf * pixsize
-                              - i / shift * OVERSAMP
-                              - (shift + 1) % 2 * OVERSAMP / 2;
+                              - i / shift * oversamp
+                              - (shift + 1) % 2 * oversamp / 2;
                 val += psfhighres[yres * nbpixhighres + xres];
             }
             psfshift[j + i * sizepsf * sizepsf] = val;
             psfpicshift[j + i * sizepsf * sizepsf] = val;
         }
     }
-    writetiff_f("psf2d.tif", nbpixhighres, nbpixhighres, 1, psfpic);
-    writetiff_f("psf2d-shift.tif",
-                sizepsf, sizepsf, shift * shift, psfpicshift);
+    /* writetiff_f("psf2d.tif", nbpixhighres, nbpixhighres, 1, psfpic); */
+    /* writetiff_f("psf2d-shift.tif", */
+    /*             sizepsf, sizepsf, shift * shift, psfpicshift); */
+    free(psfpicshift);
+    free(psfshift);
+    free(psfhighres);
+    return(psfpicshift);
 }
-
 
 
 int main(int argc, char const *argv[])
 {
-    gaussker2d(1.05, 8, 16);
+    gaussker2d(1.05, 8, 16, 8);
 
     return 0;
 }
