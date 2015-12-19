@@ -76,11 +76,20 @@ typedef struct {
 } paramssimp_t;
 
 typedef struct {
+    float psfwidth;
+    unsigned int imagewidth;
+    unsigned int oversampling;
+    float pixsize;
+    float * img;
+} psf_params_t;
+
+typedef struct {
     uint16img_t * img;
     fimg_t * ker;
     fimg_t * imgmes;
     fimg_t * recons;
     rgbimg_t * ccomp;
+    rgbimg_t * overlay;
 } imagessimp_t;
 
 void brecs_initin(imagessimp_t * images,
@@ -89,9 +98,12 @@ void brecs_initpsf(imagessimp_t * images, paramssimp_t * par,
                    unsigned int kersize, unsigned int pixsdiv);
 void brecs_addpsfslice(imagessimp_t * images, paramssimp_t * par,
                        float * psfsl, int islice);
-void brecs_initimgmessimp(imagessimp_t * images, paramssimp_t * params);
+void brecs_reconstruction(imagessimp_t * images, paramssimp_t * params);
 void recopy(imagessimp_t * image,
             float * ker_redisp, float * imgmes_redisp,
-            uint32_t * ccomp_redisp, float * recons_redisp);
+            uint32_t * ccomp_redisp, float * recons_redisp,
+            uint32_t * over_redisp);
+void brecs_psfgen(psf_params_t * psfpar);
+void recopypsf(psf_params_t * psf_par, float * psfdata);
 
 #endif /* end of include guard: BRECSSIMP_H_GNX1TYHI */

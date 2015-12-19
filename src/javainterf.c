@@ -31,8 +31,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "Brecssimp.h"
 #include "Brecs.h"
+#include "genpsf.h"
+#include "javainterf.h"
 
 void brecs_initin(imagessimp_t * images,
                   uint16_t * pixels, unsigned int width, unsigned int height)
@@ -69,7 +70,7 @@ void brecs_addpsfslice(imagessimp_t * images, paramssimp_t * par,
     }
 }
 
-void brecs_initimgmessimp(imagessimp_t * images, paramssimp_t * params)
+void brecs_reconstruction(imagessimp_t * images, paramssimp_t * params)
 {
     printf("mean: %f, std:%f\n", params->pixmean, params->pixstd);
     printf("image values: %d %d %d\n", images->img->img[0],
@@ -89,12 +90,12 @@ void brecs_initimgmessimp(imagessimp_t * images, paramssimp_t * params)
     par->pixsdiv = params->pixsdiv;
     par->pixsdivz = 1;
 
-    imgs->insize.sx = images->img->size.sx;
-    imgs->insize.sy = images->img->size.sy;
-    imgs->insize.sz = 1;
-    printf("image size: %ld %ld %ld\n", imgs->insize.sx,
-                                        imgs->insize.sy,
-                                        imgs->insize.sz);
+    imgs->insize.x = images->img->size.sx;
+    imgs->insize.y = images->img->size.sy;
+    imgs->insize.z = 1;
+    printf("image size: %ld %ld %ld\n", imgs->insize.x,
+                                        imgs->insize.y,
+                                        imgs->insize.z);
     par->mesoffset = 0;
     par->convolpixthr = 200.0;
     par->damp1 = 0.01;
@@ -127,16 +128,20 @@ void brecs_initimgmessimp(imagessimp_t * images, paramssimp_t * params)
 
     printf("init done...\n");
     images->imgmes = malloc(sizeof(fimg_t));
-    images->imgmes->size.sx = imgs->imgmessize.sx;
-    images->imgmes->size.sy = imgs->imgmessize.sy;
-    images->imgmes->size.sz = imgs->imgmessize.sz;
+    images->imgmes->size.sx = imgs->imgmessize.x;
+    images->imgmes->size.sy = imgs->imgmessize.y;
+    images->imgmes->size.sz = imgs->imgmessize.z;
     images->imgmes->img = imgs->imgmes;
 
     int nbmesx = images->imgmes->size.sx;
     int nbmesy = images->imgmes->size.sy;
     int nbmesz = images->imgmes->size.sz;
     printf("image size: %d %d %d\n", nbmesx, nbmesy, nbmesz);
-    ccomp_dec ccdec = connectcomp_decomp2d(imgs->imgmes, nbmesx, nbmesy, par);
+    veci3 smes;
+    smes.x = nbmesx;
+    smes.y = nbmesy;
+    smes.z = nbmesz;
+    ccomp_dec ccdec = connectcomp_decomp2d(imgs->imgmes, &smes, par);
 
     images->ccomp = malloc(sizeof(rgbimg_t));
     images->ccomp->size.sx = nbmesx * par->pixsdiv;
@@ -145,20 +150,35 @@ void brecs_initimgmessimp(imagessimp_t * images, paramssimp_t * params)
     images->ccomp->img = ccdec.rgbimg;
     printf("%ld %ld\n", images->ccomp->size.sx, images->ccomp->size.sy);
 
-    reconssparse(imgs->imgmes, imgs->imgnoise,
-                 nbmesx, nbmesy, nbmesz, imgs, par);
+    reconssparse(imgs->imgmes, imgs->imgnoise, &smes, imgs, par);
     images->recons = malloc(sizeof(fimg_t));
-    images->recons->size.sx = imgs->outsize.sx;
-    images->recons->size.sy = imgs->outsize.sy;
+    images->recons->size.sx = imgs->outsize.x;
+    images->recons->size.sy = imgs->outsize.y;
     images->recons->size.sz = 1;
     images->recons->img = imgs->reconspic;
     printf("Reconstruction done\n");
+
+    images->overlay = malloc(sizeof(rgbimg_t));
+    images->overlay->size.sx = imgs->outsize.x;
+    images->overlay->size.sy = imgs->outsize.y;
+    images->overlay->size.sz = 1;
+    images->overlay->img = (uint32_t *)imgs->overlay;
     //free(imgs);
+}
+
+void brecs_psfgen(psf_params_t * psfpar)
+{
+    printf("sigma: %f, img width:%u\n", psfpar->psfwidth, psfpar->imagewidth);
+    float * pic;
+    pic = gaussker2d(psfpar->psfwidth / psfpar->pixsize,
+                     psfpar->oversampling, psfpar->imagewidth, 10);
+    psfpar->img = pic;
 }
 
 void recopy(imagessimp_t * image,
             float * ker_redisp, float * imgmes_redisp,
-            uint32_t * ccomp_redisp, float * recons_redisp)
+            uint32_t * ccomp_redisp, float * recons_redisp,
+            uint32_t * over_redisp)
 {
     size_t wker = image->ker->size.sx;
     size_t hker = image->ker->size.sy;
@@ -179,5 +199,15 @@ void recopy(imagessimp_t * image,
     size_t hres = image->recons->size.sy;
     for (size_t i = 0; i < wres * hres; ++i) {
         recons_redisp[i] = image->recons->img[i];
+        over_redisp[i] = image->overlay->img[i];
+    }
+}
+
+void recopypsf(psf_params_t * psf_par, float * psfdata)
+{
+    size_t size = psf_par->imagewidth * psf_par->imagewidth
+                  * psf_par->oversampling * psf_par->oversampling;
+    for (size_t i = 0; i < size; ++i) {
+        psfdata[i] = psf_par->img[i];
     }
 }

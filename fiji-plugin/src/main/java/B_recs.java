@@ -112,7 +112,7 @@ public class B_recs implements PlugIn {
             brecsrun.brecs_addpsfslice(image, params, psf, i);
         }
 
-        brecsrun.brecs_initimgmessimp(image, params);
+        brecsrun.brecs_reconstruction(image, params);
 
         System.out.println("redisplay images");
         // Redisplay images
@@ -127,8 +127,9 @@ public class B_recs implements PlugIn {
         int widthrec = (int)image.getRecons().getSize().getSx();
         int heightrec = (int)image.getRecons().getSize().getSy();
         float [] recons_redisp = new float[widthrec * heightrec];
+        int [] over_redisp = new int[widthrec * heightrec];
         brecsrun.recopy(image, ker_redisp, imgmes_redisp,
-                        ccomp_redisp, recons_redisp);
+                        ccomp_redisp, recons_redisp, over_redisp);
 
         ImageProcessor ipker = new FloatProcessor(kersize, kerheight);
         ipker.setPixels(ker_redisp);
@@ -151,6 +152,11 @@ public class B_recs implements PlugIn {
         ipres.setPixels(recons_redisp);
         ImagePlus imgres = new ImagePlus("Reconstruction", ipres);
         imgres.show();
+
+        ImageProcessor ipover = new ColorProcessor(widthrec, heightrec);
+        ipover.setPixels(over_redisp);
+        ImagePlus imgover = new ImagePlus("Overlay", ipover);
+        imgover.show();
 
         return;
     }
