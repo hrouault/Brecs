@@ -57,6 +57,7 @@ src/Brecs_wrap.c
 src/brecs-reconsparse
 src/libbrecs-static.a
 src/platform/osx/libplatform.a
+src/javainterf_wrap.c
 
 src/version.c
 

@@ -29,7 +29,10 @@ if (APPLE)
     find_package(JNI REQUIRED)
 endif()
 
+find_package(Sphinx)
+
 include(CPack)
 include(InstallRequiredSystemLibraries)
 
 add_subdirectory(src)
+add_subdirectory(doc)
