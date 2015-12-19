@@ -37,9 +37,9 @@
 typedef uint16_t lab_t;
 
 typedef struct {
-    unsigned int x;
-    unsigned int y;
-    unsigned int z;
+    size_t x;
+    size_t y;
+    size_t z;
 } veci3;
 
 typedef struct {
@@ -91,6 +91,7 @@ typedef struct {
     float * imgback;
     float * ker;
     float * reconspic;
+    uint8_t * overlay;
     veci3 insize;
     veci3 outsize;
     veci3 imgmessize;
@@ -113,18 +114,13 @@ typedef struct {
     int * activepix;
 } simdarrays_t;
 
-ccomp_dec connectcomp_decomp3d(float * img,
-                               int nbmesx, int nbmesy, int nbmesz,
-                               params_t * par);
-ccomp_dec connectcomp_decomp2d(float * img,
-                               int nbmesx, int nbmesy,
-                               params_t * par);
+ccomp_dec connectcomp_decomp3d(float * img, veci3 * smes, params_t * par);
+ccomp_dec connectcomp_decomp2d(float * img, veci3 * smes, params_t * par);
 
 uint8_t * imgrgb_ccomp(ccomp_dec * ccomp, int nbmesx, int nbmesy,
                        params_t * par);
 
-float * reconssparse(float * imgmes,float * imgnoise,
-                     int nbmesx, int nbmesy, int nbmesz,
+float * reconssparse(float * imgmes,float * imgnoise, veci3 * smes,
                      images_t * images, params_t * par);
 
 void brecs_initimgmes(images_t * images, params_t * par);
