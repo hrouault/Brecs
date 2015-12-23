@@ -26,7 +26,6 @@ public class B_recs_psf implements PlugIn {
         try {
             NativeUtils.loadLibraryFromJar("/libB_recs.jnilib");
         } catch (IOException e) {
-            // This is probably not the best way to handle exception :-)
             e.printStackTrace();
         }
 
@@ -65,21 +64,12 @@ public class B_recs_psf implements PlugIn {
         int psfsize = imagewidth * imagewidth * oversampling * oversampling;
         float [] psf_redisp = new float[psfsize];
         brecsrun.recopypsf(psf_par, psf_redisp);
-        // 3d psf redisplay
-        //ImageProcessor psf_proc = new FloatProcessor(psfsize, psfheight);
-        Float [] psf_redisp2 = new Float[psf_redisp.length];
-        for (int i = 0; i < psf_redisp.length; i++) {
-            psf_redisp2[i] = psf_redisp[i];
-        }
-        List<Float> list = Arrays.asList(psf_redisp2);
         ImageStack psf_proc = new ImageStack(imagewidth, imagewidth);
         for (int i = 0; i < oversampling * oversampling; i++) {
-            float [] fslice = new float[imagewidth * imagewidth];
-            for (int j = 0; j < imagewidth * imagewidth; j++) {
-                fslice[j] = psf_redisp[j + i * imagewidth * imagewidth];
-            }
+            float [] subArray = Arrays.copyOfRange(psf_redisp,
+               i * imagewidth * imagewidth, (i + 1) * imagewidth * imagewidth);
             FloatProcessor slice = new FloatProcessor(imagewidth, imagewidth);
-            slice.setPixels(fslice);
+            slice.setPixels(subArray);
             psf_proc.addSlice(slice);
         }
         ImagePlus psfimg = new ImagePlus("PSF images", psf_proc);
