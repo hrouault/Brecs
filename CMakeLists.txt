@@ -29,7 +29,7 @@ if (APPLE)
     find_package(JNI REQUIRED)
 endif()
 
-find_package(Sphinx)
+include(FindSphinx)
 
 include(CPack)
 include(InstallRequiredSystemLibraries)

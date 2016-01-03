@@ -42,6 +42,7 @@ fiji-plugin/target
 *.pyc
 Makefile
 CMakeFiles
+CMakeCache.txt
 
 fiji-plugin/src/main/java/Brecs.java
 fiji-plugin/src/main/java/BrecsJNI.java
@@ -62,3 +63,9 @@ src/javainterf_wrap.c
 src/version.c
 
 *.cmake
+
+*.dylib
+*.a
+
+doc/html
+doc/.doctrees
