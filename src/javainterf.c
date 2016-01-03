@@ -210,4 +210,5 @@ void recopypsf(psf_params_t * psf_par, float * psfdata)
     for (size_t i = 0; i < size; ++i) {
         psfdata[i] = psf_par->img[i];
     }
+    free(psf_par->img);
 }

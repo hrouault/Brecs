@@ -40,7 +40,7 @@ float * gaussker2d(double sigma,
     size_t nbpixhighres = sizepsf * pixsize;
     size_t sizeimg = nbpixhighres + 2 * pixsize;
     double * psfhighres = malloc(sizeimg * sizeimg * sizeof(double));
-    float * psfpic = malloc(sizeimg * sizeimg * sizeof(float));
+    /* float * psfpic = malloc(sizeimg * sizeimg * sizeof(float)); */
 
     /* Calculation of the psf value */
     for (size_t y = 0; y < sizeimg; ++y) {
@@ -52,7 +52,7 @@ float * gaussker2d(double sigma,
             sigma2res *= sigma2res;
             double val = exp(-r2 / 2 / sigma2res) / (2 * M_PI * sigma2res);
             psfhighres[y * nbpixhighres + x] = val;
-            psfpic[y * nbpixhighres + x] = val;
+            /* psfpic[y * nbpixhighres + x] = val; */
         }
     }
     double sum = 0;
@@ -61,8 +61,8 @@ float * gaussker2d(double sigma,
     }
     float * psfpicshift = malloc(shift * shift * sizepsf * sizepsf
                                  * sizeof(float));
-    double * psfshift = malloc(shift * shift * sizepsf * sizepsf
-                                 * sizeof(double));
+    /* double * psfshift = malloc(shift * shift * sizepsf * sizepsf */
+    /*                              * sizeof(double)); */
     for (size_t i = 0; i < shift * shift; ++i) {
         for (size_t j = 0; j < sizepsf * sizepsf; ++j) {
             double val = 0;
@@ -77,15 +77,15 @@ float * gaussker2d(double sigma,
                               - (shift + 1) % 2 * oversamp / 2;
                 val += psfhighres[yres * nbpixhighres + xres];
             }
-            psfshift[j + i * sizepsf * sizepsf] = val;
+            /* psfshift[j + i * sizepsf * sizepsf] = val; */
             psfpicshift[j + i * sizepsf * sizepsf] = val;
         }
     }
     /* writetiff_f("psf2d.tif", nbpixhighres, nbpixhighres, 1, psfpic); */
     /* writetiff_f("psf2d-shift.tif", */
     /*             sizepsf, sizepsf, shift * shift, psfpicshift); */
-    free(psfpicshift);
-    free(psfshift);
+    /* free(psfpicshift); */
+    /* free(psfshift); */
     free(psfhighres);
     return(psfpicshift);
 }

@@ -58,7 +58,7 @@ public class B_recs implements PlugIn {
 			defaultItem = title_psf;
         gd.addChoice("PSF:", titles, defaultItem);
         gd.addStringField("background (optional)", "");
-        gd.addNumericField("Fluorophore mean intensity", 5000.0, 1);
+        gd.addNumericField("Fluorophore mean intensity", 2000.0, 1);
         gd.addNumericField("Fluorophore intensity standard deviation", 500.0, 1);
         gd.addNumericField("Camera amplification factor", 1.0, 1);
         gd.addNumericField("Noise offset", 1000.0, 1);
