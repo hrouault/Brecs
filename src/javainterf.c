@@ -175,10 +175,10 @@ void brecs_psfgen(psf_params_t * psfpar)
     psfpar->img = pic;
 }
 
-void recopy(imagessimp_t * image,
-            float * ker_redisp, float * imgmes_redisp,
-            uint32_t * ccomp_redisp, float * recons_redisp,
-            uint32_t * over_redisp)
+void recopy(imagessimp_t* image,
+            float* ker_redisp, float* imgmes_redisp,
+            uint32_t* ccomp_redisp, float* recons_redisp,
+            uint32_t* over_redisp)
 {
     size_t wker = image->ker->size.sx;
     size_t hker = image->ker->size.sy;
@@ -201,6 +201,10 @@ void recopy(imagessimp_t * image,
         recons_redisp[i] = image->recons->img[i];
         over_redisp[i] = image->overlay->img[i];
     }
+    free(image->ker->img);
+    free(image->ker);
+    free(image->img->img);
+    free(image->img);
 }
 
 void recopypsf(psf_params_t * psf_par, float * psfdata)

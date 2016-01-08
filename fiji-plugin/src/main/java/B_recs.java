@@ -60,6 +60,7 @@ public class B_recs implements PlugIn {
         gd.addStringField("background (optional)", "");
         gd.addNumericField("Fluorophore mean intensity", 2000.0, 1);
         gd.addNumericField("Fluorophore intensity standard deviation", 500.0, 1);
+        gd.addNumericField("Fluorophore density", 0.001, 1);
         gd.addNumericField("Camera amplification factor", 1.0, 1);
         gd.addNumericField("Noise offset", 1000.0, 1);
         gd.addNumericField("Number of iterations", 200, 1);
@@ -91,6 +92,7 @@ public class B_recs implements PlugIn {
         paramssimp_t params = new paramssimp_t();
         params.setPixmean((float)gd.getNextNumber());
         params.setPixstd((float)gd.getNextNumber());
+        float rho = (float)gd.getNextNumber();
         params.setMesampli((float)gd.getNextNumber());
         params.setNoiseoffset((float)gd.getNextNumber());
         params.setNbiter((float)gd.getNextNumber());

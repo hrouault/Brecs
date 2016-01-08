@@ -82,7 +82,7 @@ public class B_recs_psf implements PlugIn {
         float pixsize = (float)gd.getNextNumber();
         int oversampling = (int)gd.getNextNumber();
 
-        psf_par.setPsfwidth(psfwidth);
+        psf_par.setPsfwidth(psfwidth / (float)2.355);
         psf_par.setImagewidth(imagewidth);
         psf_par.setPixsize(pixsize);
         psf_par.setOversampling(oversampling);

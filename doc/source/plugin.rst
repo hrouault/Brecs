@@ -72,6 +72,9 @@ given at the end of this paragraph.
   It is possible to provide an image which gives the background level of each
   measured pixel. Typically this is an average over all the measured image or
   alternatively, an image measured after the sample is all bleached out.
+  A more straightforward way to otain the background level but which is less
+  accurate in the case of a very dense sample is to take the median over the
+  whole stack of images to reconstruct.
 
 * **Fluorophore mean intensity**
   Mean number of photons emitted by a fluorophore. In the simplest mode where
@@ -87,9 +90,14 @@ given at the end of this paragraph.
      \psi(I) = (1 - \rho) \delta(I) + \frac{\rho}{\sqrt{2 \pi \sigma ^2}}
      \exp\left(-\frac{(I - I_m)^2}{2 \sigma^2}\right)
 
-  RHO: density of fluorophores
-  PIXMEAN: mean number of photons emitted by a fluorophore
-  PIXSTD: standard deviation of this number of photons
+  * :math:`\rho`: density of fluorophores
+  * :math:`I_m`: mean number of photons emitted by a fluorophore (fluorohore
+                 mean intensity parameter).
+  * :math:`\sigma`: standard deviation of this number of photons (fluorophore
+                    intensity standard deviation parameter).
+
+* **Fluorophore density**
+  This is the :math:`\rho` parameter of the previous equation
 
 * **Camera amplification factor**
   The input image is a grayscale image. The intensity of each pixel can be
@@ -131,12 +139,51 @@ given at the end of this paragraph.
 Guideline for the use of parameters
 -----------------------------------
 
+
 A really important parameter is the level of noise of the pixel. A common
-mistae when using B-recs is the use a too low noise level. This will result in
+mistake when using B-recs is the use a too low noise level. This will result in
 *B-recs* assuming that details in the pictures should be accounted for by
 florophore photons instead of background noise and make these levels
 inconsistent the the PSF used. The algorithm in that scenario will always have
 trouble to find something significant. It is always better to try with a high
 level of noise first and the increase it progressively until obtaining
 reasonable results. This problem should arise if you perfectly control your
-optical and measurement system but this rarely completely happen.
+optical and measurement system but this rarely completely occurs.
+
+In the case you miss some of the spots, it could mean that the background level
+you set was to high. Alternatively, it could mean that the distribution of the
+number of photons emitted by a fluorophore is not set correctly (ie a too high
+mean number of photons coupled with a too narrow standard deviation will tend
+to miss many spots).
+The opposite of the previous tendencies will lead to the apparison of many
+spurious spots.
+
+
+Test dataset
+^^^^^^^^^^^^
+
+A good dataset to test *B-recs* is provided by the ISBI challenge 2013
+[ISBI2013]_.
+
+
+
+
+Remarks Tim
+-----------
+
+Test folder with images and paramters that work.
+
+In the interface, progress bar? how to implement that
+
+In the 2d reconstruction, return the list of points
+is it local maximum with thresholding.
+
+Help more the people to guess the parameters.
+
+Tell how much time it should take.
+
+
+.. [ISBI2013] Sage, D., Kirshner, H., Pengo, T., Stuurman, N., Min, J., Manley,
+S., & Unser, M. (2015).
+Quantitative evaluation of software packages for single-molecule localization
+microscopy. Nature methods, 12(8), 717-724.
