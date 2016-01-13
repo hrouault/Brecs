@@ -849,6 +849,9 @@ uint8_t * create_overlay(float * imgmes, float * imgrecons,
             cimgd[2] = 0;
             cimgd[3] = 255;
         } else {
+            x -= pixsdiv / 2;
+            y -= pixsdiv / 2;
+            z -= pixsdivz / 2;
             size_t ind = (y / pixsdiv + kersize / 2) * smes->x
                          + x / pixsdiv + kersize / 2
                          + (z / pixsdivz + kersizez / 2) * nbmes2;

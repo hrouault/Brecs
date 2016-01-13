@@ -75,6 +75,10 @@ given at the end of this paragraph.
   A more straightforward way to otain the background level but which is less
   accurate in the case of a very dense sample is to take the median over the
   whole stack of images to reconstruct.
+  This parameters can also help with taking into account the different levels
+  measured when not sample is present (this is typically the "hot" pixels
+  observed with CMOS cameras). Hence, for CMOS cameras, the `Background`
+  parameters can be an image acquired when the shutter is present.
 
 * **Fluorophore mean intensity**
   Mean number of photons emitted by a fluorophore. In the simplest mode where
@@ -116,6 +120,13 @@ given at the end of this paragraph.
   the electronic noise of the detector. The factor `b` comes from the Poisson
   distribution and is equal to `1`.
 
+* **Threshold for connected components**
+  In order to speed up the algorithm, the image regions where the intensity is
+  close to the background, and hence where fluorophore are absent are not taken
+  into account. This threshold is the intensity level above the background that
+  indicates the presence of a fluorophore. It is typically a few standard
+  deviation of intensity distribution around the background.
+
 * **Number of iterations**
   It happens very often that because of non-modelled noise in the image, the
   algorithm has trouble to fully converge. This parameter indicates the number
@@ -126,19 +137,23 @@ given at the end of this paragraph.
   If no image is provided for the background intensity, it is still possible to
   assume a uniform background level. This is this level in number of photons.
 
-* **Dampening parameters**
-  The help the algorithm to converge, the update of positions is dampended.  This
-  is the "dirty" side of the algorithm and has to be adjusted by trial and error.
-  DAMP is the amount of the relative intensity change (I usually use 0.1, but it
-  should be lowered when the program fails to converge).
+* **Dampening coefficient**
+  In order to help the algorithm to converge, the update of a posteriori
+  intensities is dampened. This coefficient should be below one. Generally a
+  coefficient equal to one leads to instabilities in the algorithm (it is easy
+  to detect it a posteriori in the geconstructed images). A coeffecient 0.01 is
+  on the safe side (but slow). I usually use 0.05 for 2D datasets.
 
-* **Temperature**
-  (:math:`\beta`) of the algorithm
+* **Threshold for localization acceptance**
+  After the algorithm run, you obtain an image gives the posterior
+  superresolved intensities. From this image, it is possible to obtain a list
+  of localization by thresholding. This thresholding value is the value of the
+  intensity in the reconstructed image beyond which localizations are
+  considered.
 
 
 Guideline for the use of parameters
 -----------------------------------
-
 
 A really important parameter is the level of noise of the pixel. A common
 mistake when using B-recs is the use a too low noise level. This will result in
@@ -160,30 +175,60 @@ spurious spots.
 
 
 Test dataset
-^^^^^^^^^^^^
+------------
 
 A good dataset to test *B-recs* is provided by the ISBI challenge 2013
 [ISBI2013]_.
+The necessary files with the preprocessed datasets are available in the
+``test`` folder of the *B-recs* package.
+
+
+ISBI dataset 1
+^^^^^^^^^^^^^^
+
+The dataset 1 (in low density) has a background that is correlated in time and
+space but not constant over the whole acquisition time. A simple idea to remove
+the background in that case is to use a median filter in x, y and t with a
+radius of 4 pixel in every plane direction and 2 pixels in t.
+The resulting stack is called ``background.tif``.
+Removing this background from the measured images, and collecting the total
+intensity around a few spots allows to determine the distribution of the number
+of emitted photons (see the table below). Notice that it is also a good idea to
+use a first guess and to refine this parameters a posteriori on the
+localization intensities after a few runs.
+Then by plotting the histogram of the intensities (again after the background
+is removed), it is easy to determine a reasonable threshold for the connected
+components determination: it is the upper value of the background distribution.
+The dampening coefficient is the one I almost always use for 2D
+reconstructions.
+
+
+Here is set of parameters that give reasonable results:
+
+========================================   ======
+Fluorophore mean intensity                 3500
+Fluorophore intensity standard deviation   800
+Fluorophore density                        0.001
+Camera amplification factor                1.0
+Noise offset                               1000
+Threshold for connected components         80
+Number of iterations                       400
+Dampening coefficient                      0.05
+Threshold for localization acceptance      1000
+========================================   ======
+
+And for the PSF:
+
+=============================================   ======
+PSF width (FWHM in nm)                          260.0
+Image width (in pixels)                         8
+Pixel size (in nm)                              100.0
+Pixel oversampling (level of superresolution)   8
+=============================================   ======
+
+The current version of the plugin do not allow for a progress bar. It should
+take no longer than a few seconds to reconstruct an image.
 
 
 
-
-Remarks Tim
------------
-
-Test folder with images and paramters that work.
-
-In the interface, progress bar? how to implement that
-
-In the 2d reconstruction, return the list of points
-is it local maximum with thresholding.
-
-Help more the people to guess the parameters.
-
-Tell how much time it should take.
-
-
-.. [ISBI2013] Sage, D., Kirshner, H., Pengo, T., Stuurman, N., Min, J., Manley,
-S., & Unser, M. (2015).
-Quantitative evaluation of software packages for single-molecule localization
-microscopy. Nature methods, 12(8), 717-724.
+.. [ISBI2013] Sage, D., Kirshner, H., Pengo, T., Stuurman, N., Min, J., Manley, S., & Unser, M. (2015).  Quantitative evaluation of software packages for single-molecule localization microscopy. Nature methods, 12(8), 717-724.

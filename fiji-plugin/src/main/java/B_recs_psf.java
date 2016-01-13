@@ -23,8 +23,12 @@ public class B_recs_psf implements PlugIn {
 
     public static final String PLUGIN_VERSION = "0.1";
 
-    private static String title_recons = "";
-    private static String title_psf = "";
+    private static Float numap_dia = new Float(1.2);
+    private static Float emwavelen_dia = new Float(588);
+    private static Float psffwhm_dia = new Float(250);
+    private static Integer imgwidth_dia = new Integer(16);
+    private static Float pixsize_dia = new Float(100);
+    private static Integer oversamp_dia = new Integer(8);
 
     public void run(String arg) {
         try {
@@ -36,14 +40,15 @@ public class B_recs_psf implements PlugIn {
         GenericDialog gd = new GenericDialog("B-recs PSF generator(version: "
                 + PLUGIN_VERSION + ")");
 
-        gd.addNumericField("Numerical aperture of the objective", 1.2, 1);
+        gd.addNumericField("Numerical aperture of the objective",
+                           numap_dia, 1);
         gd.addNumericField("Emission wavelength of the fluorophore (nm)",
-                           588, 1);
-        gd.addNumericField("PSF width (FWHM in nm)", 250.0, 1);
-        gd.addNumericField("Image width (in pixels)", 16, 1);
-        gd.addNumericField("Pixel size (in nm)", 100.0, 1);
+                           emwavelen_dia, 1);
+        gd.addNumericField("PSF width (FWHM in nm)", psffwhm_dia, 1);
+        gd.addNumericField("Image width (in pixels)", imgwidth_dia, 1);
+        gd.addNumericField("Pixel size (in nm)", pixsize_dia, 1);
         gd.addNumericField("Pixel oversampling (level of superresolution)",
-                           8, 1);
+                           oversamp_dia, 1);
 
         final TextField numap = (TextField)gd.getNumericFields().get(0);
         final TextField lambda = (TextField)gd.getNumericFields().get(1);
@@ -75,28 +80,31 @@ public class B_recs_psf implements PlugIn {
 
         psf_params_t psf_par = new psf_params_t();
 
-        float fnumap = (float)gd.getNextNumber();
-        float flambda = (int)gd.getNextNumber();
-        float psfwidth = (float)gd.getNextNumber();
-        int imagewidth = (int)gd.getNextNumber();
-        float pixsize = (float)gd.getNextNumber();
-        int oversampling = (int)gd.getNextNumber();
+        numap_dia = (float)gd.getNextNumber();
+        emwavelen_dia = (float)gd.getNextNumber();
+        psffwhm_dia = (float)gd.getNextNumber();
+        imgwidth_dia = (int)gd.getNextNumber();
+        pixsize_dia = (float)gd.getNextNumber();
+        oversamp_dia = (int)gd.getNextNumber();
 
-        psf_par.setPsfwidth(psfwidth / (float)2.355);
-        psf_par.setImagewidth(imagewidth);
-        psf_par.setPixsize(pixsize);
-        psf_par.setOversampling(oversampling);
+        psf_par.setPsfwidth(psffwhm_dia / (float)2.355);
+        psf_par.setImagewidth(imgwidth_dia);
+        psf_par.setPixsize(pixsize_dia);
+        psf_par.setOversampling(oversamp_dia);
 
         brecsrun.brecs_psfgen(psf_par);
 
-        int psfsize = imagewidth * imagewidth * oversampling * oversampling;
+        int imgwidth2 = imgwidth_dia * imgwidth_dia;
+        int oversamp2 = oversamp_dia * oversamp_dia;
+        int psfsize = imgwidth2 * oversamp2;
         float [] psf_redisp = new float[psfsize];
         brecsrun.recopypsf(psf_par, psf_redisp);
-        ImageStack psf_proc = new ImageStack(imagewidth, imagewidth);
-        for (int i = 0; i < oversampling * oversampling; i++) {
+        ImageStack psf_proc = new ImageStack(imgwidth_dia, imgwidth_dia);
+        for (int i = 0; i < oversamp2; i++) {
             float [] subArray = Arrays.copyOfRange(psf_redisp,
-               i * imagewidth * imagewidth, (i + 1) * imagewidth * imagewidth);
-            FloatProcessor slice = new FloatProcessor(imagewidth, imagewidth);
+               i * imgwidth2, (i + 1) * imgwidth2);
+            FloatProcessor slice = new FloatProcessor(imgwidth_dia,
+                                                      imgwidth_dia);
             slice.setPixels(subArray);
             psf_proc.addSlice(slice);
         }

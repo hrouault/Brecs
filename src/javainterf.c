@@ -36,7 +36,8 @@
 #include "javainterf.h"
 
 void brecs_initin(imagessimp_t * images,
-                  uint16_t * pixels, unsigned int width, unsigned int height)
+                  uint16_t * pixels, float * pixelsback,
+                  unsigned int width, unsigned int height)
 {
     images->img = malloc(sizeof(uint16img_t));
     images->img->img = malloc(width * height * sizeof(uint16_t));
@@ -45,6 +46,18 @@ void brecs_initin(imagessimp_t * images,
     images->img->size.sz = 1;
     for (size_t i = 0; i < width * height; ++i) {
         images->img->img[i] = pixels[i];
+    }
+    if (pixelsback != (float *)pixels && pixels) {
+        images->img_back = malloc(sizeof(fimg_t));
+        images->img_back->img = malloc(width * height * sizeof(float));
+        images->img_back->size.sx = width;
+        images->img_back->size.sy = height;
+        images->img_back->size.sz = 1;
+        for (size_t i = 0; i < width * height; ++i) {
+            images->img_back->img[i] = pixelsback[i];
+        }
+    } else {
+        images->img_back = NULL;
     }
 }
 
@@ -97,23 +110,27 @@ void brecs_reconstruction(imagessimp_t * images, paramssimp_t * params)
                                         imgs->insize.y,
                                         imgs->insize.z);
     par->mesoffset = 0;
-    par->convolpixthr = 200.0;
-    par->damp1 = 0.01;
-    par->damp2 = 0.02;
+    par->convolpixthr = params->convolthr;
+    par->damp1 = params->damp;
+    par->damp2 = params->damp * 2.0;
     par->prefacradcc = 1.0;
-    par->rho = 0.001;
-    par->spixnm = 133;
-    par->spixznm = 133;
+    par->rho = params->rho;
+    par->spixnm = 1.0;
+    par->spixznm = 1.0;
     par->ainitpfact = 1.0;
     par->Ainit = par->ainitpfact / (par->pixmean * par->pixmean);
     printf("ainitpfact ainit %f %e\n", par->ainitpfact, par->Ainit);
-    par->locaintensthr = 1000.0;
-    par->overlaymaxint = 50.0;
+    par->locaintensthr = params->locathr;
+    par->overlaymaxint = params->pixmean * 0.5;
     par->overlayminint = 0.1;
     par->relerrthr = 0.001;
     par->nbinternloop = 1;
 
-    imgs->imgback = NULL;
+    if (images->img_back) {
+        imgs->imgback = images->img_back->img;
+    } else {
+        imgs->imgback = NULL;
+    }
     imgs->img = images->img->img;
 
     int kersize = par->kersize;
@@ -163,7 +180,10 @@ void brecs_reconstruction(imagessimp_t * images, paramssimp_t * params)
     images->overlay->size.sy = imgs->outsize.y;
     images->overlay->size.sz = 1;
     images->overlay->img = (uint32_t *)imgs->overlay;
+
+    //free(imgs->ker);
     //free(imgs);
+    //free(par);
 }
 
 void brecs_psfgen(psf_params_t * psfpar)
@@ -201,10 +221,21 @@ void recopy(imagessimp_t* image,
         recons_redisp[i] = image->recons->img[i];
         over_redisp[i] = image->overlay->img[i];
     }
-    free(image->ker->img);
-    free(image->ker);
-    free(image->img->img);
-    free(image->img);
+    //free(image->overlay->img);
+    //free(image->overlay);
+    //free(image->imgmes->img);
+    //free(image->imgmes);
+    //free(image->recons->img);
+    //free(image->recons);
+    //free(image->ccomp->img);
+    //free(image->ccomp);
+    //free(image->img_back->img);
+    //free(image->img_back);
+    //free(image->ker->img);
+    //free(image->ker);
+    //free(image->img->img);
+    //free(image->img);
+    //free(image);
 }
 
 void recopypsf(psf_params_t * psf_par, float * psfdata)

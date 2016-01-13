@@ -66,10 +66,14 @@ typedef struct {
     float pixmean;
     float pixstd;
 
+    float rho;
     float mesampli;
     float noiseoffset;
-    float nbiter;
+    float convolthr;
+    unsigned int nbiter;
     float meanback;
+    float damp;
+    float locathr;
 
     unsigned int pixsdiv;
     unsigned int kersize;
@@ -86,6 +90,7 @@ typedef struct {
 typedef struct {
     uint16img_t * img;
     fimg_t * ker;
+    fimg_t * img_back;
     fimg_t * imgmes;
     fimg_t * recons;
     rgbimg_t * ccomp;
@@ -93,7 +98,8 @@ typedef struct {
 } imagessimp_t;
 
 void brecs_initin(imagessimp_t * images,
-                  uint16_t * pixels, unsigned int width, unsigned int height);
+                  uint16_t * pixels, float * pixelsback,
+                  unsigned int width, unsigned int height);
 void brecs_initpsf(imagessimp_t * images, paramssimp_t * par,
                    unsigned int kersize, unsigned int pixsdiv);
 void brecs_addpsfslice(imagessimp_t * images, paramssimp_t * par,

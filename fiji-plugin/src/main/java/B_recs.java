@@ -11,6 +11,8 @@ import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
 import cz.adamh.utils.NativeUtils;
 import java.io.IOException;
+import ij.measure.ResultsTable;
+import ij.plugin.filter.Analyzer;
 
 
 public class B_recs implements PlugIn {
@@ -19,12 +21,23 @@ public class B_recs implements PlugIn {
 
     private static String title_recons = "";
     private static String title_psf = "";
+    private static String title_back = "";
+
+    private static Float fluomean_dia = new Float(2000.0);
+    private static Float fluosd_dia = new Float(500.0);
+    private static Float fluodens_dia = new Float(0.001);
+    private static Float camampli_dia = new Float(1.0);
+    private static Float noiseoff_dia = new Float(1000.0);
+    private static Float convolthr_dia = new Float(200.0);
+    private static Integer nbiter_dia = new Integer(200);
+    private static Float backintens_dia = new Float(200.0);
+    private static Float damp_dia = new Float(0.01);
+    private static Float locathr_dia = new Float(1000);
 
     public void run(String arg) {
         try {
             NativeUtils.loadLibraryFromJar("/libB_recs.jnilib");
         } catch (IOException e) {
-            // This is probably not the best way to handle exception :-)
             e.printStackTrace();
         }
 
@@ -42,6 +55,12 @@ public class B_recs implements PlugIn {
                 titles[i] = "";
         }
 
+        String[] titles2 = new String[wList.length + 1];
+        titles2[0] = "";
+        for (int i=0; i < wList.length; i++) {
+            titles2[i + 1] = titles[i];
+        }
+
         GenericDialog gd = new GenericDialog("B-recs (version: "
                 + PLUGIN_VERSION + ")");
 
@@ -57,15 +76,35 @@ public class B_recs implements PlugIn {
 		else
 			defaultItem = title_psf;
         gd.addChoice("PSF:", titles, defaultItem);
-        gd.addStringField("background (optional)", "");
-        gd.addNumericField("Fluorophore mean intensity", 2000.0, 1);
-        gd.addNumericField("Fluorophore intensity standard deviation", 500.0, 1);
-        gd.addNumericField("Fluorophore density", 0.001, 1);
-        gd.addNumericField("Camera amplification factor", 1.0, 1);
-        gd.addNumericField("Noise offset", 1000.0, 1);
-        gd.addNumericField("Number of iterations", 200, 1);
-        gd.addNumericField("Background intensity", 200.0, 1);
+
+        gd.addChoice("Background (optional):", titles2, title_back);
+
+        gd.addNumericField("Fluorophore mean intensity", fluomean_dia, 1);
+        gd.addNumericField("Fluorophore intensity standard deviation",
+                           fluosd_dia, 1);
+        gd.addNumericField("Fluorophore density", fluodens_dia, 4);
+        gd.addNumericField("Camera amplification factor", camampli_dia, 1);
+        gd.addNumericField("Noise offset", noiseoff_dia, 1);
+        gd.addNumericField("Threshold for connected components",
+                           convolthr_dia, 1);
+        gd.addNumericField("Number of iterations", nbiter_dia, 0);
+        gd.addNumericField("Background intensity", backintens_dia, 1);
+        gd.addNumericField("Dampening coefficient", damp_dia, 4);
+        gd.addNumericField("Threshold for localization acceptance",
+                           locathr_dia, 1);
         gd.showDialog();
+
+        fluomean_dia = (float)gd.getNextNumber();
+        fluosd_dia = (float)gd.getNextNumber();
+        fluodens_dia = (float)gd.getNextNumber();
+        camampli_dia = (float)gd.getNextNumber();
+        noiseoff_dia = (float)gd.getNextNumber();
+        convolthr_dia = (float)gd.getNextNumber();
+        nbiter_dia = (int)gd.getNextNumber();
+        backintens_dia = (float)gd.getNextNumber();
+        damp_dia = (float)gd.getNextNumber();
+        locathr_dia = (float)gd.getNextNumber();
+
         if (gd.wasCanceled()) {
             return;
         }
@@ -77,12 +116,31 @@ public class B_recs implements PlugIn {
                            "The input image pixel depth should be 16 bit");
             return;
         }
+
         int index_psf = gd.getNextChoiceIndex();
         ImagePlus img_psf = WindowManager.getImage(wList[index_psf]);
         if (img_psf.getBitDepth() != 32) {
             IJ.showMessage("Error",
-                           "The psf image pixel depth should be 32 bit (float)");
+                         "The psf image pixel depth should be 32 bit (float)");
             return;
+        }
+
+        int index_back = gd.getNextChoiceIndex();
+        ImagePlus img_back = WindowManager.getImage(wList[index_psf]);
+        if (index_back != 0) {
+            img_back = WindowManager.getImage(wList[index_back - 1]);
+            if (img_back.getBitDepth() != 32) {
+                IJ.showMessage("Error",
+                  "The background image pixel depth should be 32 bit (float)");
+                return;
+            }
+            if (img_back.getWidth() != img_source.getWidth() ||
+                    img_back.getHeight() != img_source.getHeight()) {
+                IJ.showMessage("Error",
+                 "The source and background images do not have the same size");
+                return;
+            }
+
         }
 
         // Launch the linked Brecs library
@@ -90,19 +148,25 @@ public class B_recs implements PlugIn {
 
         imagessimp_t image = new imagessimp_t();
         paramssimp_t params = new paramssimp_t();
-        params.setPixmean((float)gd.getNextNumber());
-        params.setPixstd((float)gd.getNextNumber());
-        float rho = (float)gd.getNextNumber();
-        params.setMesampli((float)gd.getNextNumber());
-        params.setNoiseoffset((float)gd.getNextNumber());
-        params.setNbiter((float)gd.getNextNumber());
-        params.setMeanback((float)gd.getNextNumber());
+
+        params.setPixmean(fluomean_dia);
+        params.setPixstd(fluosd_dia);
+        params.setRho(fluodens_dia);
+        params.setMesampli(camampli_dia);
+        params.setNoiseoffset(noiseoff_dia);
+        params.setConvolthr(convolthr_dia);
+        params.setNbiter(nbiter_dia);
+        params.setMeanback(backintens_dia);
+        params.setDamp(damp_dia);
+        params.setLocathr(locathr_dia);
 
         ImageProcessor ipsource = img_source.getChannelProcessor();
         short [] pixels = (short [])(ipsource.getPixels());
+        ImageProcessor ipback = img_back.getChannelProcessor();
+        float [] pixelsback = (float [])(ipback.getPixels());
         int meswidth = ipsource.getWidth();
         int mesheight = ipsource.getHeight();
-        brecsrun.brecs_initin(image, pixels, meswidth, mesheight);
+        brecsrun.brecs_initin(image, pixels, pixelsback, meswidth, mesheight);
 
         int kersize = img_psf.getChannelProcessor().getWidth();
         int stacksize = img_psf.getImageStackSize();
@@ -159,6 +223,23 @@ public class B_recs implements PlugIn {
         ipover.setPixels(over_redisp);
         ImagePlus imgover = new ImagePlus("Overlay", ipover);
         imgover.show();
+
+        ResultsTable rt = new ResultsTable();
+        int ressizex = ipres.getWidth();
+        int ressizey = ipres.getHeight();
+        float [] reconsdat = (float [])(ipres.getPixels());
+        Integer counter = new Integer(0);
+        for (int i = 0; i < ressizex * ressizey; i++) {
+            if (reconsdat[i] > locathr_dia) {
+                rt.incrementCounter();
+                rt.addValue("#", counter);
+                rt.addValue("x", i % ressizex);
+                rt.addValue("y", i / ressizex);
+                rt.addValue("Intensity", reconsdat[i]);
+                counter++;
+             }
+         }
+         rt.show("Localizations");
 
         return;
     }
