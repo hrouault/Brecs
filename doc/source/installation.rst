@@ -44,15 +44,27 @@ Quick install
     make
     make install
 
-You should then be able to run ``Brecs --version``. You can also adapt the
-place where the program is install by adjusting the prefix:
+You should then be able to run ``brecs-reconssparse --version``. You can also
+adapt the place where the program is install by adjusting the prefix:
 
 .. code-block:: sh
 
    cmake -DCMAKE_INSTALL_PREFIX:PATH=/install/folder ..
+
+Mac OS X
+--------
+
+A homebrew formula is provided in order to ease the process. Start by
+installing Homebrew_. Place the file ``packages/brecs.rb`` from the *B-recs*
+repository in the Formula folder, usually ``/usr/local/Library/Formula``
+Then, simply execute ``brew install brecs``.
+You should then be able to run the command line version of *B-recs*
+``brecs-reconssparse``.
 
 Development version
 -------------------
 
 If you use the development version available on bitbucket, the install process
 is very similar. Refer to the `cmake` documentation for more details.
+
+.. _Homebrew : http://brew.sh/
