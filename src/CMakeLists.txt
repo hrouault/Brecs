@@ -40,3 +40,7 @@ add_executable(brecs-reconsparse
                cmdline.h cmdline.c)
 target_link_libraries(brecs-reconsparse brecs-static)
 install(TARGETS brecs-reconsparse DESTINATION bin)
+
+SWIG_ADD_MODULE(javainterf java javainterf.i javainterf.c error.c Brecs.c
+    genpsf.c)
+SWIG_LINK_LIBRARIES(javainterf platform ${FFTW_LIBRARIES})

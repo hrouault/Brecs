@@ -71,3 +71,17 @@ doc/.doctrees
 CPackConfig.cmake
 CPackSourceConfig.cmake
 cmake_install.cmake
+
+compilejar.sh
+
+src/Brecs.java
+src/BrecsJNI.java
+src/fimg_t.java
+src/imagessimp_t.java
+src/paramssimp_t.java
+src/psf_params_t.java
+src/rgbimg_t.java
+src/sizeimg_t.java
+src/uint16img_t.java
+src/javainterfJAVA_wrap.c
+src/libjavainterf.jnilib

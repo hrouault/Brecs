@@ -27,6 +27,8 @@ if (APPLE)
     pkg_check_modules(FFTW REQUIRED fftw3f)
     find_package(BZIP2 REQUIRED)
     find_package(JNI REQUIRED)
+    find_package(SWIG REQUIRED)
+    include(${SWIG_USE_FILE})
 endif()
 
 include(FindSphinx)
