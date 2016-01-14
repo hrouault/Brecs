@@ -221,21 +221,20 @@ void recopy(imagessimp_t* image,
         recons_redisp[i] = image->recons->img[i];
         over_redisp[i] = image->overlay->img[i];
     }
-    //free(image->overlay->img);
-    //free(image->overlay);
-    //free(image->imgmes->img);
-    //free(image->imgmes);
-    //free(image->recons->img);
-    //free(image->recons);
-    //free(image->ccomp->img);
-    //free(image->ccomp);
-    //free(image->img_back->img);
-    //free(image->img_back);
-    //free(image->ker->img);
-    //free(image->ker);
-    //free(image->img->img);
-    //free(image->img);
-    //free(image);
+    free(image->overlay->img);
+    free(image->overlay);
+    free(image->imgmes->img);
+    free(image->imgmes);
+    free(image->recons->img);
+    free(image->recons);
+    free(image->ccomp->img);
+    free(image->ccomp);
+    free(image->img_back->img);
+    free(image->img_back);
+    free(image->ker->img);
+    free(image->ker);
+    free(image->img->img);
+    free(image->img);
 }
 
 void recopypsf(psf_params_t * psf_par, float * psfdata)
