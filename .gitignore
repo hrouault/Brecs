@@ -85,3 +85,5 @@ src/sizeimg_t.java
 src/uint16img_t.java
 src/javainterfJAVA_wrap.c
 src/libjavainterf.jnilib
+
+datasets-local
