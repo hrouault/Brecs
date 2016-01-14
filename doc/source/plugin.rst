@@ -15,7 +15,7 @@ You need to enter a few parameters to produce the PSF:
 
 .. image:: psf_generator.png
    :alt: Interface window for the PSF generation
-   :width: 400px
+   :width: 370px
    :align: center
 
 * **Numerical aperture of the objective**
@@ -59,6 +59,11 @@ can be readily used for the 2d reconstruction.
 This is the core of the plugin. The parameters are slightly trickier to tune.
 If a set of parameter do not lead to a reasonable output, a few guidelines are
 given at the end of this paragraph.
+
+.. image:: 2d_reconstruction.png
+   :alt: Interface window for the 2D reconstruction
+   :width: 445px
+   :align: center
 
 * **Dataset**
   This is where you provide an image to reconstruct. The image has to be in
