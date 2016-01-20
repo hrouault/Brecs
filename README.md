@@ -1,7 +1,7 @@
 This branch of *B-recs* contains some datasets that can be used to test that
 the software is correctly installed and fully functional.
 
-The dataset were generated for a context at the 2013 ISBI conference (not by
+The dataset were generated for a contest at the 2013 ISBI conference (not by
 the authors of *B-recs*). The conditions of use follow:
 
 
