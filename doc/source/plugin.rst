@@ -77,7 +77,7 @@ given at the end of this paragraph.
   It is possible to provide an image which gives the background level of each
   measured pixel. Typically this is an average over all the measured image or
   alternatively, an image measured after the sample is all bleached out.
-  A more straightforward way to otain the background level but which is less
+  A more straightforward way to obtain the background level but which is less
   accurate in the case of a very dense sample is to take the median over the
   whole stack of images to reconstruct.
   This parameters can also help with taking into account the different levels
@@ -146,7 +146,7 @@ given at the end of this paragraph.
   In order to help the algorithm to converge, the update of a posteriori
   intensities is dampened. This coefficient should be below one. Generally a
   coefficient equal to one leads to instabilities in the algorithm (it is easy
-  to detect it a posteriori in the geconstructed images). A coeffecient 0.01 is
+  to detect it a posteriori in the reconstructed images). A coefficient 0.01 is
   on the safe side (but slow). I usually use 0.05 for 2D datasets.
 
 * **Threshold for localization acceptance**
@@ -164,7 +164,7 @@ A really important parameter is the level of noise of the pixel. A common
 mistake when using B-recs is the use a too low noise level. This will result in
 *B-recs* assuming that details in the pictures should be accounted for by
 florophore photons instead of background noise and make these levels
-inconsistent the the PSF used. The algorithm in that scenario will always have
+inconsistent with the PSF used. The algorithm in that scenario will always have
 trouble to find something significant. It is always better to try with a high
 level of noise first and the increase it progressively until obtaining
 reasonable results. This problem should arise if you perfectly control your
@@ -172,10 +172,10 @@ optical and measurement system but this rarely completely occurs.
 
 In the case you miss some of the spots, it could mean that the background level
 you set was to high. Alternatively, it could mean that the distribution of the
-number of photons emitted by a fluorophore is not set correctly (ie a too high
-mean number of photons coupled with a too narrow standard deviation will tend
-to miss many spots).
-The opposite of the previous tendencies will lead to the apparison of many
+number of photons emitted by a fluorophore is not set correctly (*ie* a too
+high mean number of photons coupled with a too narrow standard deviation will
+tend to miss many spots).
+The opposite of the previous tendencies will lead to the appearance of many
 spurious spots.
 
 

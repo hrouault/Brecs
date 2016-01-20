@@ -61,16 +61,13 @@ void brecs_initin(imagessimp_t * images,
     }
 }
 
-void brecs_initpsf(imagessimp_t * images, paramssimp_t * par,
-                   unsigned int kersize, unsigned int pixsdiv)
+void brecs_initpsf(imagessimp_t * images, paramssimp_t * par)
 {
-    par->kersize = kersize;
-    par->pixsdiv = pixsdiv;
     images->ker = malloc(sizeof(fimg_t));
-    images->ker->img = malloc(pixsdiv * pixsdiv
-                              * kersize * kersize * sizeof(float));
-    images->ker->size.sx = kersize;
-    images->ker->size.sy = kersize * pixsdiv * pixsdiv;
+    images->ker->img = malloc(par->oversamp * par->oversamp
+                              * par->kersize * par->kersize * sizeof(float));
+    images->ker->size.sx = par->oversamp;
+    images->ker->size.sy = par->oversamp * par->kersize * par->kersize;
     images->ker->size.sz = 1;
 }
 
@@ -100,7 +97,7 @@ void brecs_reconstruction(imagessimp_t * images, paramssimp_t * params)
 
     par->kersize = params->kersize;
     par->kersizez = 1;
-    par->pixsdiv = params->pixsdiv;
+    par->pixsdiv = params->oversamp;
     par->pixsdivz = 1;
 
     imgs->insize.x = images->img->size.sx;
@@ -196,20 +193,9 @@ void brecs_psfgen(psf_params_t * psfpar)
 }
 
 void recopy(imagessimp_t* image,
-            float* ker_redisp, float* imgmes_redisp,
             uint32_t* ccomp_redisp, float* recons_redisp,
             uint32_t* over_redisp)
 {
-    size_t wker = image->ker->size.sx;
-    size_t hker = image->ker->size.sy;
-    for (size_t i = 0; i < wker * hker; ++i) {
-        ker_redisp[i] = image->ker->img[i];
-    }
-    size_t wmes = image->imgmes->size.sx;
-    size_t hmes = image->imgmes->size.sy;
-    for (size_t i = 0; i < wmes * hmes; ++i) {
-        imgmes_redisp[i] = image->imgmes->img[i];
-    }
     size_t wccomp = image->ccomp->size.sx;
     size_t hccomp = image->ccomp->size.sy;
     for (size_t i = 0; i < wccomp * hccomp; ++i) {

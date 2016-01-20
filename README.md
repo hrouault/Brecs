@@ -5,7 +5,7 @@ Overview
 intermediate densities of active fluorophores. Active fluorophores must be
 sparse but their response on the camera can overlap. The theoretical limit for
 accurate reconstruction is one fluorophore per pixel on the camera, at higher
-densities, the acuracy quickly drops.
+densities, the accuracy quickly drops.
 
 It is programmed in C, accompanied by a *Image J / Fiji* plugin.
 
@@ -56,4 +56,4 @@ details, please refer to the documentation available
 License
 =======
 
-*Brecs* is distributed under a BSD license (see LICENSE file).
+*B-recs* is distributed under a BSD license (see LICENSE file).

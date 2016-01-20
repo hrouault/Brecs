@@ -85,7 +85,7 @@ typedef struct {
     float damp;
     float locathr;
 
-    unsigned int pixsdiv;
+    unsigned int oversamp;
     unsigned int kersize;
 } paramssimp_t;
 
@@ -110,14 +110,12 @@ typedef struct {
 void brecs_initin(imagessimp_t * images,
                   uint16_t * pixels, float * pixelsback,
                   unsigned int width, unsigned int height);
-void brecs_initpsf(imagessimp_t * images, paramssimp_t * par,
-                   unsigned int kersize, unsigned int pixsdiv);
+void brecs_initpsf(imagessimp_t * images, paramssimp_t * par);
 void brecs_reconstruction(imagessimp_t * images, paramssimp_t * params);
 void brecs_addpsfslice(imagessimp_t * images, paramssimp_t * par,
                        float * psfsl, int islice);
 void brecs_psfgen(psf_params_t * psfpar);
 void recopy(imagessimp_t * image,
-            float * ker_redisp, float * imgmes_redisp,
             uint32_t * ccomp_redisp, float * recons_redisp,
             uint32_t * over_redisp);
 void recopypsf(psf_params_t * psf_par, float * psfdata);
@@ -160,7 +158,7 @@ typedef struct {
     float damp;
     float locathr;
 
-    unsigned int pixsdiv;
+    unsigned int oversamp;
     unsigned int kersize;
 } paramssimp_t;
 
@@ -184,14 +182,12 @@ typedef struct {
 void brecs_initin(imagessimp_t * images,
                   uint16_t * pixels, float * pixelsback,
                   unsigned int width, unsigned int height);
-void brecs_initpsf(imagessimp_t * images, paramssimp_t * par,
-                   unsigned int kersize, unsigned int pixsdiv);
+void brecs_initpsf(imagessimp_t * images, paramssimp_t * par);
 void brecs_reconstruction(imagessimp_t * images, paramssimp_t * params);
 void brecs_addpsfslice(imagessimp_t * images, paramssimp_t * par,
                        float * psfsl, int islice);
 void brecs_psfgen(psf_params_t * psfpar);
 void recopy(imagessimp_t * image,
-            float * ker_redisp, float * imgmes_redisp,
             uint32_t * ccomp_redisp, float * recons_redisp,
             uint32_t * over_redisp);
 void recopypsf(psf_params_t * psf_par, float * psfdata);

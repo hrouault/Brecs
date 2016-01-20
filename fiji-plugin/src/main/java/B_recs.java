@@ -135,7 +135,9 @@ public class B_recs implements PlugIn {
                 return;
             }
             if (img_back.getWidth() != img_source.getWidth() ||
-                    img_back.getHeight() != img_source.getHeight()) {
+                    img_back.getHeight() != img_source.getHeight() ||
+                    (img_back.getNSlices() != img_source.getNSlices() &&
+                     img_back.getNSlices() > 1)) {
                 IJ.showMessage("Error",
                  "The source and background images do not have the same size");
                 return;
@@ -160,86 +162,125 @@ public class B_recs implements PlugIn {
         params.setDamp(damp_dia);
         params.setLocathr(locathr_dia);
 
-        ImageProcessor ipsource = img_source.getChannelProcessor();
-        short [] pixels = (short [])(ipsource.getPixels());
-        ImageProcessor ipback = img_back.getChannelProcessor();
-        float [] pixelsback = (float [])(ipback.getPixels());
-        int meswidth = ipsource.getWidth();
-        int mesheight = ipsource.getHeight();
-        brecsrun.brecs_initin(image, pixels, pixelsback, meswidth, mesheight);
-
-        int kersize = img_psf.getChannelProcessor().getWidth();
+        int kersize = img_psf.getProcessor().getWidth();
         int stacksize = img_psf.getImageStackSize();
-        int pixsdiv = (int)Math.sqrt(stacksize);
-        brecsrun.brecs_initpsf(image, params, kersize, pixsdiv);
+        int oversamp = (int)Math.sqrt(stacksize);
+        params.setKersize(kersize);
+        params.setOversamp(oversamp);
+        brecsrun.brecs_initpsf(image, params);
         for (int i = 0; i < stacksize; i++) {
             img_psf.setSliceWithoutUpdate(i + 1);
-            float [] psf = (float [])(img_psf.getChannelProcessor().getPixels());
+            float [] psf = (float [])(img_psf.getProcessor().getPixels());
             brecsrun.brecs_addpsfslice(image, params, psf, i);
         }
 
-        brecsrun.brecs_reconstruction(image, params);
+        if (img_source.getNSlices() == 1) {
+            ImageProcessor ipsource = img_source.getProcessor();
+            short [] pixels = (short [])(ipsource.getPixels());
+            ImageProcessor ipback = img_back.getProcessor();
+            float [] pixelsback = (float [])(ipback.getPixels());
+            int meswidth = ipsource.getWidth();
+            int mesheight = ipsource.getHeight();
+            brecsrun.brecs_initin(image, pixels, pixelsback,
+                                  meswidth, mesheight);
 
-        System.out.println("redisplay images");
-        // Redisplay images
-        int kerheight = kersize * pixsdiv * pixsdiv;
-        float [] ker_redisp = new float[kersize * kerheight];
-        int widthmes = (int)image.getImgmes().getSize().getSx();
-        int heightmes = (int)image.getImgmes().getSize().getSy();
-        float [] imgmes_redisp = new float[widthmes * heightmes];
-        int widthcc = (int)image.getCcomp().getSize().getSx();
-        int heightcc = (int)image.getCcomp().getSize().getSy();
-        int [] ccomp_redisp = new int[widthcc * heightcc];
-        int widthrec = (int)image.getRecons().getSize().getSx();
-        int heightrec = (int)image.getRecons().getSize().getSy();
-        float [] recons_redisp = new float[widthrec * heightrec];
-        int [] over_redisp = new int[widthrec * heightrec];
-        brecsrun.recopy(image, ker_redisp, imgmes_redisp,
-                        ccomp_redisp, recons_redisp, over_redisp);
+            brecsrun.brecs_reconstruction(image, params);
 
-        ImageProcessor ipker = new FloatProcessor(kersize, kerheight);
-        ipker.setPixels(ker_redisp);
-        ImagePlus imgker = new ImagePlus("Replotted psf", ipker);
-        imgker.show();
+            System.out.println("redisplay images");
+            // Redisplay images
+            int widthcc = (int)image.getCcomp().getSize().getSx();
+            int heightcc = (int)image.getCcomp().getSize().getSy();
+            int [] ccomp_redisp = new int[widthcc * heightcc];
+            int widthrec = (int)image.getRecons().getSize().getSx();
+            int heightrec = (int)image.getRecons().getSize().getSy();
+            float [] recons_redisp = new float[widthrec * heightrec];
+            int [] over_redisp = new int[widthrec * heightrec];
+            brecsrun.recopy(image, ccomp_redisp, recons_redisp, over_redisp);
 
-        ImageProcessor ipmes = new FloatProcessor(widthmes, heightmes);
-        ipmes.setPixels(imgmes_redisp);
-        ImagePlus imgmes = new ImagePlus(
-                "Image in number of photons, background substracted", ipmes);
-        imgmes.show();
+            ImageProcessor ipcc = new ColorProcessor(widthcc, heightcc);
+            ipcc.setPixels(ccomp_redisp);
+            ImagePlus imgcc = new ImagePlus(
+                    "Connected component decomposition", ipcc);
+            imgcc.show();
 
-        ImageProcessor ipcc = new ColorProcessor(widthcc, heightcc);
-        ipcc.setPixels(ccomp_redisp);
-        ImagePlus imgcc = new ImagePlus(
-                "Connected component decomposition", ipcc);
-        imgcc.show();
+            ImageProcessor ipres = new FloatProcessor(widthrec, heightrec);
+            ipres.setPixels(recons_redisp);
+            ImagePlus imgres = new ImagePlus("Reconstruction", ipres);
+            imgres.show();
 
-        ImageProcessor ipres = new FloatProcessor(widthrec, heightrec);
-        ipres.setPixels(recons_redisp);
-        ImagePlus imgres = new ImagePlus("Reconstruction", ipres);
-        imgres.show();
+            ImageProcessor ipover = new ColorProcessor(widthrec, heightrec);
+            ipover.setPixels(over_redisp);
+            ImagePlus imgover = new ImagePlus("Overlay", ipover);
+            imgover.show();
 
-        ImageProcessor ipover = new ColorProcessor(widthrec, heightrec);
-        ipover.setPixels(over_redisp);
-        ImagePlus imgover = new ImagePlus("Overlay", ipover);
-        imgover.show();
-
-        ResultsTable rt = new ResultsTable();
-        int ressizex = ipres.getWidth();
-        int ressizey = ipres.getHeight();
-        float [] reconsdat = (float [])(ipres.getPixels());
-        Integer counter = new Integer(0);
-        for (int i = 0; i < ressizex * ressizey; i++) {
-            if (reconsdat[i] > locathr_dia) {
-                rt.incrementCounter();
-                rt.addValue("#", counter);
-                rt.addValue("x", i % ressizex);
-                rt.addValue("y", i / ressizex);
-                rt.addValue("Intensity", reconsdat[i]);
-                counter++;
+            ResultsTable rt = new ResultsTable();
+            int ressizex = ipres.getWidth();
+            int ressizey = ipres.getHeight();
+            float [] reconsdat = (float [])(ipres.getPixels());
+            Integer counter = new Integer(0);
+            for (int i = 0; i < ressizex * ressizey; i++) {
+                if (reconsdat[i] > locathr_dia) {
+                    rt.incrementCounter();
+                    rt.addValue("#", counter);
+                    rt.addValue("x", i % ressizex);
+                    rt.addValue("y", i / ressizex);
+                    rt.addValue("Intensity", reconsdat[i]);
+                    counter++;
+                 }
              }
-         }
-         rt.show("Localizations");
+             rt.show("Localizations");
+        } else {
+            ImageStack stack = img_source.getStack();
+            ImageProcessor ipback;
+            if (img_back.getNSlices() == 1) {
+                ipback = img_back.getProcessor();
+            }
+            for (int i = 1; i <= stack.getSize(); i++) {
+                ImageProcessor ipsource = stack.getProcessor(i);
+                short [] pixels = (short [])(ip.getPixels());
+
+                if (img_back.getNSlices() > 1) {
+                    ipback = img_back.getStack.getProcessor(i);
+                }
+
+                float [] pixelsback = (float [])(ipback.getPixels());
+                int meswidth = ipsource.getWidth();
+                int mesheight = ipsource.getHeight();
+                brecsrun.brecs_initin(image, pixels, pixelsback, meswidth, mesheight);
+
+
+                brecsrun.brecs_reconstruction_nocheck(image, params);
+
+            }
+
+            // Redisplay images
+            int widthrec = (int)image.getRecons().getSize().getSx();
+            int heightrec = (int)image.getRecons().getSize().getSy();
+            float [] recons_redisp = new float[widthrec * heightrec];
+            brecsrun.recopy_recons(image, recons_redisp);
+
+            ImageProcessor ipres = new FloatProcessor(widthrec, heightrec);
+            ipres.setPixels(recons_redisp);
+            ImagePlus imgres = new ImagePlus("Reconstruction", ipres);
+            imgres.show();
+
+            ResultsTable rt = new ResultsTable();
+            int ressizex = ipres.getWidth();
+            int ressizey = ipres.getHeight();
+            float [] reconsdat = (float [])(ipres.getPixels());
+            Integer counter = new Integer(0);
+            for (int i = 0; i < ressizex * ressizey; i++) {
+                if (reconsdat[i] > locathr_dia) {
+                    rt.incrementCounter();
+                    rt.addValue("#", counter);
+                    rt.addValue("x", i % ressizex);
+                    rt.addValue("y", i / ressizex);
+                    rt.addValue("Intensity", reconsdat[i]);
+                    counter++;
+                 }
+             }
+             rt.show("Localizations");
+        }
 
         return;
     }
