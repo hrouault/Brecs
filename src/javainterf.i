@@ -107,6 +107,9 @@ typedef struct {
     rgbimg_t * overlay;
 } imagessimp_t;
 
+void brecs_allocin(imagessimp_t * images,
+                  uint16_t * pixels, float * pixelsback,
+                  unsigned int width, unsigned int height);
 void brecs_initin(imagessimp_t * images,
                   uint16_t * pixels, float * pixelsback,
                   unsigned int width, unsigned int height);
@@ -182,6 +185,9 @@ typedef struct {
     rgbimg_t * overlay;
 } imagessimp_t;
 
+void brecs_allocin(imagessimp_t * images,
+                  uint16_t * pixels, float * pixelsback,
+                  unsigned int width, unsigned int height);
 void brecs_initin(imagessimp_t * images,
                   uint16_t * pixels, float * pixelsback,
                   unsigned int width, unsigned int height);

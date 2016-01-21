@@ -35,7 +35,7 @@
 #include "genpsf.h"
 #include "javainterf.h"
 
-void brecs_initin(imagessimp_t * images,
+void brecs_allocin(imagessimp_t * images,
                   uint16_t * pixels, float * pixelsback,
                   unsigned int width, unsigned int height)
 {
@@ -44,15 +44,25 @@ void brecs_initin(imagessimp_t * images,
     images->img->size.sx = width;
     images->img->size.sy = height;
     images->img->size.sz = 1;
-    for (size_t i = 0; i < width * height; ++i) {
-        images->img->img[i] = pixels[i];
-    }
-    if (pixelsback != (float *)pixels && pixels) {
+    if (pixelsback != (float *)pixels && pixelsback) {
         images->img_back = malloc(sizeof(fimg_t));
         images->img_back->img = malloc(width * height * sizeof(float));
         images->img_back->size.sx = width;
         images->img_back->size.sy = height;
         images->img_back->size.sz = 1;
+    } else {
+        images->img_back = NULL;
+    }
+}
+
+void brecs_initin(imagessimp_t * images,
+                  uint16_t * pixels, float * pixelsback,
+                  unsigned int width, unsigned int height)
+{
+    for (size_t i = 0; i < width * height; ++i) {
+        images->img->img[i] = pixels[i];
+    }
+    if (pixelsback != (float *)pixels && pixels) {
         for (size_t i = 0; i < width * height; ++i) {
             images->img_back->img[i] = pixelsback[i];
         }
@@ -261,11 +271,10 @@ void brecs_reconstruction_nocheck(imagessimp_t * images, paramssimp_t * params)
     ccomp_dec ccdec = connectcomp_decomp2d(imgs->imgmes, &smes, par);
 
     reconssparse(imgs->imgmes, imgs->imgnoise, &smes, imgs, par);
-    images->recons = malloc(sizeof(fimg_t));
-    images->recons->size.sx = imgs->outsize.x;
-    images->recons->size.sy = imgs->outsize.y;
-    images->recons->size.sz = 1;
-    images->recons->img = imgs->reconspic;
+    for (size_t i = 0; i < imgs->outsize.x * imgs->outsize.y; ++i) {
+        images->recons->img[i] += imgs->reconspic[i];
+    }
+    free(imgs->reconspic);
     printf("Reconstruction done\n");
 
     free(ccdec.rgbimg);

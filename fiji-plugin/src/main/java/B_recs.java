@@ -126,7 +126,7 @@ public class B_recs implements PlugIn {
         }
 
         int index_back = gd.getNextChoiceIndex();
-        ImagePlus img_back = WindowManager.getImage(wList[index_psf]);
+        ImagePlus img_back = WindowManager.getImage(wList[index_source]);
         if (index_back != 0) {
             img_back = WindowManager.getImage(wList[index_back - 1]);
             if (img_back.getBitDepth() != 32) {
@@ -181,6 +181,8 @@ public class B_recs implements PlugIn {
             float [] pixelsback = (float [])(ipback.getPixels());
             int meswidth = ipsource.getWidth();
             int mesheight = ipsource.getHeight();
+            brecsrun.brecs_allocin(image, pixels, pixelsback,
+                                  meswidth, mesheight);
             brecsrun.brecs_initin(image, pixels, pixelsback,
                                   meswidth, mesheight);
 
@@ -231,18 +233,36 @@ public class B_recs implements PlugIn {
              rt.show("Localizations");
         } else {
             ImageStack stack = img_source.getStack();
+            ImageProcessor ipsource = img_source.getProcessor();
             ImageProcessor ipback = img_back.getProcessor();
-            for (int i = 1; i <= stack.getSize(); i++) {
-                ImageProcessor ipsource = stack.getProcessor(i);
-                short [] pixels = (short [])(ipsource.getPixels());
+            int meswidth = ipsource.getWidth();
+            int mesheight = ipsource.getHeight();
+            short [] pixels = (short [])(ipsource.getPixels());
+            float [] pixelsback = (float [])(ipback.getPixels());
+            brecsrun.brecs_allocin(image, pixels, pixelsback,
+                                   meswidth, mesheight);
+
+            ipsource = stack.getProcessor(1);
+            pixels = (short [])(ipsource.getPixels());
+
+            if (img_back.getNSlices() > 1) {
+                ipback = img_back.getStack().getProcessor(1);
+                pixelsback = (float [])(ipback.getPixels());
+            }
+
+            brecsrun.brecs_initin(image, pixels, pixelsback,
+                    meswidth, mesheight);
+
+            brecsrun.brecs_reconstruction(image, params);
+            for (int i = 2; i <= stack.getSize(); i++) {
+                ipsource = stack.getProcessor(i);
+                pixels = (short [])(ipsource.getPixels());
 
                 if (img_back.getNSlices() > 1) {
                     ipback = img_back.getStack().getProcessor(i);
+                    pixelsback = (float [])(ipback.getPixels());
                 }
 
-                float [] pixelsback = (float [])(ipback.getPixels());
-                int meswidth = ipsource.getWidth();
-                int mesheight = ipsource.getHeight();
                 brecsrun.brecs_initin(image, pixels, pixelsback,
                                       meswidth, mesheight);
 
