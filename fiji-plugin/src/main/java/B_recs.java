@@ -231,26 +231,22 @@ public class B_recs implements PlugIn {
              rt.show("Localizations");
         } else {
             ImageStack stack = img_source.getStack();
-            ImageProcessor ipback;
-            if (img_back.getNSlices() == 1) {
-                ipback = img_back.getProcessor();
-            }
+            ImageProcessor ipback = img_back.getProcessor();
             for (int i = 1; i <= stack.getSize(); i++) {
                 ImageProcessor ipsource = stack.getProcessor(i);
-                short [] pixels = (short [])(ip.getPixels());
+                short [] pixels = (short [])(ipsource.getPixels());
 
                 if (img_back.getNSlices() > 1) {
-                    ipback = img_back.getStack.getProcessor(i);
+                    ipback = img_back.getStack().getProcessor(i);
                 }
 
                 float [] pixelsback = (float [])(ipback.getPixels());
                 int meswidth = ipsource.getWidth();
                 int mesheight = ipsource.getHeight();
-                brecsrun.brecs_initin(image, pixels, pixelsback, meswidth, mesheight);
-
+                brecsrun.brecs_initin(image, pixels, pixelsback,
+                                      meswidth, mesheight);
 
                 brecsrun.brecs_reconstruction_nocheck(image, params);
-
             }
 
             // Redisplay images

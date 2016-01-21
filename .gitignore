@@ -87,3 +87,4 @@ src/javainterfJAVA_wrap.c
 src/libjavainterf.jnilib
 
 datasets-local
+test-datasets
