@@ -332,6 +332,11 @@ void recopy_recons(imagessimp_t * image, float * recons_redisp)
     }
 }
 
+void freepsf(psf_params_t * psf_par)
+{
+    free(psf_par->img);
+}
+
 void recopypsf(psf_params_t * psf_par, float * psfdata)
 {
     size_t size = psf_par->imagewidth * psf_par->imagewidth
@@ -339,5 +344,4 @@ void recopypsf(psf_params_t * psf_par, float * psfdata)
     for (size_t i = 0; i < size; ++i) {
         psfdata[i] = psf_par->img[i];
     }
-    free(psf_par->img);
 }

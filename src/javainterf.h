@@ -114,6 +114,7 @@ void recopy(imagessimp_t * image,
             uint32_t * over_redisp);
 void brecs_psfgen(psf_params_t * psfpar);
 void recopy_recons(imagessimp_t * image, float * recons_redisp);
+void freepsf(psf_params_t * psf_par);
 void recopypsf(psf_params_t * psf_par, float * psfdata);
 
 #endif /* end of include guard: BRECSSIMP_H_GNX1TYHI */

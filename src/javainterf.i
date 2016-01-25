@@ -124,6 +124,7 @@ void recopy(imagessimp_t * image,
             uint32_t * ccomp_redisp, float * recons_redisp,
             uint32_t * over_redisp);
 void recopy_recons(imagessimp_t * image, float * recons_redisp);
+void freepsf(psf_params_t * psf_par);
 void recopypsf(psf_params_t * psf_par, float * psfdata);
 
 %}
@@ -202,4 +203,5 @@ void recopy(imagessimp_t * image,
             uint32_t * ccomp_redisp, float * recons_redisp,
             uint32_t * over_redisp);
 void recopy_recons(imagessimp_t * image, float * recons_redisp);
+void freepsf(psf_params_t * psf_par);
 void recopypsf(psf_params_t * psf_par, float * psfdata);

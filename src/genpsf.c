@@ -40,7 +40,6 @@ float * gaussker2d(double sigma,
     size_t nbpixhighres = sizepsf * pixsize;
     size_t sizeimg = nbpixhighres + 2 * pixsize;
     double * psfhighres = malloc(sizeimg * sizeimg * sizeof(double));
-    /* float * psfpic = malloc(sizeimg * sizeimg * sizeof(float)); */
 
     /* Calculation of the psf value */
     for (size_t y = 0; y < sizeimg; ++y) {
@@ -61,8 +60,6 @@ float * gaussker2d(double sigma,
     }
     float * psfpicshift = malloc(shift * shift * sizepsf * sizepsf
                                  * sizeof(float));
-    /* double * psfshift = malloc(shift * shift * sizepsf * sizepsf */
-    /*                              * sizeof(double)); */
     for (size_t i = 0; i < shift * shift; ++i) {
         for (size_t j = 0; j < sizepsf * sizepsf; ++j) {
             double val = 0;
@@ -77,23 +74,9 @@ float * gaussker2d(double sigma,
                               - (shift + 1) % 2 * oversamp / 2;
                 val += psfhighres[yres * nbpixhighres + xres];
             }
-            /* psfshift[j + i * sizepsf * sizepsf] = val; */
             psfpicshift[j + i * sizepsf * sizepsf] = val;
         }
     }
-    /* writetiff_f("psf2d.tif", nbpixhighres, nbpixhighres, 1, psfpic); */
-    /* writetiff_f("psf2d-shift.tif", */
-    /*             sizepsf, sizepsf, shift * shift, psfpicshift); */
-    /* free(psfpicshift); */
-    /* free(psfshift); */
     free(psfhighres);
     return(psfpicshift);
-}
-
-
-int main(int argc, char const *argv[])
-{
-    gaussker2d(1.05, 8, 16, 8);
-
-    return 0;
 }

@@ -88,3 +88,6 @@ src/libjavainterf.jnilib
 
 datasets-local
 test-datasets
+
+Release
+Debug

@@ -99,6 +99,7 @@ public class B_recs_psf implements PlugIn {
         int psfsize = imgwidth2 * oversamp2;
         float [] psf_redisp = new float[psfsize];
         brecsrun.recopypsf(psf_par, psf_redisp);
+        brecsrun.freepsf(psf_par);
         ImageStack psf_proc = new ImageStack(imgwidth_dia, imgwidth_dia);
         for (int i = 0; i < oversamp2; i++) {
             float [] subArray = Arrays.copyOfRange(psf_redisp,
