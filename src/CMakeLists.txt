@@ -1,7 +1,3 @@
-include(show)
-include(ide)
-include(platform)
-
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.c.in
                ${CMAKE_CURRENT_BINARY_DIR}/version.c)
 set(version_file "${CMAKE_CURRENT_BINARY_DIR}/version.c")

@@ -615,6 +615,8 @@ float * recons_ccomp(float * imgmes, float * imgnoise, size_t nbmes3,
     float spixznm = par->spixznm;
     size_t nbiter = par->nbiter;
     size_t nbinternloop = par->nbinternloop;
+    size_t size2 = srec->x * srec->y;
+    size_t size3 = size2 * srec->z;
 
     float * imgnoisecp;
     float * mu_albe_A;
@@ -630,14 +632,8 @@ float * recons_ccomp(float * imgmes, float * imgnoise, size_t nbmes3,
     float * omegamu;
     float * vmu;
 
-    size_t size2 = srec->x * srec->y;
-    size_t size3 = size2 * srec->z;
-
     float * res;
 
-    printf("start ccomp memory alloc\n");
-    printf("nbmes3 nbact kersize3 shift Ainit: %ld %ld %ld %d %f\n",
-           nbmes3, nbact, kersize3, shift, Ainit);
     int errnopos = brecs_memalign((void **)&imgnoisecp, nbmes3 * sizeof(float));
     if (!imgnoisecp) brecs_error("Failed to allocate memory for imgnoisecp: ",
                                  strerror(errnopos), prog_name);
@@ -646,58 +642,46 @@ float * recons_ccomp(float * imgmes, float * imgnoise, size_t nbmes3,
         imgnoisecp[i] = imgnoise[i];
     }
 
-    printf("memory alloc aligned vec\n");
     /* Memory allocation */
-    errnopos = brecs_memalign((void **)&mu_albe_A,
-                              nbact * kersize3 * sizeof(float));
+    static const size_t sifl = sizeof(float);
+    errnopos = brecs_memalign((void **)&mu_albe_A, nbact * kersize3 * sifl);
     if (!mu_albe_A) brecs_error("Failed to allocate memory for mu_albe_A: ",
                                 strerror(errnopos), prog_name);
-    errnopos = brecs_memalign((void **)&mu_albe_B,
-                              nbact * kersize3 * sizeof(float));
+    errnopos = brecs_memalign((void **)&mu_albe_B, nbact * kersize3 * sifl);
     if (!mu_albe_B) brecs_error("Failed to allocate memory for mu_albe_B: ",
                                 strerror(errnopos), prog_name);
-    errnopos = brecs_memalign((void **)&mu_beal_A,
-                              nbact * kersize3 * sizeof(float));
+    errnopos = brecs_memalign((void **)&mu_beal_A, nbact * kersize3 * sifl);
     if (!mu_beal_A) brecs_error("Failed to allocate memory for mu_beal_A: ",
                                 strerror(errnopos), prog_name);
-    errnopos = brecs_memalign((void **)&mu_beal_B,
-                              nbact * kersize3 * sizeof(float));
+    errnopos = brecs_memalign((void **)&mu_beal_B, nbact * kersize3 * sifl);
     if (!mu_beal_B) brecs_error("Failed to allocate memory for mu_beal_B: ",
                                 strerror(errnopos), prog_name);
     vbeal = mu_beal_A;
     abeal = mu_beal_B;
 
-    errnopos = brecs_memalign((void **)&P_be_E,
-                              nbact * sizeof(float));
+    errnopos = brecs_memalign((void **)&P_be_E, nbact * sifl);
     if (!P_be_E) brecs_error("Failed to allocate memory for P_be_E: ",
                              strerror(errnopos), prog_name);
-    errnopos = brecs_memalign((void **)&P_be_F,
-                             nbact * sizeof(float));
+    errnopos = brecs_memalign((void **)&P_be_F, nbact * sifl);
     if (!P_be_F) brecs_error("Failed to allocate memory for P_be_F: ",
                              strerror(errnopos), prog_name);
-    errnopos = brecs_memalign((void **)&sum_mualbe_A,
-                             nbact * shift * sizeof(float));
+    errnopos = brecs_memalign((void **)&sum_mualbe_A, nbact * shift * sifl);
     if (!sum_mualbe_A)
         brecs_error("Failed to allocate memory for sum_mualbe_A: ",
                     strerror(errnopos), prog_name);
-    errnopos = brecs_memalign((void **)&sum_mualbe_B,
-                             nbact * shift * sizeof(float));
+    errnopos = brecs_memalign((void **)&sum_mualbe_B, nbact * shift * sifl);
     if (!sum_mualbe_B)
         brecs_error("Failed to allocate memory for sum_mualbe_B: ",
                     strerror(errnopos), prog_name);
-    errnopos = brecs_memalign((void **)&omegamu,
-                              nbmes3 * sizeof(float));
+    errnopos = brecs_memalign((void **)&omegamu, nbmes3 * sifl);
     if (!omegamu) brecs_error("Failed to allocate memory for omegamu ",
                               strerror(errnopos), prog_name);
-    errnopos = brecs_memalign((void **)&vmu,
-                              nbmes3 * sizeof(float));
+    errnopos = brecs_memalign((void **)&vmu, nbmes3 * sifl);
     if (!vmu) brecs_error("Failed to allocate memory for vmu ",
                           strerror(errnopos), prog_name);
 
     float Binit = rho * pixmean * Ainit;
 
-    printf("init aligned vec\n");
-    printf("Ainit Binit: %e %e\n", Ainit, Binit);
     for (size_t i = 0; i < nbact * kersize3; ++i) {
         mu_albe_A[i] = Ainit;
         mu_albe_B[i] = Binit;
@@ -706,6 +690,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise, size_t nbmes3,
     }
     vecfloat vAinit = VFUNC(set1_ps) (Ainit);
     vecfloat vBinit = VFUNC(set1_ps) (Binit);
+
     for (size_t i = 0; i < nbact; ++i) {
         P_be_E[i] = Ainit;
         P_be_F[i] = Binit;
@@ -714,7 +699,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise, size_t nbmes3,
         VFUNC(store_ps) (sum_mualbe_B + i * shift, vBinit);
     }
 
-    printf("main loop\n");
     /* Main loop */
     float relerr = 1.0;
     int iter = 0;
@@ -751,7 +735,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise, size_t nbmes3,
 
         // printf("iteration, relerr: %i, %f\n", iter, relerr);
     }
-    printf("end loop\n");
 
     if (relerr < 1.01 * relerrthr) nbconv++;
 
@@ -826,7 +809,6 @@ uint8_t * create_overlay(float * imgmes, float * imgrecons,
     for (i = 0 ; i < size3 ; i++) {
         if (maxrc < imgrecons[i]) maxrc = imgrecons[i];
     }
-    printf("Maxrecons : %f\n", maxrc);
 
     float max2 = 0;
     float min2 = 0;
@@ -874,8 +856,8 @@ uint8_t * create_overlay(float * imgmes, float * imgrecons,
 /* } */
 #endif
 
-float * reconssparse(float * imgmes,float * imgnoise, veci3 * smes,
-                     images_t * images, params_t * par)
+float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
+                     images_t* images, params_t* par)
 {
     int pixsdiv = par->pixsdiv;
     int pixsdivz = par->pixsdivz;
@@ -890,7 +872,6 @@ float * reconssparse(float * imgmes,float * imgnoise, veci3 * smes,
     size_t nbmesy = smes->y;
     size_t nbmesz = smes->z;
 
-    printf("Extracting connected components\n");
     ccomp_dec ccdec;
     if (nbmesz == 1) {
         ccdec = connectcomp_decomp2d(imgmes, smes, par);
@@ -931,9 +912,7 @@ float * reconssparse(float * imgmes,float * imgnoise, veci3 * smes,
     srec.y = sizey;
     srec.z = sizez;
 
-    printf("recons first comp\n");
     for (unsigned int i = 0; i < ccdec.nbcomp; ++i) {
-    //for (unsigned int i = 0; i < 2; ++i) {
         printf("Processing connected component %40d / %d\r",
                i + 1, ccdec.nbcomp);
         fflush(stdout);
@@ -954,12 +933,9 @@ float * reconssparse(float * imgmes,float * imgnoise, veci3 * smes,
     brecs_free(ccdec.activepixcomp);
     brecs_free(ccdec.imglab);
 
-#if BRECS_DISPLAYPLOTS
-    /* plot_overlay(imgmes, reconspic, */
-    /*              sizex, sizey, sizez, nbmesx, nbmesy, nbmesz, */
-    /*              "overlay.tif"); */
-#endif
     uint8_t * overlay = create_overlay(imgmes, reconspic, &srec, smes, par);
+#if BRECS_DISPLAYPLOTS
+#endif
 
     images->reconspic = reconspic;
     images->overlay = overlay;
@@ -981,12 +957,12 @@ lab_t * roundker(int diam, int diamz)
     for (size_t k = 0; k < diamz; k++) {
         for (size_t j = 0; j < diam; j++) {
             for (size_t i = 0; i < diam; i++) {
-                size_t x = i - center;
-                size_t y = j - center;
-                size_t z = k - centerz;
+                int x = i - center;
+                int y = j - center;
+                int z = k - centerz;
                 float rad2 = x * x + y * y;
                 float rad2z = z * z;
-                size_t ind = i + j * diam + k * diam * diam;
+                int ind = i + j * diam + k * diam * diam;
                 if (rad2 / center2 + rad2z / centerz2 < 1.0) {
                     ker[ind] = 1;
                 } else {
@@ -1004,10 +980,10 @@ lab_t * roundker2d(int diam)
     lab_t * ker = brecs_alloc(diam * diam * sizeof(lab_t));
     for (size_t j = 0; j < diam; j++) {
         for (size_t i = 0; i < diam; i++) {
-            size_t x = i - center;
-            size_t y = j - center;
+            int x = i - center;
+            int y = j - center;
             float rad2 = x * x + y * y;
-            size_t ind = i + j * diam;
+            int ind = i + j * diam;
             if (rad2 < center * center) {
                 ker[ind] = 1;
             } else {
@@ -1882,10 +1858,6 @@ void brecs_initimgmes(images_t * images, params_t * par) {
     size_t insy = images->insize.y;
     size_t insz = images->insize.z;
 
-    printf("Initializing brecs...\n");
-    printf("sizes %ld %ld %ld\n", insx, insy, insz);
-    printf("kersize %d %d %d %d\n", kersize, kersizez, pixsdiv, pixsdivz);
-
     const unsigned long int nbmesx = insx + kersize;
     const unsigned long int nbmesy = insy + kersize;
     const unsigned long int nbmesz = insz + kersizez - kersizez % 2;
@@ -1905,8 +1877,6 @@ void brecs_initimgmes(images_t * images, params_t * par) {
                           nbmes3 * sizeof(float));
     if (!imgnoise) brecs_error("Failed to allocate memory for imgnoise: ",
                                strerror(errnopos), prog_name);
-
-    printf("Allocation done!\n");
 
     for (size_t i = 0; i < nbmes3; ++i) {
         imgnoise[i] = 1e8;
@@ -1933,15 +1903,12 @@ void brecs_initimgmes(images_t * images, params_t * par) {
             }
         }
     }
-    printf("Image copy done!\n");
     images->imgmes = imgmes;
     images->imgmessize.x = nbmesx;
     images->imgmessize.y = nbmesy;
     images->imgmessize.z = nbmesz;
 
     images->imgnoise = imgnoise;
-
-    printf("Image copy size assigned!\n");
 
     //brecs_free(images->img);
 }

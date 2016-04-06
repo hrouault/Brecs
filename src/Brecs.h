@@ -53,32 +53,32 @@ typedef struct {
 
 typedef struct {
     /* signal noise properties */
-    float    pixmean;
-    float    pixstd;
-    float    rho;
+    float pixmean;
+    float pixstd;
+    float rho;
     /* Sizes of the images */
-    int      kersize;
-    int      kersizez;
-    int      pixsdiv;
-    int      pixsdivz;
+    size_t kersize;
+    size_t kersizez;
+    size_t pixsdiv;
+    size_t pixsdivz;
 
-    float    spixnm;
-    float    spixznm;
+    float spixnm;
+    float spixznm;
 
-    float    mesoffset;
-    float    mesampli;
-    float    noiseoffset;
-    int      nbiter;
-    float    prefacradcc;
-    float    convolpixthr;
-    float    ainitpfact;
-    float    Ainit;
-    float    meanback;
-    float    locaintensthr;
-    float    overlaymaxint;
-    float    overlayminint;
-    float    relerrthr;
-    float    nbinternloop;
+    float mesoffset;
+    float mesampli;
+    float noiseoffset;
+    size_t nbiter;
+    float prefacradcc;
+    float convolpixthr;
+    float ainitpfact;
+    float Ainit;
+    float meanback;
+    float locaintensthr;
+    float overlaymaxint;
+    float overlayminint;
+    float relerrthr;
+    float nbinternloop;
 
     float damp1;
     float damp2;

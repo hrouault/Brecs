@@ -5,6 +5,9 @@ set_property(GLOBAL PROPERTY USE_FOLDERS TRUE) # Organize Visual Studio and
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
+option(brecs_BUILD_DOC "Build the B-recs documentation" ON)
+option(brecs_BUILD_IMAGEJ_PLUGIN "Build the ImageJ/Fiji plugin" ON)
+
 # Versioning
 message(${CMAKE_MODULE_PATH})
 include(GetGitRevisionDescription)
@@ -21,20 +24,34 @@ set(VERSION_SHORT "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 
 # add_definitions(-DBRECS_DISPLAYPLOTS)
 
-if (APPLE)
-    include(FindPkgConfig)
-    pkg_check_modules(TIFF REQUIRED libtiff-4)
-    pkg_check_modules(FFTW REQUIRED fftw3f)
-    find_package(BZIP2 REQUIRED)
-    find_package(JNI REQUIRED)
-    find_package(SWIG REQUIRED)
-    include(${SWIG_USE_FILE})
-endif()
+include(platform)
 
-include(FindSphinx)
+find_package(TIFF REQUIRED)
+find_package(BZIP2 REQUIRED)
 
 include(CPack)
 include(InstallRequiredSystemLibraries)
 
 add_subdirectory(src)
-add_subdirectory(doc)
+
+#if (brecs_BUILD_IMAGEJ_PLUGIN)
+#    find_package(JNI)
+#    find_package(SWIG)
+#    if (NOT JNI_FOUND OR NOT SWIG_FOUND)
+#        message(FATAL_ERROR "Package JNI or SWIG not found, the ImageJ plugin "
+#                "can't be compiled! Set the variable BUILD_IMAGEJ_PLUGIN to "
+#                "OFF if you don't want the plugin to be generated.")
+#    endif()
+#    include(${SWIG_USE_FILE})
+#    add_subdirectory(fiji-plugin)
+#endif()
+
+if (brecs_BUILD_DOC)
+    find_package(Sphinx)
+    if (NOT Sphinx_FOUND)
+        message(FATAL_ERROR "Package Sphinx not found, the documentation "
+                "can't be compiled! Set the variable BUILD_DOC to OFF if you "
+                "don't want the documentation to be generated.")
+    endif()
+    add_subdirectory(doc)
+endif()
