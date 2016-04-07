@@ -1489,7 +1489,8 @@ ccomp_dec connectcomp_decomp3d(float * img, veci3 * smes, params_t * par)
 
     printf("Smoothing\n");
 
-    float * imgsmoo = fftwf_alloc_real(sxfft * syfft * szfft);
+    size_t s3fft = sxfft * syfft * szfft;
+    float * imgsmoo = (float *)fftwf_malloc(s3fft * sizeof(float));
     if (!imgsmoo) exit(EXIT_FAILURE);
     for (unsigned int i = 0; i < sxfft * syfft * szfft; ++i) {
         imgsmoo[i] = 0;
@@ -1518,8 +1519,9 @@ ccomp_dec connectcomp_decomp3d(float * img, veci3 * smes, params_t * par)
                                  prefacradcc * pixsdiv,
                                  prefacradcc * pixsdivz);
 
-    out1 = fftwf_alloc_complex(szfft * syfft * (sxfft / 2 + 1));
-    out2 = fftwf_alloc_complex(szfft * syfft * (sxfft / 2 + 1));
+    s3fft = szfft * syfft * (sxfft / 2 + 1);
+    out1 = (fftwf_complex *)fftwf_malloc(s3fft * sizeof(fftwf_complex));
+    out2 = (fftwf_complex *)fftwf_malloc(s3fft * sizeof(fftwf_complex));
 
     pforw1 = fftwf_plan_dft_r2c_3d(szfft, syfft, sxfft,
                                    imgsmoo, out1,
@@ -1700,7 +1702,8 @@ ccomp_dec connectcomp_decomp2d(float * img, veci3 * smes, params_t * par)
     unsigned long int syfft = pow(2, (int)log2(sizey) + 1);
     unsigned long int sfft2 = sxfft * syfft;
 
-    float * imgsmoo = fftwf_alloc_real(sxfft * syfft);
+    size_t s2fft = sxfft * syfft;
+    float * imgsmoo = (float *)fftwf_malloc(s2fft * sizeof(float));
     if (!imgsmoo) exit(EXIT_FAILURE);
     for (unsigned int i = 0; i < sxfft * syfft; ++i) {
         imgsmoo[i] = 0;
@@ -1725,8 +1728,9 @@ ccomp_dec connectcomp_decomp2d(float * img, veci3 * smes, params_t * par)
 
     float * imgker = gausskerpar2d(sxfft, syfft, prefacradcc * pixsdiv);
 
-    out1 = fftwf_alloc_complex(syfft * (sxfft / 2 + 1));
-    out2 = fftwf_alloc_complex(syfft * (sxfft / 2 + 1));
+    s2fft = syfft * (sxfft / 2 + 1);
+    out1 = (fftwf_complex *)fftwf_malloc(s2fft * sizeof(fftwf_complex));
+    out2 = (fftwf_complex *)fftwf_malloc(s2fft * sizeof(fftwf_complex));
 
     pforw1 = fftwf_plan_dft_r2c_2d(syfft, sxfft,
                                    imgsmoo, out1,
