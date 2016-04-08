@@ -5,6 +5,9 @@ set_property(GLOBAL PROPERTY USE_FOLDERS TRUE) # Organize Visual Studio and
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
+include(cstd)
+use_c99()
+
 option(brecs_BUILD_DOC "Build the B-recs documentation" ON)
 option(brecs_BUILD_IMAGEJ_PLUGIN "Build the ImageJ/Fiji plugin" ON)
 
@@ -27,7 +30,7 @@ set(VERSION_SHORT "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
 include(platform)
 
 find_package(TIFF REQUIRED)
-find_package(BZIP2 REQUIRED)
+find_package(BZip2 REQUIRED)
 
 include(CPack)
 include(InstallRequiredSystemLibraries)

@@ -25,7 +25,7 @@ add_executable(brecs-reconsparse
                parameter.io.h parameter.io.c
                sqlite3.c sqlite3.h
                cmdline.h cmdline.c)
-target_link_libraries(brecs-reconsparse brecs-static)
+target_link_libraries(brecs-reconsparse brecs)
 install(TARGETS brecs-reconsparse DESTINATION bin)
 
 if (JNI_FOUND)
