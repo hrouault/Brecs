@@ -31,6 +31,7 @@
 #define INOUTIMG_H_86QYO34Z
 
 #include <stdint.h>
+#include <stdlib.h>
 
 /* (ngc) are these functions used? */
 #if 0
@@ -46,10 +47,16 @@ void plot_imagergb(int sx, int sy,
 void saveimage(float * img, int size, const char * fname);
 #endif
 
-uint16_t * opentiff(const char * fname, int * sx, int * sy, int * sz);
-float * opentiff_f(const char * fname, int * sx, int * sy, int * sz);
-void writetiff_f(const char * fname, int sx, int sy, int sz, float * img);
-void writetiff_rgb(const char * fname, int sx, int sy, int sz, uint8_t * img);
-void writetiff_gray(const char * fname, int sx, int sy, int sz, uint16_t * img);
+uint16_t* opentiff(const char* fname, size_t* sx, size_t* sy, size_t* sz);
+float* opentiff_f(const char* fname, size_t* sx, size_t* sy, size_t* sz);
+void writetiff_f(const char* fname,
+                 unsigned int sx, unsigned int sy, unsigned int sz,
+                 float* img);
+void writetiff_gray(const char* fname,
+                    unsigned int sx, unsigned int sy, unsigned int sz,
+                    uint16_t* img);
+void writetiff_rgb(const char* fname,
+                   unsigned int sx, unsigned int sy, unsigned int sz,
+                   uint8_t* img);
 
 #endif /* end of include guard: INOUTIMG_H_86QYO34Z */

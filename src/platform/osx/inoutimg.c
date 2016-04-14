@@ -31,50 +31,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tiffio.h>
-#include <bzlib.h>
 
-
-
-void saveimage(float * img, int size, const char * fname)
-{
-    FILE * fout = fopen(fname, "wb");
-    if (!fout) exit(EXIT_FAILURE);
-
-    BZFILE* b;
-    int nBuf = 256 * 1024;
-    char buf[nBuf];
-    int bzerror;
-    int j = 0;
-
-    b = BZ2_bzWriteOpen(&bzerror, fout, 9, 0, 30);
-    if (bzerror != BZ_OK) {
-        BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
-        exit(EXIT_FAILURE);
-    }
-    int nbtot = 0;
-
-    while (j < size) {
-        /* get data to write into buf, and set nBuf appropriately */
-        size_t i;
-        for (i = 0; i < nBuf && j < size; i += 2) {
-            *(uint16_t *)(buf + i) = (uint16_t)(img[j]);
-            j++;
-        }
-        BZ2_bzWrite(&bzerror, b, buf, i);
-        if (bzerror == BZ_IO_ERROR) {
-            BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
-            exit(EXIT_FAILURE);
-        }
-        nbtot += i;
-    }
-
-    BZ2_bzWriteClose(&bzerror, b, 0, NULL, NULL);
-    if (bzerror == BZ_IO_ERROR) {
-            exit(EXIT_FAILURE);
-    }
-}
-
-uint16_t * opentiff(const char * fname, int * sx, int * sy, int * sz)
+uint16_t* opentiff(const char* fname, size_t* sx, size_t* sy, size_t* sz)
 {
     TIFF * tif = TIFFOpen(fname, "r");
     uint16_t * img;
@@ -89,7 +47,7 @@ uint16_t * opentiff(const char * fname, int * sx, int * sy, int * sz)
         *sy = imagelength;
         scanline = TIFFScanlineSize(tif);
         *sx = scanline / 2;
-        int dircount = 0;
+        unsigned int dircount = 0;
         do {
             dircount++;
         } while (TIFFReadDirectory(tif));
@@ -100,8 +58,8 @@ uint16_t * opentiff(const char * fname, int * sx, int * sy, int * sz)
         for (size_t z = 0; z < dircount; ++z) {
             for (row = 0; row < imagelength; row++) {
                 TIFFReadScanline(tif, buf, row, 0);
-                for (col = 0; col < scanline / 2; col++)
-                    img[col + row * scanline / 2 + z * *sx * *sy]
+                for (col = 0; col < *sx; col++)
+                    img[col + row * *sx + z * *sx * *sy]
                         = ((uint16 *)buf)[col];
             }
             TIFFReadDirectory(tif);
@@ -115,7 +73,7 @@ uint16_t * opentiff(const char * fname, int * sx, int * sy, int * sz)
     return img;
 }
 
-float * opentiff_f(const char * fname, int * sx, int * sy, int * sz)
+float* opentiff_f(const char* fname, size_t* sx, size_t* sy, size_t* sz)
 {
     TIFF * tif = TIFFOpen(fname, "r");
     float * img;
@@ -131,7 +89,7 @@ float * opentiff_f(const char * fname, int * sx, int * sy, int * sz)
     *sy = imagelength;
     scanline = TIFFScanlineSize(tif);
     *sx = scanline / 4;
-    int dircount = 0;
+    unsigned int dircount = 0;
     do {
         dircount++;
     } while (TIFFReadDirectory(tif));
@@ -144,9 +102,9 @@ float * opentiff_f(const char * fname, int * sx, int * sy, int * sz)
     for (size_t z = 0; z < dircount; ++z) {
         for (row = 0; row < imagelength; row++) {
             TIFFReadScanline(tif, buf, row, 0);
-            for (col = 0; col < scanline / 4; col++)
-                img[col + row * scanline / 4 + z * *sx * *sy]
-                    = ((float *)buf)[col];
+            for (col = 0; col < *sx; col++)
+                img[col + row * *sx + z * *sx * *sy]
+                    = ((float*)buf)[col];
         }
         TIFFReadDirectory(tif);
     }
@@ -156,7 +114,8 @@ float * opentiff_f(const char * fname, int * sx, int * sy, int * sz)
     return img;
 }
 
-void writetiff_f(const char * fname, int sx, int sy, int sz, float * img)
+void writetiff_f(const char* fname,
+                 unsigned int sx, unsigned int sy, unsigned int sz, float* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");
     for (size_t i = 0; i < sz; ++i) {
@@ -185,7 +144,9 @@ void writetiff_f(const char * fname, int sx, int sy, int sz, float * img)
     TIFFClose(outf);
 }
 
-void writetiff_gray(const char * fname, int sx, int sy, int sz, uint16_t * img)
+void writetiff_gray(const char* fname,
+                    unsigned int sx, unsigned int sy, unsigned int sz,
+                    uint16_t* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");
     for (size_t i = 0; i < sz; ++i) {
@@ -196,11 +157,11 @@ void writetiff_gray(const char * fname, int sx, int sy, int sz, uint16_t * img)
         TIFFSetField(outf, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
         TIFFSetField(outf, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
         TIFFSetField(outf, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-        //TIFFSetField(outf, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
+        TIFFSetField(outf, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
 
         TIFFSetField(outf,
-                TIFFTAG_ROWSPERSTRIP,
-                TIFFDefaultStripSize(outf, 2 * sx));
+                     TIFFTAG_ROWSPERSTRIP,
+                     TIFFDefaultStripSize(outf, 2 * sx));
 
         for (uint32 row = 0; row < sy; row++) {
             if (TIFFWriteScanline(outf,
@@ -213,7 +174,9 @@ void writetiff_gray(const char * fname, int sx, int sy, int sz, uint16_t * img)
     TIFFClose(outf);
 }
 
-void writetiff_rgb(const char * fname, int sx, int sy, int sz, uint8_t * img)
+void writetiff_rgb(const char* fname,
+                   unsigned int sx, unsigned int sy, unsigned int sz,
+                   uint8_t* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");
     for (size_t i = 0; i < sz; ++i) {
@@ -224,7 +187,7 @@ void writetiff_rgb(const char * fname, int sx, int sy, int sz, uint8_t * img)
         TIFFSetField(outf, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
         TIFFSetField(outf, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
         TIFFSetField(outf, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
-        TIFFSetField(outf, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
+        TIFFSetField(outf, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
 
         TIFFSetField(outf,
                 TIFFTAG_ROWSPERSTRIP,

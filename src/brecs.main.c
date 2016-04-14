@@ -1,6 +1,7 @@
 #include <platform.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 #include <stdio.h>
 #include <tiffio.h>
 
@@ -15,15 +16,6 @@ struct gengetopt_args_info brecs_args;
 
 int main(int argc, char ** argv)
 {
-    images_t images;
-    params_t * par = read_params("brecs_parameters.sqlite3", -1);
-    int pixsdiv = par->pixsdiv;
-    int pixsdivz = par->pixsdivz;
-    int pixsdiv2 = pixsdiv * pixsdiv;
-    int pixsdiv3 = pixsdivz * pixsdiv2;
-    int kersize = par->kersize;
-    int kersizez = par->kersizez;
-
 #ifdef __DEBUG__
     _MM_SET_EXCEPTION_MASK(_MM_GET_EXCEPTION_MASK() & ~_MM_MASK_INVALID
             & ~_MM_MASK_OVERFLOW & ~_MM_MASK_DIV_ZERO);
@@ -40,12 +32,16 @@ int main(int argc, char ** argv)
     else
         prog_name = argv[0];
 
-    if (cmdline_parser(argc, argv, & brecs_args) != 0)
+    if (cmdline_parser(argc, argv, &brecs_args) != 0)
         exit(EXIT_FAILURE);
 
-    int insx;
-    int insy;
-    int insz;
+    images_t images;
+    params_t par;
+    read_params_txt(brecs_args.conf_arg, &par);
+
+    size_t insx;
+    size_t insy;
+    size_t insz;
 
     images.img = opentiff(brecs_args.filename_arg, &insx, &insy, &insz);
 
@@ -69,16 +65,31 @@ int main(int argc, char ** argv)
     images.insize.x = insx;
     images.insize.y = insy;
     images.insize.z = insz;
-    int sx, sy, sz;
+    size_t sx, sy, sz;
     images.ker = opentiff_f(brecs_args.psf_arg, &sx, &sy, &sz);
-    if (sx != kersize || sy != kersize * kersizez || sz != pixsdiv3) {
-        printf("invalid psf size: %d %d %d\n",sx,sy,sz);
-        printf("should be: %d %d %d\n",kersize,kersize * kersizez,
-               pixsdiv3);
+    int kersize = sx;
+    par.kersize = kersize;
+    int kersizez = sy / kersize;
+    par.kersizez = kersizez;
+    int pixsdivz = par.pixsdivz;
+    int pixsdiv = sqrt(sz / pixsdivz);
+    par.pixsdiv = pixsdiv;
+    int pixsdiv2 = pixsdiv * pixsdiv;
+    int pixsdiv3 = pixsdivz * pixsdiv2;
+    if (sz != pixsdiv3) {
+        printf("invalid number of frames in the psf file: %d\n", sx);
+        printf("should be: %d\n", pixsdiv3);
         exit(EXIT_FAILURE);
     }
+    par.prefacradcc = 1.0;
+    par.ainitpfact = 1.0;
+    par.Ainit = par.ainitpfact / (par.pixmean * par.pixmean);
+    par.overlaymaxint = par.pixmean;
+    par.overlayminint = 1.0;
+    par.relerrthr = 0.001;
+    par.nbinternloop = 1;
 
-    brecs(&images, par);
+    brecs(&images, &par);
 
     if (brecs_args.output_arg) {
         writetiff_f(brecs_args.output_arg,

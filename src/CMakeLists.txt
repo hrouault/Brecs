@@ -23,7 +23,6 @@ install(FILES Brecs.h DESTINATION include)
 add_executable(brecs-reconsparse
                brecs.main.c
                parameter.io.h parameter.io.c
-               sqlite3.c sqlite3.h
                cmdline.h cmdline.c)
 target_link_libraries(brecs-reconsparse brecs)
 install(TARGETS brecs-reconsparse DESTINATION bin)

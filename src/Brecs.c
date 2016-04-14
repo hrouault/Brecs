@@ -2003,7 +2003,6 @@ void brecs(images_t * images, params_t * par) {
     writetiff_f("imgnoise.tif", nbmesx, nbmesy, nbmesz, imgnoise);
 #endif
 
-    printf("reconstruction\n");
     imgrecons = reconssparse(imgmes, imgnoise, &smes, images, par);
 
     brecs_free(imgker);

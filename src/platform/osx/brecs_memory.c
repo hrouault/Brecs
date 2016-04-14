@@ -1,7 +1,7 @@
-// posix_memalign((void **)&res, alignsize, size3 * sizeof(float));
+#include <stdlib.h>
 
-#include <stdlib.h> // for size_t, 
-#include "afloat.h" // for alignsize
+#include "afloat.h"
+#include "brecs_memory.h"
 
 int brecs_memalign(void **memptr,size_t size)
 { 

@@ -29,13 +29,13 @@
 
 purpose "Reconstruct superresolution images"
 
-option "frame" n "Picture number in the file (for raw images)"
-           int typestr="int" optional
-
 option "filename" f "Filename of the image"
            string typestr="str" required
 
 option "psf" - "PSF image in tiff format"
+           string typestr="str" required
+
+option "conf" c "Filename of the configuration file providing the parameters for the optimization"
            string typestr="str" required
 
 option "background" - "background image in raw format"

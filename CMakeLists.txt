@@ -12,9 +12,9 @@ option(brecs_BUILD_DOC "Build the B-recs documentation" ON)
 option(brecs_BUILD_IMAGEJ_PLUGIN "Build the ImageJ/Fiji plugin" ON)
 
 # Versioning
-message(${CMAKE_MODULE_PATH})
+find_package(Git REQUIRED)
 include(GetGitRevisionDescription)
-git_describe(VERSION --tags --dirty=-dirty)
+git_describe(VERSION --tags)
 
 #parse the version information into pieces.
 string(REGEX REPLACE "^v([0-9]+)\\..*" "\\1" VERSION_MAJOR "${VERSION}")
@@ -23,9 +23,11 @@ string(REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" VERSION_PATCH
        "${VERSION}")
 string(REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+(.*)" "\\1" VERSION_SHA1
        "${VERSION}")
-set(VERSION_SHORT "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
+set(VERSION_SHORT "${VERSION_MAJOR}.${VERSION_MINOR}")
+message("Configuring B-recs version ${VERSION_SHORT}")
 
-# add_definitions(-DBRECS_DISPLAYPLOTS)
+add_definitions(-DVERSION="${VERSION_SHORT}")
+add_definitions(-DPACKAGE="Brecs")
 
 include(platform)
 
