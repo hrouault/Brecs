@@ -1,10 +1,8 @@
 
 if(WIN32)
     add_subdirectory(msvc)
-elseif(APPLE)
-    add_subdirectory(osx)
-else() # linux
-    add_subdirectory(linux)
+elseif(UNIX)
+    add_subdirectory(unix)
 endif()
 
 function(target_add_platform tgt)

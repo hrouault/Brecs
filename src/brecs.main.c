@@ -46,9 +46,9 @@ int main(int argc, char ** argv)
     images.img = opentiff(brecs_args.filename_arg, &insx, &insy, &insz);
 
     if (brecs_args.background_arg) {
-        int binsx;
-        int binsy;
-        int binsz;
+        size_t binsx;
+        size_t binsy;
+        size_t binsz;
         images.imgback = opentiff_f(brecs_args.background_arg,
                                     &binsx,
                                     &binsy,
@@ -77,7 +77,7 @@ int main(int argc, char ** argv)
     int pixsdiv2 = pixsdiv * pixsdiv;
     int pixsdiv3 = pixsdivz * pixsdiv2;
     if (sz != pixsdiv3) {
-        printf("invalid number of frames in the psf file: %d\n", sx);
+        printf("invalid number of frames in the psf file: %ld\n", sx);
         printf("should be: %d\n", pixsdiv3);
         exit(EXIT_FAILURE);
     }
