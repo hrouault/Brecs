@@ -2,6 +2,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/version.c.in
                ${CMAKE_CURRENT_BINARY_DIR}/version.c)
 set(version_file "${CMAKE_CURRENT_BINARY_DIR}/version.c")
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
 add_subdirectory(platform)
 
 

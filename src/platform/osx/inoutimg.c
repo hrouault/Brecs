@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <tiffio.h>
 
+#include "inoutimg.h"
+
 uint16_t* opentiff(const char* fname, size_t* sx, size_t* sy, size_t* sz)
 {
     TIFF * tif = TIFFOpen(fname, "r");
@@ -46,7 +48,11 @@ uint16_t* opentiff(const char* fname, size_t* sx, size_t* sy, size_t* sz)
         TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &imagelength);
         *sy = imagelength;
         scanline = TIFFScanlineSize(tif);
-        *sx = scanline / 2;
+        if (scanline < 0) {
+            printf("libtiff returned a negative number of slices\n");
+            exit(EXIT_FAILURE);
+        }
+        *sx = (size_t)scanline / 2;
         unsigned int dircount = 0;
         do {
             dircount++;
@@ -88,7 +94,11 @@ float* opentiff_f(const char* fname, size_t* sx, size_t* sy, size_t* sz)
     TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &imagelength);
     *sy = imagelength;
     scanline = TIFFScanlineSize(tif);
-    *sx = scanline / 4;
+    if (scanline < 0) {
+        printf("libtiff returned a negative number of slices\n");
+        exit(EXIT_FAILURE);
+    }
+    *sx = (size_t)scanline / 4;
     unsigned int dircount = 0;
     do {
         dircount++;
@@ -115,7 +125,7 @@ float* opentiff_f(const char* fname, size_t* sx, size_t* sy, size_t* sz)
 }
 
 void writetiff_f(const char* fname,
-                 unsigned int sx, unsigned int sy, unsigned int sz, float* img)
+                 size_t sx, size_t sy, size_t sz, float* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");
     for (size_t i = 0; i < sz; ++i) {
@@ -145,7 +155,7 @@ void writetiff_f(const char* fname,
 }
 
 void writetiff_gray(const char* fname,
-                    unsigned int sx, unsigned int sy, unsigned int sz,
+                    size_t sx, size_t sy, size_t sz,
                     uint16_t* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");
@@ -175,7 +185,7 @@ void writetiff_gray(const char* fname,
 }
 
 void writetiff_rgb(const char* fname,
-                   unsigned int sx, unsigned int sy, unsigned int sz,
+                   size_t sx, size_t sy, size_t sz,
                    uint8_t* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");

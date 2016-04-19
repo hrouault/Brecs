@@ -43,12 +43,12 @@ typedef struct {
 } veci3;
 
 typedef struct {
-    unsigned nbcomp;
+    size_t nbcomp;
     lab_t * imglab;
     uint32_t * rgbimg;
     int * coordcomp;
-    int * nbact;
-    int ** activepixcomp;
+    size_t * nbact;
+    size_t ** activepixcomp;
 } ccomp_dec;
 
 typedef struct {
@@ -57,10 +57,10 @@ typedef struct {
     float pixstd;
     float rho;
     /* Sizes of the images */
-    size_t kersize;
-    size_t kersizez;
-    size_t pixsdiv;
-    size_t pixsdivz;
+    unsigned short kersize;
+    unsigned short kersizez;
+    unsigned short pixsdiv;
+    unsigned short pixsdivz;
 
     float spixnm;
     float spixznm;
@@ -78,7 +78,7 @@ typedef struct {
     float overlaymaxint;
     float overlayminint;
     float relerrthr;
-    float nbinternloop;
+    size_t nbinternloop;
 
     float damp1;
     float damp2;
@@ -117,7 +117,7 @@ typedef struct {
 ccomp_dec connectcomp_decomp3d(float * img, veci3 * smes, params_t * par);
 ccomp_dec connectcomp_decomp2d(float * img, veci3 * smes, params_t * par);
 
-uint8_t * imgrgb_ccomp(ccomp_dec * ccomp, int nbmesx, int nbmesy,
+uint8_t * imgrgb_ccomp(ccomp_dec * ccomp, size_t nbmesx, size_t nbmesy,
                        params_t * par);
 
 float * reconssparse(float * imgmes,float * imgnoise, veci3 * smes,
