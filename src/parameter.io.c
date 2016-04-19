@@ -96,11 +96,11 @@ void read_params_txt(const char* filename, params_t* par)
     for (size_t i = 0; i < nbel; ++i) {
         if (default_pars[i].check == 0) {
 
-            if (strcmp(default_pars[i].type, "REAL")) {
-                *((char*)par + default_pars[i].off) =
+            if (!strcmp(default_pars[i].type, "REAL")) {
+                *(float*)((char*)par + default_pars[i].off) =
                     atof(default_pars[i].value);
             } else {
-                *((char*)par + default_pars[i].off) =
+                *(size_t*)((char*)par + default_pars[i].off) =
                     atoi(default_pars[i].value);
             }
         }
