@@ -34,7 +34,7 @@
 
 #include "inoutimg.h"
 
-uint16_t* opentiff(const char* fname, size_t* sx, size_t* sy, size_t* sz)
+uint16_t* opentiff(const char* fname, uint32_t* sx, uint32_t* sy, uint32_t* sz)
 {
     TIFF * tif = TIFFOpen(fname, "r");
     uint16_t * img;
@@ -52,7 +52,7 @@ uint16_t* opentiff(const char* fname, size_t* sx, size_t* sy, size_t* sz)
             printf("libtiff returned a negative number of slices\n");
             exit(EXIT_FAILURE);
         }
-        *sx = (size_t)scanline / 2;
+        *sx = (uint32_t)(scanline / 2);
         unsigned int dircount = 0;
         do {
             dircount++;
@@ -61,7 +61,7 @@ uint16_t* opentiff(const char* fname, size_t* sx, size_t* sy, size_t* sz)
         *sz = dircount;
         img = malloc(*sx * *sy * *sz * sizeof(uint16_t));
         buf = _TIFFmalloc(scanline);
-        for (size_t z = 0; z < dircount; ++z) {
+        for (uint32_t z = 0; z < dircount; ++z) {
             for (row = 0; row < imagelength; row++) {
                 TIFFReadScanline(tif, buf, row, 0);
                 for (col = 0; col < *sx; col++)
@@ -79,7 +79,7 @@ uint16_t* opentiff(const char* fname, size_t* sx, size_t* sy, size_t* sz)
     return img;
 }
 
-float* opentiff_f(const char* fname, size_t* sx, size_t* sy, size_t* sz)
+float* opentiff_f(const char* fname, uint32_t* sx, uint32_t* sy, uint32_t* sz)
 {
     TIFF * tif = TIFFOpen(fname, "r");
     float * img;
@@ -98,7 +98,7 @@ float* opentiff_f(const char* fname, size_t* sx, size_t* sy, size_t* sz)
         printf("libtiff returned a negative number of slices\n");
         exit(EXIT_FAILURE);
     }
-    *sx = (size_t)scanline / 4;
+    *sx = (uint32_t)(scanline / 4);
     unsigned int dircount = 0;
     do {
         dircount++;
@@ -125,7 +125,7 @@ float* opentiff_f(const char* fname, size_t* sx, size_t* sy, size_t* sz)
 }
 
 void writetiff_f(const char* fname,
-                 size_t sx, size_t sy, size_t sz, float* img)
+                 uint32_t sx, uint32_t sy, uint32_t sz, float* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");
     for (size_t i = 0; i < sz; ++i) {
@@ -155,7 +155,7 @@ void writetiff_f(const char* fname,
 }
 
 void writetiff_gray(const char* fname,
-                    size_t sx, size_t sy, size_t sz,
+                    uint32_t sx, uint32_t sy, uint32_t sz,
                     uint16_t* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");
@@ -185,7 +185,7 @@ void writetiff_gray(const char* fname,
 }
 
 void writetiff_rgb(const char* fname,
-                   size_t sx, size_t sy, size_t sz,
+                   uint32_t sx, uint32_t sy, uint32_t sz,
                    uint8_t* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");

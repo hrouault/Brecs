@@ -32,9 +32,9 @@
 
 #include "error.h"
 
-void brecs_error(const char * reason,
-                 const char * errstr,
-                 const char * prog_name)
+int brecs_error(const char * reason,
+                const char * errstr,
+                const char * prog_name)
 {
     fflush (stdout);
     fprintf(stderr, "%s: %s: %s\n", prog_name, reason, errstr);

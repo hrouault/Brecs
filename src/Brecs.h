@@ -37,18 +37,18 @@
 typedef uint16_t lab_t;
 
 typedef struct {
-    size_t x;
-    size_t y;
-    size_t z;
+    uint32_t x;
+    uint32_t y;
+    uint32_t z;
 } veci3;
 
 typedef struct {
-    size_t nbcomp;
-    lab_t * imglab;
-    uint32_t * rgbimg;
-    int * coordcomp;
-    size_t * nbact;
-    size_t ** activepixcomp;
+    uint32_t nbcomp;
+    lab_t* imglab;
+    uint8_t * rgbimg;
+    uint32_t* coordcomp;
+    uint32_t* nbact;
+    uint32_t** activepixcomp;
 } ccomp_dec;
 
 typedef struct {
@@ -57,10 +57,10 @@ typedef struct {
     float pixstd;
     float rho;
     /* Sizes of the images */
-    unsigned short kersize;
-    unsigned short kersizez;
-    unsigned short pixsdiv;
-    unsigned short pixsdivz;
+    uint16_t kersize;
+    uint16_t kersizez;
+    uint16_t pixsdiv;
+    uint16_t pixsdivz;
 
     float spixnm;
     float spixznm;
@@ -68,7 +68,7 @@ typedef struct {
     float mesoffset;
     float mesampli;
     float noiseoffset;
-    size_t nbiter;
+    uint32_t nbiter;
     float prefacradcc;
     float convolpixthr;
     float ainitpfact;
@@ -78,7 +78,7 @@ typedef struct {
     float overlaymaxint;
     float overlayminint;
     float relerrthr;
-    size_t nbinternloop;
+    uint32_t nbinternloop;
 
     float damp1;
     float damp2;
@@ -110,14 +110,14 @@ typedef struct {
     afloat * ker2;
     afloat * imgnoise;
     afloat * imgmes;
-    unsigned int nbact;
-    int * activepix;
+    uint32_t nbact;
+    uint32_t* activepix;
 } simdarrays_t;
 
 ccomp_dec connectcomp_decomp3d(float * img, veci3 * smes, params_t * par);
 ccomp_dec connectcomp_decomp2d(float * img, veci3 * smes, params_t * par);
 
-uint8_t * imgrgb_ccomp(ccomp_dec * ccomp, size_t nbmesx, size_t nbmesy,
+uint8_t * imgrgb_ccomp(ccomp_dec * ccomp, uint32_t nbmesx, uint32_t nbmesy,
                        params_t * par);
 
 float * reconssparse(float * imgmes,float * imgnoise, veci3 * smes,
@@ -127,8 +127,5 @@ void brecs_initimgmes(images_t * images, params_t * par);
 void brecs(images_t * images, params_t * par);
 
 extern char * prog_name;
-
-float maxra(float * num, float * den, int size);
-float minra(float * num, float * den, int size);
 
 #endif /* end of include guard: BRECS_H_GWC5RGBI */

@@ -27,6 +27,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-void brecs_error(const char * reason,
-                 const char * errstr,
-                 const char * prog_name);
+int brecs_error(const char * reason,
+                const char * errstr,
+                const char * prog_name);

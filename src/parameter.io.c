@@ -3,14 +3,16 @@
 #include <string.h>
 #include <stddef.h>
 #include <errno.h>
+
 #include "Brecs.h"
+#include "parameter.io.h"
 
 typedef struct {
     const char* name;
     const char* type;
     const char* value;
     const size_t off;
-    size_t check;
+    uint8_t check;
 } conf_entry_t;
 
 static conf_entry_t default_pars[] = {
@@ -37,20 +39,6 @@ static conf_entry_t default_pars[] = {
      ,{"damp2",        "REAL",   "0.1",   offsetof(params_t, damp2), 0}
 };
 
-/* static int findname(const char *key) { */
-/*     for (int i = 0 ; i < countof(default_pars) ; ++i) { */
-/*         if (strcmp(key, default_pars[i].name) == 0) */
-/*             return i; */
-/*     } */
-/*     return -1; */
-/* } */
-
-static char * cat(char * dst, const char * src) {
-    size_t n = strlen(src);
-    memcpy(dst, src, n);
-    return dst + n;
-}
-
 #define MAXLINE 256
 
 void read_params_txt(const char* filename, params_t* par)
@@ -62,7 +50,7 @@ void read_params_txt(const char* filename, params_t* par)
         exit(EXIT_FAILURE);
     }
     size_t nbel = sizeof(default_pars) / sizeof(default_pars[0]);
-    while (fgets(bufr, MAXLINE, fp) != NULL) {
+    while (fgets(bufr, MAXLINE, fp)) {
         char* token = strtok(bufr, "\t =\n\r");
         char* item;
         char* value;
@@ -80,9 +68,9 @@ void read_params_txt(const char* filename, params_t* par)
                     exit(EXIT_FAILURE);
                 }
                 if (!strcmp(default_pars[i].type, "REAL")) {
-                    *(float*)((char*)par + default_pars[i].off) = atof(value);
+                    *(float*)((char*)par + default_pars[i].off) = (float)atof(value);
                 } else {
-                    *(size_t*)((char*)par + default_pars[i].off) = atoi(value);
+                    *(uint32_t*)((char*)par + default_pars[i].off) = (uint32_t)atoi(value);
                 }
                 default_pars[i].check = 1;
                 break;
@@ -98,10 +86,10 @@ void read_params_txt(const char* filename, params_t* par)
 
             if (!strcmp(default_pars[i].type, "REAL")) {
                 *(float*)((char*)par + default_pars[i].off) =
-                    atof(default_pars[i].value);
+                    (float)atof(default_pars[i].value);
             } else {
-                *(size_t*)((char*)par + default_pars[i].off) =
-                    atoi(default_pars[i].value);
+                *(uint32_t*)((char*)par + default_pars[i].off) =
+                    (uint32_t)atoi(default_pars[i].value);
             }
         }
     }

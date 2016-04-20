@@ -11,6 +11,8 @@
 #include "Brecs.h"
 #include "parameter.io.h"
 
+extern struct gengetopt_args_info brecs_args;
+
 /* Command line variable */
 struct gengetopt_args_info brecs_args;
 
@@ -39,16 +41,16 @@ int main(int argc, char ** argv)
     params_t par;
     read_params_txt(brecs_args.conf_arg, &par);
 
-    size_t insx;
-    size_t insy;
-    size_t insz;
+    uint32_t insx;
+    uint32_t insy;
+    uint32_t insz;
 
     images.img = opentiff(brecs_args.filename_arg, &insx, &insy, &insz);
 
     if (brecs_args.background_arg) {
-        size_t binsx;
-        size_t binsy;
-        size_t binsz;
+        uint32_t binsx;
+        uint32_t binsy;
+        uint32_t binsz;
         images.imgback = opentiff_f(brecs_args.background_arg,
                                     &binsx,
                                     &binsy,
@@ -65,29 +67,29 @@ int main(int argc, char ** argv)
     images.insize.x = insx;
     images.insize.y = insy;
     images.insize.z = insz;
-    size_t sx, sy, sz;
+    uint32_t sx, sy, sz;
     images.ker = opentiff_f(brecs_args.psf_arg, &sx, &sy, &sz);
-    int kersize = sx;
+    uint16_t kersize = (uint16_t)sx;
     par.kersize = kersize;
-    int kersizez = sy / kersize;
+    uint16_t kersizez = (uint16_t)(sy / kersize);
     par.kersizez = kersizez;
-    int pixsdivz = par.pixsdivz;
-    int pixsdiv = sqrt(sz / pixsdivz);
+    uint16_t pixsdivz = par.pixsdivz;
+    uint16_t pixsdiv = sqrtf(sz / pixsdivz);
     par.pixsdiv = pixsdiv;
-    int pixsdiv2 = pixsdiv * pixsdiv;
-    int pixsdiv3 = pixsdivz * pixsdiv2;
+    uint16_t pixsdiv2 = pixsdiv * pixsdiv;
+    uint32_t pixsdiv3 = pixsdivz * pixsdiv2;
     if (sz != pixsdiv3) {
-        printf("invalid number of frames in the psf file: %ld\n", sx);
+        printf("invalid number of frames in the psf file: %d\n", sx);
         printf("should be: %d\n", pixsdiv3);
         exit(EXIT_FAILURE);
     }
-    par.prefacradcc = 1.0;
-    par.ainitpfact = 1.0;
+    par.prefacradcc = 1.0f;
+    par.ainitpfact = 1.0f;
     par.Ainit = par.ainitpfact / (par.pixmean * par.pixmean);
     par.overlaymaxint = par.pixmean;
-    par.overlayminint = 1.0;
-    par.relerrthr = 0.001;
-    par.nbinternloop = 1;
+    par.overlayminint = 1.0f;
+    par.relerrthr = 0.001f;
+    par.nbinternloop = 1.0f;
 
     brecs(&images, &par);
 
