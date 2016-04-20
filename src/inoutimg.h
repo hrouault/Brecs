@@ -50,13 +50,13 @@ void saveimage(float * img, int size, const char * fname);
 uint16_t* opentiff(const char* fname, size_t* sx, size_t* sy, size_t* sz);
 float* opentiff_f(const char* fname, size_t* sx, size_t* sy, size_t* sz);
 void writetiff_f(const char* fname,
-                 unsigned int sx, unsigned int sy, unsigned int sz,
+                 size_t sx, size_t sy, size_t sz,
                  float* img);
 void writetiff_gray(const char* fname,
-                    unsigned int sx, unsigned int sy, unsigned int sz,
+                    size_t sx, size_t sy, size_t sz,
                     uint16_t* img);
 void writetiff_rgb(const char* fname,
-                   unsigned int sx, unsigned int sy, unsigned int sz,
+                   size_t sx, size_t sy, size_t sz,
                    uint8_t* img);
 
 #endif /* end of include guard: INOUTIMG_H_86QYO34Z */

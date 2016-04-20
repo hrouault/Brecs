@@ -32,7 +32,7 @@ static conf_entry_t default_pars[] = {
      ,{"overlaymaxint","REAL",   "50.4",  offsetof(params_t, overlaymaxint), 0}
      ,{"overlayminint","REAL",   "0.1",   offsetof(params_t, overlayminint), 0}
      ,{"relerrthr",    "REAL",   "0.001", offsetof(params_t, relerrthr), 0}
-     ,{"nbinternloop", "REAL",   "1",     offsetof(params_t, nbinternloop), 0}
+     ,{"nbinternloop", "INTEGER",   "1",  offsetof(params_t, nbinternloop), 0}
      ,{"damp1",        "REAL",   "0.05",  offsetof(params_t, damp1), 0}
      ,{"damp2",        "REAL",   "0.1",   offsetof(params_t, damp2), 0}
 };
