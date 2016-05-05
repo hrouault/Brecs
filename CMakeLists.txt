@@ -29,6 +29,8 @@ message("Configuring B-recs version ${VERSION_SHORT}")
 add_definitions(-DVERSION="${VERSION_SHORT}")
 add_definitions(-DPACKAGE="Brecs")
 
+add_definitions(-DBRECS_DISPLAYPLOTS)
+
 include(platform)
 
 find_package(TIFF REQUIRED)

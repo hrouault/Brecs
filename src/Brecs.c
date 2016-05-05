@@ -139,6 +139,18 @@ ccomp_dec aggregate(lab_t* img, lab_t* imgdil, veci3* size, params_t* par);
 ccomp_dec aggregate2d(lab_t* img, lab_t* imgdil,
                       uint32_t width, uint32_t height, params_t* par);
 
+static void updatetemp(float* imgnoise, params_t* par, uint32_t nbmes3)
+{
+    float c = powf(par->rho, par->beta);
+    par->rho = c / (1 + c);
+
+    for (unsigned int i = 0; i < nbmes3; ++i) {
+        imgnoise[i] /= par->beta;
+    }
+
+    par->pixstd = par->pixstd / sqrtf(par->beta);
+}
+
 static void fafcfunc(float* out, float sig2, float r, params_t* par)
 {
     float rho = par->rho;
@@ -972,8 +984,6 @@ float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
     brecs_free(ccdec.imglab);
 
     uint8_t * overlay = create_overlay(imgmes, reconspic, &srec, smes, par);
-#ifdef BRECS_DISPLAYPLOTS
-#endif
 
     images->reconspic = reconspic;
     images->overlay = overlay;
@@ -1000,7 +1010,8 @@ lab_t * roundker(uint32_t diam, uint32_t diamz)
                 int32_t z = k - centerz;
                 float rad2 = x * x + y * y;
                 float rad2z = z * z;
-                uint32_t ind = (uint32_t)(i + j * (int32_t)diam + k * (int32_t)diam * (int32_t)diam);
+                uint32_t ind = (uint32_t)(i + j * (int32_t)diam
+                                          + k * (int32_t)diam * (int32_t)diam);
                 if (rad2 / center2 + rad2z / centerz2 < 1.0f) {
                     ker[ind] = 1;
                 } else {
@@ -1317,17 +1328,19 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, veci3 * size, params_t * par)
 
 #ifdef BRECS_DISPLAYPLOTS
     uint8_t * cols = genrandomcolo(clab);
-    uint8_t * imgccmprgb = brecs_alloc(plane * depth * 3 * sizeof(uint8_t));
+    uint8_t * imgccmprgb = brecs_alloc(plane * depth * 4 * sizeof(uint8_t));
 
     for (uint32_t i = 0; i < plane * depth; ++i) {
         if (img[i]) {
-            imgccmprgb[3 * i] = cols[3 * imglabs[i] - 3];
-            imgccmprgb[1 + 3 * i] = cols[1 + 3 * imglabs[i] - 3];
-            imgccmprgb[2 + 3 * i] = cols[2 + 3 * imglabs[i] - 3];
+            imgccmprgb[4 * i] = cols[3 * imglabs[i] - 3];
+            imgccmprgb[1 + 4 * i] = cols[1 + 3 * imglabs[i] - 3];
+            imgccmprgb[2 + 4 * i] = cols[2 + 3 * imglabs[i] - 3];
+            imgccmprgb[3 + 4 * i] = 1;
         } else {
-            imgccmprgb[3 * i] = 0;
-            imgccmprgb[1 + 3 * i] = 0;
-            imgccmprgb[2 + 3 * i] = 0;
+            imgccmprgb[4 * i] = 0;
+            imgccmprgb[1 + 4 * i] = 0;
+            imgccmprgb[2 + 4 * i] = 0;
+            imgccmprgb[3 + 4 * i] = 1;
         }
     }
     brecs_free(cols);
@@ -1518,12 +1531,12 @@ ccomp_dec connectcomp_decomp3d(float * img, veci3 * smes, params_t * par)
     uint32_t nbmes2 = nbmesx * nbmesy;
     uint32_t nbmes3 = nbmesx * nbmesy * nbmesz;
 
-    uint32_t sxfft = (uint32_t)floorf(powf(2, floorf(log2f(sizex) + 1)));
-    uint32_t syfft = (uint32_t)floorf(powf(2, floorf(log2f(sizey) + 1)));
+    uint32_t sxfft = 1 << (uint32_t)ceilf(log2f(sizex));
+    uint32_t syfft = 1 << (uint32_t)ceilf(log2f(sizey));
     uint32_t sfft2 = sxfft * syfft;
-    uint32_t szfft = (uint32_t)floorf(powf(2, floorf(log2f(sizez) + 1)));
-
+    uint32_t szfft = 1 << (uint32_t)ceilf(log2f(sizez));
     uint32_t s3fft = sxfft * syfft * szfft;
+
     float * imgsmoo = (float *)fftwf_malloc(s3fft * sizeof(float));
     if (!imgsmoo) exit(EXIT_FAILURE);
     for (uint32_t i = 0; i < sxfft * syfft * szfft; ++i) {

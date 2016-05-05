@@ -192,7 +192,7 @@ void writetiff_rgb(const char* fname,
     for (size_t i = 0; i < sz; ++i) {
         TIFFSetField(outf, TIFFTAG_IMAGEWIDTH, sx);
         TIFFSetField(outf, TIFFTAG_IMAGELENGTH, sy);
-        TIFFSetField(outf, TIFFTAG_SAMPLESPERPIXEL, 3);
+        TIFFSetField(outf, TIFFTAG_SAMPLESPERPIXEL, 4);
         TIFFSetField(outf, TIFFTAG_BITSPERSAMPLE, 8);
         TIFFSetField(outf, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
         TIFFSetField(outf, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
@@ -200,12 +200,12 @@ void writetiff_rgb(const char* fname,
         TIFFSetField(outf, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
 
         TIFFSetField(outf,
-                TIFFTAG_ROWSPERSTRIP,
-                TIFFDefaultStripSize(outf, 3 * sx));
+                     TIFFTAG_ROWSPERSTRIP,
+                     TIFFDefaultStripSize(outf, 4 * sx));
 
         for (uint32 row = 0; row < sy; row++) {
             if (TIFFWriteScanline(outf,
-                                  img + 3 * sx * row + 3 * sx * sy * i,
+                                  img + 4 * sx * row + 4 * sx * sy * i,
                                   row, 0) < 0)
                 break;
         }

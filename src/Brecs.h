@@ -56,6 +56,8 @@ typedef struct {
     float pixmean;
     float pixstd;
     float rho;
+    float beta;
+
     /* Sizes of the images */
     uint16_t kersize;
     uint16_t kersizez;
