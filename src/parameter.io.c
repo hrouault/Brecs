@@ -19,7 +19,7 @@ static conf_entry_t default_pars[] = {
       {"pixmean",      "REAL",   "500",   offsetof(params_t, pixmean), 0}
      ,{"pixstd",       "REAL",   "200",   offsetof(params_t, pixstd), 0}
      ,{"rho",          "REAL",   "0.001", offsetof(params_t, rho), 0}
-     ,{"beta",         "REAL",   "1.0",   offsetof(params_t, rho), 0}
+     ,{"beta",         "REAL",   "1.0",   offsetof(params_t, beta), 0}
      ,{"pixsdivz",     "INTEGER","1",     offsetof(params_t, pixsdivz), 0}
      ,{"spixnm",       "REAL",   "133.0", offsetof(params_t, spixnm), 0}
      ,{"spixznm",      "REAL",   "300.0", offsetof(params_t, spixznm), 0}

@@ -1335,12 +1335,12 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, veci3 * size, params_t * par)
             imgccmprgb[4 * i] = cols[3 * imglabs[i] - 3];
             imgccmprgb[1 + 4 * i] = cols[1 + 3 * imglabs[i] - 3];
             imgccmprgb[2 + 4 * i] = cols[2 + 3 * imglabs[i] - 3];
-            imgccmprgb[3 + 4 * i] = 1;
+            imgccmprgb[3 + 4 * i] = 255;
         } else {
             imgccmprgb[4 * i] = 0;
             imgccmprgb[1 + 4 * i] = 0;
             imgccmprgb[2 + 4 * i] = 0;
-            imgccmprgb[3 + 4 * i] = 1;
+            imgccmprgb[3 + 4 * i] = 255;
         }
     }
     brecs_free(cols);
@@ -1622,19 +1622,21 @@ ccomp_dec connectcomp_decomp3d(float * img, veci3 * smes, params_t * par)
         }
     }
 
-    uint8_t * imgthrrgb = brecs_alloc(3 * size3 * sizeof(uint8_t));
+    uint8_t * imgthrrgb = brecs_alloc(4 * size3 * sizeof(uint8_t));
     for (uint32_t k = 0; k < sizez; ++k) {
         for (uint32_t j = 0; j < sizey; ++j) {
             for (uint32_t i = 0; i < sizex; ++i) {
                 uint32_t ind = i + j * sizex + k * sizex * sizey;
                 if (imgccmp[ind]) {
-                    imgthrrgb[3 * ind] = 255;
-                    imgthrrgb[1 + 3 * ind] = 255;
-                    imgthrrgb[2 + 3 * ind] = 255;
+                    imgthrrgb[4 * ind] = 255;
+                    imgthrrgb[1 + 4 * ind] = 255;
+                    imgthrrgb[2 + 4 * ind] = 255;
+                    imgthrrgb[3 + 4 * ind] = 255;
                 } else {
-                    imgthrrgb[3 * ind] = 0;
-                    imgthrrgb[1 + 3 * ind] = 0;
-                    imgthrrgb[2 + 3 * ind] = 0;
+                    imgthrrgb[4 * ind] = 0;
+                    imgthrrgb[1 + 4 * ind] = 0;
+                    imgthrrgb[2 + 4 * ind] = 0;
+                    imgthrrgb[3 + 4 * ind] = 255;
                 }
             }
         }
@@ -1654,19 +1656,21 @@ ccomp_dec connectcomp_decomp3d(float * img, veci3 * smes, params_t * par)
     printf("dilation over\n");
 
 #ifdef BRECS_DISPLAYPLOTS
-    uint8_t * imgdilrgb = brecs_alloc(3 * size3 * sizeof(uint8_t));
+    uint8_t * imgdilrgb = brecs_alloc(4 * size3 * sizeof(uint8_t));
     for (uint32_t k = 0; k < sizez; ++k) {
         for (uint32_t j = 0; j < sizey; ++j) {
             for (uint32_t i = 0; i < sizex; ++i) {
-                int ind = i + j * sizex + k * sizex * sizey;
+                uint32_t ind = i + j * sizex + k * sizex * sizey;
                 if (imgdil[ind]) {
-                    imgdilrgb[3 * ind] = 255;
-                    imgdilrgb[1 + 3 * ind] = 255;
-                    imgdilrgb[2 + 3 * ind] = 255;
+                    imgdilrgb[4 * ind] = 255;
+                    imgdilrgb[1 + 4 * ind] = 255;
+                    imgdilrgb[2 + 4 * ind] = 255;
+                    imgdilrgb[3 + 4 * ind] = 255;
                 } else {
-                    imgdilrgb[3 * ind] = 0;
-                    imgdilrgb[1 + 3 * ind] = 0;
-                    imgdilrgb[2 + 3 * ind] = 0;
+                    imgdilrgb[4 * ind] = 0;
+                    imgdilrgb[1 + 4 * ind] = 0;
+                    imgdilrgb[2 + 4 * ind] = 0;
+                    imgdilrgb[3 + 4 * ind] = 255;
                 }
             }
         }
@@ -1822,18 +1826,20 @@ ccomp_dec connectcomp_decomp2d(float * img, veci3 * smes, params_t * par)
     }
 
 #ifdef BRECS_DISPLAYPLOTS
-    uint8_t * imgthrrgb = brecs_alloc(3 * size2 * sizeof(uint8_t));
+    uint8_t * imgthrrgb = brecs_alloc(4 * size2 * sizeof(uint8_t));
     for (uint32_t j = 0; j < sizey; ++j) {
         for (uint32_t i = 0; i < sizex; ++i) {
-            int ind = i + j * sizex;
+            uint32_t ind = i + j * sizex;
             if (imgccmp[ind]) {
-                imgthrrgb[3 * ind] = 255;
-                imgthrrgb[1 + 3 * ind] = 255;
-                imgthrrgb[2 + 3 * ind] = 255;
+                imgthrrgb[4 * ind] = 255;
+                imgthrrgb[1 + 4 * ind] = 255;
+                imgthrrgb[2 + 4 * ind] = 255;
+                imgthrrgb[3 + 4 * ind] = 255;
             } else {
-                imgthrrgb[3 * ind] = 0;
-                imgthrrgb[1 + 3 * ind] = 0;
-                imgthrrgb[2 + 3 * ind] = 0;
+                imgthrrgb[4 * ind] = 0;
+                imgthrrgb[1 + 4 * ind] = 0;
+                imgthrrgb[2 + 4 * ind] = 0;
+                imgthrrgb[3 + 4 * ind] = 255;
             }
         }
     }
@@ -1846,18 +1852,20 @@ ccomp_dec connectcomp_decomp2d(float * img, veci3 * smes, params_t * par)
                               pixsdiv * kersize / 2);
 
 #ifdef BRECS_DISPLAYPLOTS
-    uint8_t * imgdilrgb = brecs_alloc(3 * size2 * sizeof(uint8_t));
+    uint8_t * imgdilrgb = brecs_alloc(4 * size2 * sizeof(uint8_t));
     for (uint32_t j = 0; j < sizey; ++j) {
         for (uint32_t i = 0; i < sizex; ++i) {
-            int ind = i + j * sizex;
+            uint32_t ind = i + j * sizex;
             if (imgdil[ind]) {
-                imgdilrgb[3 * ind] = 255;
-                imgdilrgb[1 + 3 * ind] = 255;
-                imgdilrgb[2 + 3 * ind] = 255;
+                imgdilrgb[4 * ind] = 255;
+                imgdilrgb[1 + 4 * ind] = 255;
+                imgdilrgb[2 + 4 * ind] = 255;
+                imgdilrgb[3 + 4 * ind] = 255;
             } else {
-                imgdilrgb[3 * ind] = 0;
-                imgdilrgb[1 + 3 * ind] = 0;
-                imgdilrgb[2 + 3 * ind] = 0;
+                imgdilrgb[4 * ind] = 0;
+                imgdilrgb[1 + 4 * ind] = 0;
+                imgdilrgb[2 + 4 * ind] = 0;
+                imgdilrgb[3 + 4 * ind] = 255;
             }
         }
     }
