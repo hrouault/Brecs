@@ -663,7 +663,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
                      uint32_t * activepix, uint32_t nbact,
                      float * ker, float * ker2, veci3 * srec, params_t * par)
 {
-    uint32_t pixsdiv = par->pixsdiv;
     uint32_t kersize = par->kersize;
     uint32_t kersize2 = kersize * kersize;
     uint32_t kersizez = par->kersizez;
@@ -672,13 +671,9 @@ float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
     float pixmean = par->pixmean;
     float Ainit = par->Ainit;
     float relerrthr = par->relerrthr;
-    float locaintensthr = par->locaintensthr;
-    float spixnm = par->spixnm;
-    float spixznm = par->spixznm;
     uint32_t nbiter = par->nbiter;
     uint32_t nbinternloop = par->nbinternloop;
     uint32_t size2 = srec->x * srec->y;
-    uint32_t size3 = size2 * srec->z;
 
     float * imgnoisecp;
     float * mu_albe_A;
@@ -793,33 +788,17 @@ float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
 
     if (relerr < 1.01 * relerrthr) nbconv++;
 
-    errnopos = brecs_memalign((void **)&res, size3 * sizeof(float));
+    errnopos = brecs_memalign((void **)&res, nbact * sizeof(float));
     if (!res) brecs_error("Failed to allocate memory for res ",
                           strerror(errnopos), prog_name);
 
-    for (uint32_t i = 0; i < size3; ++i) {
+    for (uint32_t i = 0; i < nbact; ++i) {
         res[i] = 0;
     }
     // if (relerr < 1.1 * relerrthr){
         for (uint32_t k = 0; k < nbact; ++k) {
             float val = P_be_F[k] / P_be_E[k];
-            res[activepix[k]] += val;
-        }
-        static uint32_t nbfluo = 1;
-        for (uint32_t i = 0; i < size3; ++i) {
-            uint32_t c = (i % size2) % srec->x;
-            uint32_t l = (i % size2) / srec->x;
-            uint32_t z = i / size2;
-            if (res[i] > locaintensthr
-                && !on_border(i, activepix, nbact, srec->x, size2)) {
-                printf("%d %.2f %.2f %.2f %.2f\n",
-                       nbfluo,
-                       (c - kersize / 2 * pixsdiv) * spixnm + spixnm / 2,
-                       (l - kersize / 2 * pixsdiv) * spixnm + spixnm / 2,
-                       z * spixznm,
-                       res[i]);
-                nbfluo++;
-            }
+            res[k] += val;
         }
 
     brecs_free(mu_albe_A);
@@ -962,6 +941,7 @@ float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
     srec.y = sizey;
     srec.z = sizez;
 
+    /* uint32_t nbfluo = 1; */
     for (uint32_t i = 0; i < ccdec.nbcomp; ++i) {
         printf("Processing connected component %40d / %d\r",
                i + 1, ccdec.nbcomp);
@@ -969,9 +949,24 @@ float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
         float * rectmp = recons_ccomp(imgmes, imgnoise, nbmesx * nbmesy * nbmesz,
                                       ccdec.activepixcomp[i], ccdec.nbact[i],
                                       ker, ker2, &srec, par);
-        for (uint32_t j = 0; j < size3; ++j) {
-            reconspic[j] += rectmp[j];
+        for (uint32_t j = 0; j < ccdec.nbact[i]; ++j) {
+            reconspic[ccdec.activepixcomp[i][j]] += rectmp[j];
         }
+        /* for (uint32_t j = 0; j < size3; ++j) { */
+        /*     uint32_t c = (j % size2) % srec->x; */
+        /*     uint32_t l = (j % size2) / srec->x; */
+        /*     uint32_t z = j / size2; */
+        /*     if (res[j] > locaintensthr */
+        /*         && !on_border(j, activepix, nbact, srec->x, size2)) { */
+        /*         printf("%d %.2f %.2f %.2f %.2f\n", */
+        /*                nbfluo, */
+        /*                (c - kersize / 2 * pixsdiv) * spixnm + spixnm / 2, */
+        /*                (l - kersize / 2 * pixsdiv) * spixnm + spixnm / 2, */
+        /*                z * spixznm, */
+        /*                res[i]); */
+        /*         nbfluo++; */
+        /*     } */
+        /* } */
         brecs_free(rectmp);
     }
     printf("\n");
@@ -1933,7 +1928,7 @@ void brecs_initimgmes(images_t * images, params_t * par) {
                     valback = (valback - mesoffset) / mesampli;
                     pixmes = val - valback;
                 } else {
-                    pixmes = val - meanback;
+                    pixmes = val - (meanback - mesoffset) / mesampli;
                 }
                 uint32_t ind = i + kersize / 2 + (j + kersize / 2) * nbmesx
                           + (k + kersizez / 2) * nbmesx * nbmesy;
@@ -2017,7 +2012,7 @@ void brecs(images_t * images, params_t * par) {
                     valback = (valback - mesoffset) / mesampli;
                     pixmes = val - valback;
                 } else {
-                    pixmes = val - meanback;
+                    pixmes = val - (meanback - mesoffset) / mesampli;
                 }
                 uint32_t ind = i + kersize / 2 + (j + kersize / 2) * nbmesx
                           + (k + kersizez / 2) * nbmesx * nbmesy;
