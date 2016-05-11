@@ -673,7 +673,6 @@ float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
     float relerrthr = par->relerrthr;
     uint32_t nbiter = par->nbiter;
     uint32_t nbinternloop = par->nbinternloop;
-    uint32_t size2 = srec->x * srec->y;
 
     float * imgnoisecp;
     float * mu_albe_A;
@@ -792,13 +791,10 @@ float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
     if (!res) brecs_error("Failed to allocate memory for res ",
                           strerror(errnopos), prog_name);
 
-    for (uint32_t i = 0; i < nbact; ++i) {
-        res[i] = 0;
-    }
     // if (relerr < 1.1 * relerrthr){
         for (uint32_t k = 0; k < nbact; ++k) {
             float val = P_be_F[k] / P_be_E[k];
-            res[k] += val;
+            res[k] = val;
         }
 
     brecs_free(mu_albe_A);
@@ -979,6 +975,10 @@ float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
     brecs_free(ccdec.imglab);
 
     uint8_t * overlay = create_overlay(imgmes, reconspic, &srec, smes, par);
+
+#ifdef BRECS_DISPLAYPLOTS
+    writetiff_rgb("overlay.tif", sizex, sizey, sizez, overlay);
+#endif
 
     images->reconspic = reconspic;
     images->overlay = overlay;
@@ -2033,5 +2033,5 @@ void brecs(images_t * images, params_t * par) {
     brecs_free(imgker);
     brecs_free(imgmes);
     brecs_free(imgnoise);
-    brecs_free(imgrecons);
+    /* brecs_free(imgrecons); */
 }
