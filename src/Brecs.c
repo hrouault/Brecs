@@ -1232,7 +1232,7 @@ ccomp_dec aggregate(lab_t * img, lab_t * imgdil, veci3 * size, params_t * par)
                         nlab++;
                     }
                     for (uint32_t l = 1; l < 13; ++l) {
-                        if (lab4[i]) {
+                        if (lab4[l]) {
                             if (lab4[l] < minlab) minlab = lab4[l];
                             lab4p[nlab] = lab4[l];
                             nlab++;
