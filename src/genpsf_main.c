@@ -27,16 +27,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef GENPSF_H_EJNZDV4H
-#define GENPSF_H_EJNZDV4H
+#include <stdio.h>
 
-#include <inttypes.h>
+#include "genpsf.h"
+#include "inoutimg.h"
 
-float * gaussker2d(float sigma,
-                   uint16_t shift, uint16_t sizepsf, uint16_t oversamp);
-float * gaussker3dwf(float sigmaxy, float alphasigz,
-                     uint16_t shift, uint16_t shiftz,
-                     uint16_t sizepsfxy, uint16_t sizepsfz,
-                     uint16_t oversamp);
+int main()
+{
+    printf("This executable generates a PSF: everything is hard-coded.\n");
 
-#endif /* end of include guard: GENPSF_H_EJNZDV4H */
+    /* For 2d psf generation */
+    float sigma = 1.2f; /* std of the gaussian psf, in pixel units */
+    uint16_t sh = 8; /* degree of superres: division of an imaged pixel */
+    uint16_t size = 8; /* width of the psf in unit of measured pixels */
+
+    printf("Generating 2d psf...\n");
+    float* psf2d = gaussker2d(sigma, sh, size, 4);
+    writetiff_f("psf2d.tif", size, size, sh * sh, psf2d);
+    free(psf2d);
+
+    float alphasigz = 0.8f;
+    sh = 2;
+    uint16_t shz = 1;
+    uint16_t sizez = 6;
+    printf("Generating 3d psf...\n");
+    float* psf3d = gaussker3dwf(sigma, alphasigz, sh, shz, size, sizez, 4);
+    printf("Writing tiff file for 3d psf...\n");
+    writetiff_f("psf3d.tif", size, size * sizez, sh * sh * shz, psf3d);
+    free(psf3d);
+    
+    return 0;
+}

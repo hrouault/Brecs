@@ -140,8 +140,8 @@ void writetiff_f(const char* fname,
         TIFFSetField(outf, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
 
         TIFFSetField(outf,
-                TIFFTAG_ROWSPERSTRIP,
-                TIFFDefaultStripSize(outf, 4 * sx));
+                     TIFFTAG_ROWSPERSTRIP,
+                     TIFFDefaultStripSize(outf, 4 * sx));
 
         for (uint32 row = 0; row < sy; row++) {
             if (TIFFWriteScanline(outf,

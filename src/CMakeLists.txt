@@ -22,6 +22,10 @@ target_add_platform(brecs)
 install(TARGETS brecs DESTINATION lib)
 install(FILES Brecs.h DESTINATION include)
 
+add_executable(brecs-genpsf
+               genpsf.c genpsf.h genpsf_main.c)
+target_link_libraries(brecs-genpsf brecs)
+
 add_executable(brecs-reconsparse
                brecs.main.c
                parameter.io.h parameter.io.c
