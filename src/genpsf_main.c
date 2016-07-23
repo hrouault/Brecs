@@ -40,21 +40,29 @@ int main()
     float sigma = 1.2f; /* std of the gaussian psf, in pixel units */
     uint16_t sh = 8; /* degree of superres: division of an imaged pixel */
     uint16_t size = 8; /* width of the psf in unit of measured pixels */
+    uint16_t oversamp = 4;
 
     printf("Generating 2d psf...\n");
-    float* psf2d = gaussker2d(sigma, sh, size, 4);
+    float* psf2d = gaussker2d(sigma, sh, size, oversamp);
     writetiff_f("psf2d.tif", size, size, sh * sh, psf2d);
     free(psf2d);
 
-    float alphasigz = 0.8f;
-    sh = 2;
-    uint16_t shz = 1;
-    uint16_t sizez = 6;
-    printf("Generating 3d psf...\n");
-    float* psf3d = gaussker3dwf(sigma, alphasigz, sh, shz, size, sizez, 4);
-    printf("Writing tiff file for 3d psf...\n");
-    writetiff_f("psf3d.tif", size, size * sizez, sh * sh * shz, psf3d);
-    free(psf3d);
+    printf("Generating 3d astigmatic psf...\n");
+    uint16_t nbplz = 7;
+    uint16_t sdiv = 4;
+    float* psf3dast = astigmker3d(1.0f, 0.0625, 1.5f, sdiv, nbplz, size, oversamp);
+    writetiff_f("psf3dastig.tif", size, size, sdiv * sdiv * nbplz, psf3dast);
+    free(psf3dast);
+
+    /* float alphasigz = 0.8f; */
+    /* sh = 2; */
+    /* uint16_t shz = 1; */
+    /* uint16_t sizez = 6; */
+    /* printf("Generating 3d psf...\n"); */
+    /* float* psf3d = gaussker3dwf(sigma, alphasigz, sh, shz, size, sizez, 4); */
+    /* printf("Writing tiff file for 3d psf...\n"); */
+    /* writetiff_f("psf3d.tif", size, size * sizez, sh * sh * shz, psf3d); */
+    /* free(psf3d); */
     
     return 0;
 }

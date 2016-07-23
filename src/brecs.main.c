@@ -1,5 +1,6 @@
 #include <platform.h>
 #include <string.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <math.h>
 #include <stdio.h>
@@ -74,7 +75,7 @@ int main(int argc, char ** argv)
     uint16_t kersizez = (uint16_t)(sy / kersize);
     par.kersizez = kersizez;
     uint16_t pixsdivz = par.pixsdivz;
-    uint16_t pixsdiv = sqrtf(sz / pixsdivz);
+    uint16_t pixsdiv = (uint16_t)sqrtf(sz / pixsdivz);
     par.pixsdiv = pixsdiv;
     uint16_t pixsdiv2 = pixsdiv * pixsdiv;
     uint32_t pixsdiv3 = pixsdivz * pixsdiv2;
@@ -91,7 +92,21 @@ int main(int argc, char ** argv)
     par.relerrthr = 0.001f;
     par.nbinternloop = 1.0f;
 
-    brecs(&images, &par);
+    FILE* floca = NULL;
+    if (brecs_args.localizations_arg) {
+        floca = fopen(brecs_args.localizations_arg, "w");
+        if (floca == NULL) {
+            fprintf(stderr, "Cannot open file %s: %s\n",
+                    brecs_args.localizations_arg, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    brecs(&images, &par, floca);
+
+    if (brecs_args.localizations_arg) {
+        fclose(floca);
+    }
 
     if (brecs_args.output_arg) {
         writetiff_f(brecs_args.output_arg,

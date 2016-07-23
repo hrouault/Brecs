@@ -34,13 +34,14 @@ const char *gengetopt_args_info_versiontext = "";
 const char *gengetopt_args_info_description = "";
 
 const char *gengetopt_args_info_help[] = {
-  "  -h, --help            Print help and exit",
-  "  -V, --version         Print version and exit",
-  "  -f, --filename=str    Filename of the image",
-  "      --psf=str         PSF image in tiff format",
-  "  -c, --conf=str        Filename of the configuration file providing the\n                          parameters for the optimization",
-  "      --background=str  background image in raw format",
-  "  -o, --output=str      Tiff output image",
+  "  -h, --help               Print help and exit",
+  "  -V, --version            Print version and exit",
+  "  -f, --filename=str       Filename of the image",
+  "      --psf=str            PSF image in tiff format",
+  "  -c, --conf=str           Filename of the configuration file providing the\n                             parameters for the optimization",
+  "      --background=str     background image in raw format",
+  "  -o, --output=str         Tiff output image",
+  "  -l, --localizations=str  Text file with the localizations",
     0
 };
 
@@ -73,6 +74,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->conf_given = 0 ;
   args_info->background_given = 0 ;
   args_info->output_given = 0 ;
+  args_info->localizations_given = 0 ;
 }
 
 static
@@ -89,6 +91,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->background_orig = NULL;
   args_info->output_arg = NULL;
   args_info->output_orig = NULL;
+  args_info->localizations_arg = NULL;
+  args_info->localizations_orig = NULL;
   
 }
 
@@ -104,6 +108,7 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->conf_help = gengetopt_args_info_help[4] ;
   args_info->background_help = gengetopt_args_info_help[5] ;
   args_info->output_help = gengetopt_args_info_help[6] ;
+  args_info->localizations_help = gengetopt_args_info_help[7] ;
   
 }
 
@@ -197,6 +202,8 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->background_orig));
   free_string_field (&(args_info->output_arg));
   free_string_field (&(args_info->output_orig));
+  free_string_field (&(args_info->localizations_arg));
+  free_string_field (&(args_info->localizations_orig));
   
   
 
@@ -241,6 +248,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "background", args_info->background_orig, 0);
   if (args_info->output_given)
     write_into_file(outfile, "output", args_info->output_orig, 0);
+  if (args_info->localizations_given)
+    write_into_file(outfile, "localizations", args_info->localizations_orig, 0);
   
 
   i = EXIT_SUCCESS;
@@ -524,10 +533,11 @@ cmdline_parser_internal (
         { "conf",	1, NULL, 'c' },
         { "background",	1, NULL, 0 },
         { "output",	1, NULL, 'o' },
+        { "localizations",	1, NULL, 'l' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVf:c:o:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVf:c:o:l:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -575,6 +585,18 @@ cmdline_parser_internal (
               &(local_args_info.output_given), optarg, 0, 0, ARG_STRING,
               check_ambiguity, override, 0, 0,
               "output", 'o',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'l':	/* Text file with the localizations.  */
+        
+        
+          if (update_arg( (void *)&(args_info->localizations_arg), 
+               &(args_info->localizations_orig), &(args_info->localizations_given),
+              &(local_args_info.localizations_given), optarg, 0, 0, ARG_STRING,
+              check_ambiguity, override, 0, 0,
+              "localizations", 'l',
               additional_error))
             goto failure;
         

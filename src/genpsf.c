@@ -91,6 +91,74 @@ float * gaussker2d(float sigma,
     return(psfpicsdiv);
 }
 
+float * astigmker3d(float sigmaxy, float alphasigz, float astigoff,
+                    uint16_t sdiv, uint16_t sdivz, uint16_t sizepsfxy,
+                    uint16_t oversamp)
+{
+    uint32_t sizepsf2 = sizepsfxy * sizepsfxy;
+    uint32_t sdiv2 = sdiv * sdiv;
+    uint32_t sdiv3 = sdiv2 * sdivz;
+    uint32_t pixsize = sdiv * oversamp;
+    uint32_t pixsizez = sdivz * oversamp;
+    uint32_t sizeimg = (sizepsfxy + 2) * pixsize;
+    uint32_t sizeimgz = pixsizez;
+    uint32_t sizeimg2 = sizeimg * sizeimg;
+    uint32_t sizeimg3 = sizeimg2 * sizeimgz;
+    float * psfhighres = malloc(sizeimg3 * sizeof(float));
+
+    /* Calculation of the psf value */
+    for (uint32_t z = 0; z < sizeimgz; ++z) {
+        float dz = (z - (sizeimgz - 1) * 0.5f) / oversamp;
+        for (uint32_t y = 0; y < sizeimg; ++y) {
+            float dy = y - (sizeimg - 1) * 0.5f;
+            for (uint32_t x = 0; x < sizeimg; ++x) {
+                float dx = x - (sizeimg - 1) * 0.5f;
+                float dz2offx = (dz + astigoff) * (dz + astigoff);
+                float s2resx = sqrtf(1.0f + alphasigz * dz2offx);
+                s2resx *= sigmaxy * pixsize;
+                s2resx *= s2resx;
+                float dz2offy = (dz - astigoff) * (dz - astigoff);
+                float s2resy = sqrtf(1.0f + alphasigz * dz2offy);
+                s2resy *= sigmaxy * pixsize;
+                s2resy *= s2resy;
+                float val = expf(-dx * dx / 2 / s2resx - dy * dy / 2 / s2resy);
+                val /= pixsize * pixsize * oversamp;
+                /* val /= 2 * M_PIf * sigmaxy * pixsize; */
+                /* val /= 2 * M_PIf * sqrt(s2resx * s2resy); */
+                psfhighres[z * sizeimg2 + y * sizeimg + x] = val;
+            }
+        }
+    }
+    writetiff_f("raw3dpsf.tif", sizeimg, sizeimg, sizeimgz, psfhighres);
+
+    float* psfpicsdiv = (float*)brecs_alloc(sdiv3 * sizepsf2 * sizeof(float));
+    uint32_t offset = 3 * pixsize / 2 - oversamp / 2;
+    /* uint32_t offsetz = 3 * pixsizez / 2 - oversamp / 2; */
+    for (uint32_t i = 0; i < sdiv3; ++i) {
+        uint32_t sx = (i % sdiv2) % sdiv * oversamp;
+        uint32_t sy = (i % sdiv2) / sdiv * oversamp;
+        uint32_t sz = i / sdiv2;
+        for (uint32_t j = 0; j < sizepsf2; ++j) {
+            uint32_t xcoarse = j % sizepsfxy * pixsize;
+            uint32_t ycoarse = j / sizepsfxy * pixsize;
+            float val = 0;
+
+            for (uint32_t l = 0; l < oversamp; ++l) {
+                for (uint32_t k = 0; k < pixsize * pixsize; ++k) {
+                    uint32_t xres = k % pixsize + xcoarse - sx + offset;
+                    uint32_t yres = k / pixsize + ycoarse - sy + offset;
+                    val += psfhighres[(sz * oversamp + l) * sizeimg2
+                                      + yres * sizeimg + xres];
+                }
+                
+            }
+            psfpicsdiv[j + i * sizepsf2] = val;
+        }
+    }
+    free(psfhighres);
+    return(psfpicsdiv);
+}
+
 float * gaussker3dwf(float sigmaxy, float alphasigz,
                      uint16_t sdiv, uint16_t sdivz,
                      uint16_t sizepsfxy, uint16_t sizepsfz,
@@ -126,9 +194,9 @@ float * gaussker3dwf(float sigmaxy, float alphasigz,
             }
         }
     }
-    writetiff_f("raw3dpsf.tif", sizeimg, sizeimg, sizeimgz, psfhighres);
+    /* writetiff_f("raw3dpsf.tif", sizeimg, sizeimg, sizeimgz, psfhighres); */
 
-    float * psfpicsdiv = (float*)brecs_alloc(sdiv3 * sizepsf3 * sizeof(float));
+    float* psfpicsdiv = (float*)brecs_alloc(sdiv3 * sizepsf3 * sizeof(float));
     uint32_t offset = 3 * pixsize / 2 - oversamp / 2;
     uint32_t offsetz = 3 * pixsizez / 2 - oversamp / 2;
     for (uint32_t i = 0; i < sdiv3; ++i) {
@@ -137,11 +205,6 @@ float * gaussker3dwf(float sigmaxy, float alphasigz,
         uint32_t sz = i / sdiv2 * oversamp;
         for (uint32_t jz = 0; jz < sizepsfz; ++jz) {
             uint32_t zcoarse = jz * pixsizez;
-            uint32_t zresum = zcoarse - sz + offsetz;
-            float sum = 0;
-            for (uint32_t j = 0; j < sizeimg2 * pixsizez; ++j) {
-                sum += psfhighres[zresum * sizeimg2 + j];
-            }
             for (uint32_t j = 0; j < sizepsf2; ++j) {
                 uint32_t xcoarse = j % sizepsfxy * pixsize;
                 uint32_t ycoarse = j / sizepsfxy * pixsize;
@@ -154,6 +217,7 @@ float * gaussker3dwf(float sigmaxy, float alphasigz,
                         val += psfhighres[zres * sizeimg2 + yres * sizeimg + xres];
                     }
                 }
+                /* TODO: renoromalize properly */
                 psfpicsdiv[j + jz * sizepsf2 + i * sizepsf3] = val;
             }
         }

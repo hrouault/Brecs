@@ -43,3 +43,6 @@ option "background" - "background image in raw format"
 
 option "output" o "Tiff output image"
            string typestr="str" optional
+
+option "localizations" l "Text file with the localizations"
+           string typestr="str" optional

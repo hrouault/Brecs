@@ -34,6 +34,9 @@
 
 float * gaussker2d(float sigma,
                    uint16_t shift, uint16_t sizepsf, uint16_t oversamp);
+float * astigmker3d(float sigmaxy, float alphasigz, float astigoff,
+                    uint16_t sdiv, uint16_t sdivz, uint16_t sizepsfxy,
+                    uint16_t oversamp);
 float * gaussker3dwf(float sigmaxy, float alphasigz,
                      uint16_t shift, uint16_t shiftz,
                      uint16_t sizepsfxy, uint16_t sizepsfz,

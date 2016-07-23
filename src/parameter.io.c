@@ -22,7 +22,7 @@ static conf_entry_t default_pars[] = {
      ,{"beta",         "REAL",   "1.0",   offsetof(params_t, beta), 0}
      ,{"pixsdivz",     "INTEGER","1",     offsetof(params_t, pixsdivz), 0}
      ,{"spixnm",       "REAL",   "133.0", offsetof(params_t, spixnm), 0}
-     ,{"spixznm",      "REAL",   "300.0", offsetof(params_t, spixznm), 0}
+     ,{"spixznm",      "REAL",   "100.0", offsetof(params_t, spixznm), 0}
      ,{"mesoffset",    "REAL",   "80",    offsetof(params_t, mesoffset), 0}
      ,{"mesampli",     "REAL",   "20",    offsetof(params_t, mesampli), 0}
      ,{"noiseoffset",  "REAL",   "1",     offsetof(params_t, noiseoffset), 0}

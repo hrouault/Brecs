@@ -106,6 +106,11 @@ float * gausskerpar(uint32_t sx, uint32_t sy, uint32_t sz,
 
 float * gausskerpar2d(uint32_t sx, uint32_t sy, float radius);
 
+uint32_t print_localizations(float* rec, uint32_t* activepix, uint32_t nbact,
+                             uint32_t nbfluoini,
+                             uint32_t sizex, uint32_t size2,
+                             FILE* out, params_t* par);
+
 float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
                      uint32_t * activepix, uint32_t nbact,
                      float * ker, float * ker2, veci3 * srec, params_t * par);
@@ -272,9 +277,6 @@ static void update_omegavmu(float * omegamu, float * vmu,
             VFUNC(storeu_ps) (vmu + imu, cv);
         }
     }
-#ifdef BRECS_DISPLAYPLOTS
-    writetiff_f("omegavmu.tif", nbmesx, nbmesy, nbmesz, omegamu);
-#endif
 }
 
 static void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
@@ -855,13 +857,20 @@ uint8_t * create_overlay(float * imgmes, float * imgrecons,
             uint32_t x = i % srec->x;
             uint32_t y = (i % size2) / srec->x;
             uint32_t z = i / size2;
+            if (par->kersizez == 1) z = pixsdivz / 2;
             if (x >= pixsdiv / 2 && y >= pixsdiv / 2 && z >= pixsdivz / 2) {
                 x -= pixsdiv / 2;
                 y -= pixsdiv / 2;
-                z -= pixsdivz / 2;
-                uint32_t ind = (y / pixsdiv + kersize / 2) * smes->x
-                    + x / pixsdiv + kersize / 2
-                    + (z / pixsdivz + kersizez / 2) * nbmes2;
+                uint32_t ind = 0;
+                if (par->kersizez > 1) {
+                    z -= pixsdivz / 2;
+                    ind = (y / pixsdiv + kersize / 2) * smes->x
+                        + x / pixsdiv + kersize / 2
+                        + (z / pixsdivz + kersizez / 2) * nbmes2;
+                } else {
+                    ind = (y / pixsdiv + kersize / 2) * smes->x
+                        + x / pixsdiv + kersize / 2;
+                }
                 uint8_t valp = (uint8_t)(255
                                / (max2 - min2) * (imgmes[ind] - min2));
                 cimgd[0] = valp;
@@ -883,8 +892,32 @@ uint8_t * create_overlay(float * imgmes, float * imgrecons,
 /* } */
 #endif
 
+uint32_t print_localizations(float* rec, uint32_t* activepix, uint32_t nbact,
+                             uint32_t nbfluoini,
+                             uint32_t sizex, uint32_t size2,
+                             FILE* out, params_t* par)
+{
+    uint32_t nbfluo = nbfluoini;
+    for (uint32_t i = 0; i < nbact; ++i) {
+        if (rec[i] > par->locaintensthr) {
+                /* && !on_border(i, activepix, nbact, sizex, size2)) { */
+            uint32_t c = (activepix[i] % size2) % sizex;
+            uint32_t l = (activepix[i] % size2) / sizex;
+            int32_t z = activepix[i] / size2;
+            fprintf(out, "%d %.2f %.2f %.2f %.2f\n",
+                    nbfluo,
+                    (c - par->pixsdiv + 0.5f) * par->spixnm / par->pixsdiv,
+                    (l - par->pixsdiv + 0.5f) * par->spixnm / par->pixsdiv,
+                    (z - par->pixsdivz / 2) * par->spixznm,
+                    rec[i]);
+            nbfluo++;
+        }
+    }
+    return nbfluo;
+}
+
 float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
-                     images_t* images, params_t* par)
+                     images_t* images, params_t* par, FILE* floca)
 {
     uint32_t pixsdiv = par->pixsdiv;
     uint32_t pixsdivz = par->pixsdivz;
@@ -924,8 +957,11 @@ float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
 
     uint32_t sizex = pixsdiv * (nbmesx - kersize);
     uint32_t sizey = pixsdiv * (nbmesy - kersize);
+    uint32_t size2 = sizex * sizey;
     uint32_t sizez = pixsdivz * (nbmesz - kersizez + kersizez % 2);
     uint32_t size3 = sizex * sizey * sizez;
+
+    uint32_t nbmes3 = nbmesx * nbmesy * nbmesz;
 
     float * reconspic = brecs_alloc(size3 * sizeof(float));
     for (uint32_t i = 0; i < size3; ++i) {
@@ -937,32 +973,28 @@ float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
     srec.y = sizey;
     srec.z = sizez;
 
-    /* uint32_t nbfluo = 1; */
+    /* updating the temperature */
+    updatetemp(imgnoise, par, nbmes3);
+
+    uint32_t nbfluo = 0;
     for (uint32_t i = 0; i < ccdec.nbcomp; ++i) {
         printf("Processing connected component %40d / %d\r",
                i + 1, ccdec.nbcomp);
         fflush(stdout);
-        float * rectmp = recons_ccomp(imgmes, imgnoise, nbmesx * nbmesy * nbmesz,
+        float * rectmp = recons_ccomp(imgmes, imgnoise, nbmes3,
                                       ccdec.activepixcomp[i], ccdec.nbact[i],
                                       ker, ker2, &srec, par);
         for (uint32_t j = 0; j < ccdec.nbact[i]; ++j) {
             reconspic[ccdec.activepixcomp[i][j]] += rectmp[j];
         }
-        /* for (uint32_t j = 0; j < size3; ++j) { */
-        /*     uint32_t c = (j % size2) % srec->x; */
-        /*     uint32_t l = (j % size2) / srec->x; */
-        /*     uint32_t z = j / size2; */
-        /*     if (res[j] > locaintensthr */
-        /*         && !on_border(j, activepix, nbact, srec->x, size2)) { */
-        /*         printf("%d %.2f %.2f %.2f %.2f\n", */
-        /*                nbfluo, */
-        /*                (c - kersize / 2 * pixsdiv) * spixnm + spixnm / 2, */
-        /*                (l - kersize / 2 * pixsdiv) * spixnm + spixnm / 2, */
-        /*                z * spixznm, */
-        /*                res[i]); */
-        /*         nbfluo++; */
-        /*     } */
-        /* } */
+
+        if (floca) {
+            nbfluo = print_localizations(rectmp,
+                                         ccdec.activepixcomp[i],
+                                         ccdec.nbact[i],
+                                         nbfluo, sizex, size2, floca, par);
+        }
+
         brecs_free(rectmp);
     }
     printf("\n");
@@ -1499,6 +1531,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
 
 ccomp_dec connectcomp_decomp3d(float * img, veci3 * smes, params_t * par)
 {
+  printf("performing 3d connected component decomp\n");
     uint16_t pixsdiv = par->pixsdiv;
     uint16_t pixsdivz = par->pixsdivz;
     uint16_t pixsdiv2 = pixsdiv * pixsdiv;
@@ -1531,6 +1564,7 @@ ccomp_dec connectcomp_decomp3d(float * img, veci3 * smes, params_t * par)
     uint32_t sfft2 = sxfft * syfft;
     uint32_t szfft = 1 << (uint32_t)ceilf(log2f(sizez));
     uint32_t s3fft = sxfft * syfft * szfft;
+    printf("%d %d %d %d %d\n", sxfft, syfft, sfft2, szfft, s3fft);
 
     float * imgsmoo = (float *)fftwf_malloc(s3fft * sizeof(float));
     if (!imgsmoo) exit(EXIT_FAILURE);
@@ -1948,7 +1982,7 @@ void brecs_initimgmes(images_t * images, params_t * par) {
 }
 
 /* Notes: calls exit on error. */
-void brecs(images_t * images, params_t * par) {
+void brecs(images_t * images, params_t * par, FILE* floca) {
     uint32_t pixsdiv = par->pixsdiv;
     uint32_t pixsdivz = par->pixsdivz;
     uint32_t pixsdiv2 = pixsdiv * pixsdiv;
@@ -2028,7 +2062,7 @@ void brecs(images_t * images, params_t * par) {
     writetiff_f("imgnoise.tif", nbmesx, nbmesy, nbmesz, imgnoise);
 #endif
 
-    imgrecons = reconssparse(imgmes, imgnoise, &smes, images, par);
+    imgrecons = reconssparse(imgmes, imgnoise, &smes, images, par, floca);
 
     brecs_free(imgker);
     brecs_free(imgmes);
