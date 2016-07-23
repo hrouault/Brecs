@@ -1395,7 +1395,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
         imglabs[i] = 0;
     }
 
-    uint32_t plane = width * height * pixsdivz;
+    uint32_t plane = width * height;
 
     lab_t lastlab = 0;
     for (uint32_t j = 1; j < height - 1; j++) {
