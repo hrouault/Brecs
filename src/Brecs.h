@@ -123,10 +123,11 @@ uint8_t * imgrgb_ccomp(ccomp_dec * ccomp, uint32_t nbmesx, uint32_t nbmesy,
                        params_t * par);
 
 float * reconssparse(float * imgmes,float * imgnoise, veci3 * smes,
-                     images_t * images, params_t * par, FILE* floca);
+                     images_t * images, params_t * par,
+                     FILE* floca, FILE* fstat);
 
 void brecs_initimgmes(images_t * images, params_t * par);
-void brecs(images_t * images, params_t * par, FILE* floca);
+void brecs(images_t * images, params_t * par, FILE* floca, FILE* fstat);
 
 extern char * prog_name;
 

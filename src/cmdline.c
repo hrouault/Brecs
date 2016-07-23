@@ -37,11 +37,12 @@ const char *gengetopt_args_info_help[] = {
   "  -h, --help               Print help and exit",
   "  -V, --version            Print version and exit",
   "  -f, --filename=str       Filename of the image",
-  "      --psf=str            PSF image in tiff format",
+  "  -p, --psf=str            PSF image in tiff format",
   "  -c, --conf=str           Filename of the configuration file providing the\n                             parameters for the optimization",
-  "      --background=str     background image in raw format",
+  "  -b, --background=str     background image in raw format",
   "  -o, --output=str         Tiff output image",
   "  -l, --localizations=str  Text file with the localizations",
+  "  -s, --statistics=str     Text file with overall statistics",
     0
 };
 
@@ -75,6 +76,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->background_given = 0 ;
   args_info->output_given = 0 ;
   args_info->localizations_given = 0 ;
+  args_info->statistics_given = 0 ;
 }
 
 static
@@ -93,6 +95,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->output_orig = NULL;
   args_info->localizations_arg = NULL;
   args_info->localizations_orig = NULL;
+  args_info->statistics_arg = NULL;
+  args_info->statistics_orig = NULL;
   
 }
 
@@ -109,6 +113,7 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->background_help = gengetopt_args_info_help[5] ;
   args_info->output_help = gengetopt_args_info_help[6] ;
   args_info->localizations_help = gengetopt_args_info_help[7] ;
+  args_info->statistics_help = gengetopt_args_info_help[8] ;
   
 }
 
@@ -204,6 +209,8 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->output_orig));
   free_string_field (&(args_info->localizations_arg));
   free_string_field (&(args_info->localizations_orig));
+  free_string_field (&(args_info->statistics_arg));
+  free_string_field (&(args_info->statistics_orig));
   
   
 
@@ -250,6 +257,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "output", args_info->output_orig, 0);
   if (args_info->localizations_given)
     write_into_file(outfile, "localizations", args_info->localizations_orig, 0);
+  if (args_info->statistics_given)
+    write_into_file(outfile, "statistics", args_info->statistics_orig, 0);
   
 
   i = EXIT_SUCCESS;
@@ -374,7 +383,7 @@ cmdline_parser_required2 (struct gengetopt_args_info *args_info, const char *pro
   
   if (! args_info->psf_given)
     {
-      fprintf (stderr, "%s: '--psf' option required%s\n", prog_name, (additional_error ? additional_error : ""));
+      fprintf (stderr, "%s: '--psf' ('-p') option required%s\n", prog_name, (additional_error ? additional_error : ""));
       error_occurred = 1;
     }
   
@@ -529,15 +538,16 @@ cmdline_parser_internal (
         { "help",	0, NULL, 'h' },
         { "version",	0, NULL, 'V' },
         { "filename",	1, NULL, 'f' },
-        { "psf",	1, NULL, 0 },
+        { "psf",	1, NULL, 'p' },
         { "conf",	1, NULL, 'c' },
-        { "background",	1, NULL, 0 },
+        { "background",	1, NULL, 'b' },
         { "output",	1, NULL, 'o' },
         { "localizations",	1, NULL, 'l' },
+        { "statistics",	1, NULL, 's' },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVf:c:o:l:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVf:p:c:b:o:l:s:", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -565,6 +575,18 @@ cmdline_parser_internal (
             goto failure;
         
           break;
+        case 'p':	/* PSF image in tiff format.  */
+        
+        
+          if (update_arg( (void *)&(args_info->psf_arg), 
+               &(args_info->psf_orig), &(args_info->psf_given),
+              &(local_args_info.psf_given), optarg, 0, 0, ARG_STRING,
+              check_ambiguity, override, 0, 0,
+              "psf", 'p',
+              additional_error))
+            goto failure;
+        
+          break;
         case 'c':	/* Filename of the configuration file providing the parameters for the optimization.  */
         
         
@@ -573,6 +595,18 @@ cmdline_parser_internal (
               &(local_args_info.conf_given), optarg, 0, 0, ARG_STRING,
               check_ambiguity, override, 0, 0,
               "conf", 'c',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'b':	/* background image in raw format.  */
+        
+        
+          if (update_arg( (void *)&(args_info->background_arg), 
+               &(args_info->background_orig), &(args_info->background_given),
+              &(local_args_info.background_given), optarg, 0, 0, ARG_STRING,
+              check_ambiguity, override, 0, 0,
+              "background", 'b',
               additional_error))
             goto failure;
         
@@ -601,38 +635,20 @@ cmdline_parser_internal (
             goto failure;
         
           break;
+        case 's':	/* Text file with overall statistics.  */
+        
+        
+          if (update_arg( (void *)&(args_info->statistics_arg), 
+               &(args_info->statistics_orig), &(args_info->statistics_given),
+              &(local_args_info.statistics_given), optarg, 0, 0, ARG_STRING,
+              check_ambiguity, override, 0, 0,
+              "statistics", 's',
+              additional_error))
+            goto failure;
+        
+          break;
 
         case 0:	/* Long option with no short option */
-          /* PSF image in tiff format.  */
-          if (strcmp (long_options[option_index].name, "psf") == 0)
-          {
-          
-          
-            if (update_arg( (void *)&(args_info->psf_arg), 
-                 &(args_info->psf_orig), &(args_info->psf_given),
-                &(local_args_info.psf_given), optarg, 0, 0, ARG_STRING,
-                check_ambiguity, override, 0, 0,
-                "psf", '-',
-                additional_error))
-              goto failure;
-          
-          }
-          /* background image in raw format.  */
-          else if (strcmp (long_options[option_index].name, "background") == 0)
-          {
-          
-          
-            if (update_arg( (void *)&(args_info->background_arg), 
-                 &(args_info->background_orig), &(args_info->background_given),
-                &(local_args_info.background_given), optarg, 0, 0, ARG_STRING,
-                check_ambiguity, override, 0, 0,
-                "background", '-',
-                additional_error))
-              goto failure;
-          
-          }
-          
-          break;
         case '?':	/* Invalid option.  */
           /* `getopt_long' already printed an error message.  */
           goto failure;

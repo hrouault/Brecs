@@ -102,10 +102,24 @@ int main(int argc, char ** argv)
         }
     }
 
-    brecs(&images, &par, floca);
+    FILE* fstat = NULL;
+    if (brecs_args.statistics_arg) {
+        fstat = fopen(brecs_args.statistics_arg, "w");
+        if (fstat == NULL) {
+            fprintf(stderr, "Cannot open file %s: %s\n",
+                    brecs_args.statistics_arg, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    brecs(&images, &par, floca, fstat);
 
     if (brecs_args.localizations_arg) {
         fclose(floca);
+    }
+
+    if (brecs_args.statistics_arg) {
+        fclose(fstat);
     }
 
     if (brecs_args.output_arg) {

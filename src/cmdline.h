@@ -61,6 +61,9 @@ struct gengetopt_args_info
   char * localizations_arg;	/**< @brief Text file with the localizations.  */
   char * localizations_orig;	/**< @brief Text file with the localizations original value given at command line.  */
   const char *localizations_help; /**< @brief Text file with the localizations help description.  */
+  char * statistics_arg;	/**< @brief Text file with overall statistics.  */
+  char * statistics_orig;	/**< @brief Text file with overall statistics original value given at command line.  */
+  const char *statistics_help; /**< @brief Text file with overall statistics help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
@@ -70,6 +73,7 @@ struct gengetopt_args_info
   unsigned int background_given ;	/**< @brief Whether background was given.  */
   unsigned int output_given ;	/**< @brief Whether output was given.  */
   unsigned int localizations_given ;	/**< @brief Whether localizations was given.  */
+  unsigned int statistics_given ;	/**< @brief Whether statistics was given.  */
 
 } ;
 

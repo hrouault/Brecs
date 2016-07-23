@@ -903,12 +903,12 @@ uint32_t print_localizations(float* rec, uint32_t* activepix, uint32_t nbact,
                 /* && !on_border(i, activepix, nbact, sizex, size2)) { */
             uint32_t c = (activepix[i] % size2) % sizex;
             uint32_t l = (activepix[i] % size2) / sizex;
-            int32_t z = activepix[i] / size2;
+            uint32_t z = activepix[i] / size2;
             fprintf(out, "%d %.2f %.2f %.2f %.2f\n",
                     nbfluo,
                     (c - par->pixsdiv + 0.5f) * par->spixnm / par->pixsdiv,
                     (l - par->pixsdiv + 0.5f) * par->spixnm / par->pixsdiv,
-                    (z - par->pixsdivz / 2) * par->spixznm,
+                    ((int32_t)z - par->pixsdivz / 2) * par->spixznm,
                     rec[i]);
             nbfluo++;
         }
@@ -917,7 +917,7 @@ uint32_t print_localizations(float* rec, uint32_t* activepix, uint32_t nbact,
 }
 
 float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
-                     images_t* images, params_t* par, FILE* floca)
+                     images_t* images, params_t* par, FILE* floca, FILE* fstat)
 {
     uint32_t pixsdiv = par->pixsdiv;
     uint32_t pixsdivz = par->pixsdivz;
@@ -1017,6 +1017,16 @@ float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
     images->outsize = srec;
 
     printf("Converged: %d / %d\n", nbconv, ccdec.nbcomp);
+
+    if (fstat) {
+        double totintens = 0;
+        for (uint32_t i = 0; i < size3; ++i) {
+            totintens += reconspic[i];
+        }
+        fprintf(fstat, "Converged: %d / %d\n", nbconv, ccdec.nbcomp);
+        fprintf(fstat, "Nb fluorophores: %d\n", nbfluo);
+        fprintf(fstat, "Total intensity: %f\n", totintens);
+    }
 
     return reconspic;
 }
@@ -1520,7 +1530,7 @@ ccomp_dec aggregate2d(lab_t * img, lab_t * imgdil,
     }
     brecs_free(cols);
 #ifdef BRECS_DISPLAYPLOTS
-    writetiff_rgb("connected_comp.tif", width, height, pixsdivz, imgccmprgb);
+    writetiff_rgb("connected_comp.tif", width, height, 1, imgccmprgb);
     //brecs_free(imgccmprgb);
 #endif
 
@@ -1982,7 +1992,7 @@ void brecs_initimgmes(images_t * images, params_t * par) {
 }
 
 /* Notes: calls exit on error. */
-void brecs(images_t * images, params_t * par, FILE* floca) {
+void brecs(images_t * images, params_t * par, FILE* floca, FILE* fstat) {
     uint32_t pixsdiv = par->pixsdiv;
     uint32_t pixsdivz = par->pixsdivz;
     uint32_t pixsdiv2 = pixsdiv * pixsdiv;
@@ -2062,7 +2072,8 @@ void brecs(images_t * images, params_t * par, FILE* floca) {
     writetiff_f("imgnoise.tif", nbmesx, nbmesy, nbmesz, imgnoise);
 #endif
 
-    imgrecons = reconssparse(imgmes, imgnoise, &smes, images, par, floca);
+    imgrecons = reconssparse(imgmes, imgnoise, &smes, images, par,
+                             floca, fstat);
 
     brecs_free(imgker);
     brecs_free(imgmes);

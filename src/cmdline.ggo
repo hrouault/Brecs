@@ -32,17 +32,20 @@ purpose "Reconstruct superresolution images"
 option "filename" f "Filename of the image"
            string typestr="str" required
 
-option "psf" - "PSF image in tiff format"
+option "psf" p "PSF image in tiff format"
            string typestr="str" required
 
 option "conf" c "Filename of the configuration file providing the parameters for the optimization"
            string typestr="str" required
 
-option "background" - "background image in raw format"
+option "background" b "background image in raw format"
            string typestr="str" optional
 
 option "output" o "Tiff output image"
            string typestr="str" optional
 
 option "localizations" l "Text file with the localizations"
+           string typestr="str" optional
+
+option "statistics" s "Text file with overall statistics"
            string typestr="str" optional
