@@ -128,6 +128,12 @@ void writetiff_f(const char* fname,
                  uint32_t sx, uint32_t sy, uint32_t sz, float* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");
+    if (!outf) {
+        fflush (stdout);
+        fprintf(stderr, "brecs: Cannot open %s for writing", fname);
+        fflush (stderr);
+        return;
+    }
     for (size_t i = 0; i < sz; ++i) {
         TIFFSetField(outf, TIFFTAG_IMAGEWIDTH, sx);
         TIFFSetField(outf, TIFFTAG_IMAGELENGTH, sy);
@@ -140,8 +146,8 @@ void writetiff_f(const char* fname,
         TIFFSetField(outf, TIFFTAG_COMPRESSION, COMPRESSION_LZW);
 
         TIFFSetField(outf,
-                     TIFFTAG_ROWSPERSTRIP,
-                     TIFFDefaultStripSize(outf, 4 * sx));
+                TIFFTAG_ROWSPERSTRIP,
+                TIFFDefaultStripSize(outf, 4 * sx));
 
         for (uint32 row = 0; row < sy; row++) {
             if (TIFFWriteScanline(outf,
@@ -159,6 +165,12 @@ void writetiff_gray(const char* fname,
                     uint16_t* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");
+    if (!outf) {
+        fflush (stdout);
+        fprintf(stderr, "brecs: Cannot open %s for writing", fname);
+        fflush (stderr);
+        return;
+    }
     for (size_t i = 0; i < sz; ++i) {
         TIFFSetField(outf, TIFFTAG_IMAGEWIDTH, sx);
         TIFFSetField(outf, TIFFTAG_IMAGELENGTH, sy);
@@ -189,6 +201,12 @@ void writetiff_rgb(const char* fname,
                    uint8_t* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");
+    if (!outf) {
+        fflush (stdout);
+        fprintf(stderr, "brecs: Cannot open %s for writing", fname);
+        fflush (stderr);
+        return;
+    }
     for (size_t i = 0; i < sz; ++i) {
         TIFFSetField(outf, TIFFTAG_IMAGEWIDTH, sx);
         TIFFSetField(outf, TIFFTAG_IMAGELENGTH, sy);
