@@ -6,11 +6,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(platform)
 
+include(GenerateExportHeader)
 add_library(brecs SHARED
             Brecs.h Brecs.c
             inoutimg.h inoutimg.c
             error.c error.h)
 target_add_platform(brecs)
+generate_export_header(brecs)
 
 install(TARGETS brecs DESTINATION lib)
 install(FILES Brecs.h DESTINATION include)

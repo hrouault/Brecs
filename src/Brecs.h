@@ -34,6 +34,8 @@
 #include <stdlib.h>
 #include <platform.h>
 
+#include "brecs_export.h"
+
 typedef uint16_t lab_t;
 
 typedef struct {
@@ -126,9 +128,10 @@ float * reconssparse(float * imgmes,float * imgnoise, veci3 * smes,
                      images_t * images, params_t * par,
                      FILE* floca, FILE* fstat);
 
-void brecs_initimgmes(images_t * images, params_t * par);
-void brecs(images_t * images, params_t * par, FILE* floca, FILE* fstat);
+void BRECS_EXPORT brecs_initimgmes(images_t * images, params_t * par);
+void BRECS_EXPORT brecs(images_t * images, params_t * par,,
+                        FILE* floca, FILE* fstat);
 
-extern char * prog_name;
+BRECS_EXPORT extern char * prog_name;
 
 #endif /* end of include guard: BRECS_H_GWC5RGBI */
