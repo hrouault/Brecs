@@ -129,7 +129,7 @@ float * reconssparse(float * imgmes,float * imgnoise, veci3 * smes,
                      FILE* floca, FILE* fstat);
 
 void BRECS_EXPORT brecs_initimgmes(images_t * images, params_t * par);
-void BRECS_EXPORT brecs(images_t * images, params_t * par,,
+void BRECS_EXPORT brecs(images_t * images, params_t * par,
                         FILE* floca, FILE* fstat);
 
 BRECS_EXPORT extern char * prog_name;
