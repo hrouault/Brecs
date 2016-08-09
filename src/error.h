@@ -27,6 +27,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-int brecs_error(const char * reason,
-                const char * errstr,
-                const char * prog_name);
+#ifndef ERROR_H_CBUHO41G
+#define ERROR_H_CBUHO41G
+
+#include "brecs_export.h"
+
+int BRECS_EXPORT brecs_error(const char * reason,
+                             const char * errstr,
+                             const char * prog_name);
+
+#endif /* end of include guard: ERROR_H_CBUHO41G */
