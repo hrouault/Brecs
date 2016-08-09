@@ -34,9 +34,8 @@
 #include <platform.h>
 
 #include "inoutimg.h"
-#include "brecs_export.h"
 
-uint16_t* BRECS_EXPORT opentiff(const char* fname,
+uint16_t* opentiff(const char* fname,
                                 uint32_t* sx, uint32_t* sy, uint32_t* sz)
 {
     TIFF * tif = TIFFOpen(fname, "r");
@@ -82,7 +81,7 @@ uint16_t* BRECS_EXPORT opentiff(const char* fname,
     return img;
 }
 
-float* BRECS_EXPORT opentiff_f(const char* fname,
+float* opentiff_f(const char* fname,
                                uint32_t* sx, uint32_t* sy, uint32_t* sz)
 {
     TIFF * tif = TIFFOpen(fname, "r");
@@ -127,7 +126,7 @@ float* BRECS_EXPORT opentiff_f(const char* fname,
     return img;
 }
 
-void BRECS_EXPORT writetiff_f(const char* fname,
+void writetiff_f(const char* fname,
                               uint32_t sx, uint32_t sy, uint32_t sz, float* img)
 {
     TIFF * outf = TIFFOpen(fname, "w");
@@ -163,7 +162,7 @@ void BRECS_EXPORT writetiff_f(const char* fname,
     TIFFClose(outf);
 }
 
-void BRECS_EXPORT writetiff_gray(const char* fname,
+void writetiff_gray(const char* fname,
                                  uint32_t sx, uint32_t sy, uint32_t sz,
                                  uint16_t* img)
 {
@@ -199,7 +198,7 @@ void BRECS_EXPORT writetiff_gray(const char* fname,
     TIFFClose(outf);
 }
 
-void BRECS_EXPORT writetiff_rgb(const char* fname,
+void writetiff_rgb(const char* fname,
                                 uint32_t sx, uint32_t sy, uint32_t sz,
                                 uint8_t* img)
 {

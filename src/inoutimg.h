@@ -33,30 +33,20 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-/* (ngc) are these functions used? */
-#if 0
-void plot_image(int sx, int sy,
-                float * img,
-                const char * filen,
-                int flags);
+#include "brecs_export.h"
 
-void plot_imagergb(int sx, int sy,
-                   unsigned char * img,
-                   const char * filen);
-
-void saveimage(float * img, int size, const char * fname);
-#endif
-
-uint16_t* opentiff(const char* fname, uint32_t* sx, uint32_t* sy, uint32_t* sz);
-float* opentiff_f(const char* fname, uint32_t* sx, uint32_t* sy, uint32_t* sz);
-void writetiff_f(const char* fname,
-                 uint32_t sx, uint32_t sy, uint32_t sz,
-                 float* img);
-void writetiff_gray(const char* fname,
-                    uint32_t sx, uint32_t sy, uint32_t sz,
-                    uint16_t* img);
-void writetiff_rgb(const char* fname,
-                   uint32_t sx, uint32_t sy, uint32_t sz,
-                   uint8_t* img);
+uint16_t* BRECS_EXPORT opentiff(const char* fname,
+                                uint32_t* sx, uint32_t* sy, uint32_t* sz);
+float* BRECS_EXPORT opentiff_f(const char* fname,
+                               uint32_t* sx, uint32_t* sy, uint32_t* sz);
+void BRECS_EXPORT writetiff_f(const char* fname,
+                              uint32_t sx, uint32_t sy, uint32_t sz,
+                              float* img);
+void BRECS_EXPORT writetiff_gray(const char* fname,
+                                 uint32_t sx, uint32_t sy, uint32_t sz,
+                                 uint16_t* img);
+void BRECS_EXPORT writetiff_rgb(const char* fname,
+                                uint32_t sx, uint32_t sy, uint32_t sz,
+                                uint8_t* img);
 
 #endif /* end of include guard: INOUTIMG_H_86QYO34Z */
