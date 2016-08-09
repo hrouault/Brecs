@@ -1,9 +1,8 @@
 add_subdirectory(3rdParty)
 
-file(GLOB SRCS *.c *.h)
+add_library(platform STATIC brecs_memory.c brecs_memory.h getopt.c getopt.h
+                            platform.h rand.c rand.h afloat.h)
 
-add_library(platform STATIC ${SRCS})
-target_link_libraries(platform Ole32.lib OleAut32.lib)
 set(PLATFORM_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}
     CACHE PATH "Path to platform specific source"
     FORCE)

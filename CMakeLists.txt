@@ -33,8 +33,9 @@ add_definitions(-DBRECS_DISPLAYPLOTS)
 
 include(platform)
 
-find_package(TIFF REQUIRED)
-find_package(BZip2 REQUIRED)
+if (UNIX)
+    find_package(TIFF REQUIRED)
+endif()
 
 include(CPack)
 include(InstallRequiredSystemLibraries)

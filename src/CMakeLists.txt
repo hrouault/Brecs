@@ -6,16 +6,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(platform)
 
-
-add_library(brecs-static STATIC
-            Brecs.h Brecs.c
-            error.c error.h)
-set_property(TARGET brecs-static PROPERTY POSITION_INDEPENDENT_CODE TRUE)
-target_add_platform(brecs-static)
-install(TARGETS brecs-static DESTINATION lib)
-
 add_library(brecs SHARED
             Brecs.h Brecs.c
+            inoutimg.h inoutimg.c
             error.c error.h)
 target_add_platform(brecs)
 
@@ -25,6 +18,7 @@ install(FILES Brecs.h DESTINATION include)
 add_executable(brecs-genpsf
                genpsf.c genpsf.h genpsf_main.c)
 target_link_libraries(brecs-genpsf brecs)
+install(TARGETS brecs-genpsf DESTINATION bin)
 
 add_executable(brecs-reconsparse
                brecs.main.c
