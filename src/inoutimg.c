@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <tiffio.h>
+#include <platform.h>
 
 #include "inoutimg.h"
 
@@ -105,8 +106,7 @@ float* opentiff_f(const char* fname, uint32_t* sx, uint32_t* sy, uint32_t* sz)
     } while (TIFFReadDirectory(tif));
     TIFFSetDirectory(tif, 0);
     *sz = dircount;
-    posix_memalign((void **)&img, 32,
-            *sx * *sy * *sz * sizeof(float));
+    brecs_memalign((void **)&img, *sx * *sy * *sz * sizeof(float));
 
     buf = _TIFFmalloc(scanline);
     for (size_t z = 0; z < dircount; ++z) {

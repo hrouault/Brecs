@@ -66,7 +66,7 @@ endif()
 if (UNIX)
     include(FindPkgConfig)
     pkg_check_modules(FFTW REQUIRED fftw3f)
-#elseif (MSVC)
+elseif (MSVC)
 else()
     message(FATAL_ERROR "Your system is not supported! Please mention to the "
             "developers if you would like you system to be supported in the "
