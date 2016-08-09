@@ -30,10 +30,13 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <tiffio.h>
 #include <platform.h>
 
 #include "inoutimg.h"
+#include "Brecs.h"
+#include "error.h"
 
 uint16_t* opentiff(const char* fname,
                                 uint32_t* sx, uint32_t* sy, uint32_t* sz)
@@ -61,7 +64,10 @@ uint16_t* opentiff(const char* fname,
         } while (TIFFReadDirectory(tif));
         TIFFSetDirectory(tif, 0);
         *sz = dircount;
-        img = malloc(*sx * *sy * *sz * sizeof(uint16_t));
+        int errnopos = brecs_memalign((void**)&img,
+                                      *sx * *sy * *sz * sizeof(uint16_t));
+        if (!img) brecs_error("Failed to allocate memory for img: ",
+                              strerror(errnopos), prog_name);
         buf = _TIFFmalloc(scanline);
         for (uint32_t z = 0; z < dircount; ++z) {
             for (row = 0; row < imagelength; row++) {
@@ -108,7 +114,10 @@ float* opentiff_f(const char* fname,
     } while (TIFFReadDirectory(tif));
     TIFFSetDirectory(tif, 0);
     *sz = dircount;
-    brecs_memalign((void **)&img, *sx * *sy * *sz * sizeof(float));
+    int errnopos = brecs_memalign((void **)&img,
+                                  *sx * *sy * *sz * sizeof(float));
+    if (!img) brecs_error("Failed to allocate memory for img: ",
+                          strerror(errnopos), prog_name);
 
     buf = _TIFFmalloc(scanline);
     for (size_t z = 0; z < dircount; ++z) {

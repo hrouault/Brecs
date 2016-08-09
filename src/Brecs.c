@@ -1621,7 +1621,7 @@ ccomp_dec connectcomp_decomp3d(float * img, veci3 * smes, params_t * par)
 
     fftwf_execute(pforw1);
     fftwf_execute(pforw2);
-    fftwf_free(imgker);
+    brecs_free(imgker);
 
     for (uint32_t i = 0; i < szfft * syfft * (sxfft / 2 + 1); ++i) {
         fftwf_complex c1, c2;
