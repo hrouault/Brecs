@@ -877,6 +877,11 @@ uint8_t * create_overlay(float * imgmes, float * imgrecons,
                 cimgd[1] = valp;
                 cimgd[2] = valp;
                 cimgd[3] = 255;
+            } else {
+                cimgd[0] = 0;
+                cimgd[1] = 0;
+                cimgd[2] = 0;
+                cimgd[3] = 255;
             }
         }
     }
