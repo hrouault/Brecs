@@ -904,7 +904,17 @@ uint32_t print_localizations(float* rec, uint32_t* activepix, uint32_t nbact,
 {
     uint32_t nbfluo = nbfluoini;
     for (uint32_t i = 0; i < nbact; ++i) {
-        if (rec[i] > par->locaintensthr) {
+        int check = 0;
+        if (par->random_loca) {
+            if (drand48() < rec[i] / (par->pixmean - 2 * par->pixstd)) {
+                check = 1;
+            }
+        } else {
+            if (rec[i] > par->locaintensthr) {
+                check = 1;
+            }
+        }
+        if (check) {
                 /* && !on_border(i, activepix, nbact, sizex, size2)) { */
             uint32_t c = (activepix[i] % size2) % sizex;
             uint32_t l = (activepix[i] % size2) / sizex;

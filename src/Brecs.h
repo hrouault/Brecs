@@ -86,6 +86,8 @@ typedef struct {
 
     float damp1;
     float damp2;
+
+    int random_loca;
 } params_t;
 
 typedef struct {

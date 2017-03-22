@@ -38,6 +38,7 @@ static conf_entry_t default_pars[] = {
      ,{"nbinternloop", "INTEGER",   "1",  offsetof(params_t, nbinternloop), 0}
      ,{"damp1",        "REAL",   "0.05",  offsetof(params_t, damp1), 0}
      ,{"damp2",        "REAL",   "0.1",   offsetof(params_t, damp2), 0}
+     ,{"random_loca",  "INTEGER","0",     offsetof(params_t, random_loca), 0}
 };
 
 #define MAXLINE 256
