@@ -20,13 +20,13 @@ static conf_entry_t default_pars[] = {
      ,{"pixstd",       "REAL",   "200",   offsetof(params_t, pixstd), 0}
      ,{"rho",          "REAL",   "0.001", offsetof(params_t, rho), 0}
      ,{"beta",         "REAL",   "1.0",   offsetof(params_t, beta), 0}
-     ,{"pixsdivz",     "INTEGER","1",     offsetof(params_t, pixsdivz), 0}
+     ,{"pixsdivz",     "INTEGER", "1",    offsetof(params_t, pixsdivz), 0}
      ,{"spixnm",       "REAL",   "133.0", offsetof(params_t, spixnm), 0}
      ,{"spixznm",      "REAL",   "100.0", offsetof(params_t, spixznm), 0}
      ,{"mesoffset",    "REAL",   "80",    offsetof(params_t, mesoffset), 0}
      ,{"mesampli",     "REAL",   "20",    offsetof(params_t, mesampli), 0}
      ,{"noiseoffset",  "REAL",   "1",     offsetof(params_t, noiseoffset), 0}
-     ,{"nbiter",       "INTEGER","200",   offsetof(params_t, nbiter), 0}
+     ,{"nbiter",       "INTEGER", "200",  offsetof(params_t, nbiter), 0}
      ,{"prefacradcc",  "REAL",   "1.0",   offsetof(params_t, prefacradcc), 0}
      ,{"convolpixthr", "REAL",   "40.0",  offsetof(params_t, convolpixthr), 0}
      ,{"ainitpfact",   "REAL",   "1.0",   offsetof(params_t, ainitpfact), 0}
@@ -35,10 +35,10 @@ static conf_entry_t default_pars[] = {
      ,{"overlaymaxint","REAL",   "50.4",  offsetof(params_t, overlaymaxint), 0}
      ,{"overlayminint","REAL",   "0.1",   offsetof(params_t, overlayminint), 0}
      ,{"relerrthr",    "REAL",   "0.001", offsetof(params_t, relerrthr), 0}
-     ,{"nbinternloop", "INTEGER",   "1",  offsetof(params_t, nbinternloop), 0}
+     ,{"nbinternloop", "INTEGER", "1",    offsetof(params_t, nbinternloop), 0}
      ,{"damp1",        "REAL",   "0.05",  offsetof(params_t, damp1), 0}
      ,{"damp2",        "REAL",   "0.1",   offsetof(params_t, damp2), 0}
-     ,{"random_loca",  "INTEGER","0",     offsetof(params_t, random_loca), 0}
+     ,{"loca_mode",    "INTEGER", "0",    offsetof(params_t, loca_mode), 0}
 };
 
 #define MAXLINE 256

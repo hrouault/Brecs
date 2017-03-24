@@ -106,9 +106,11 @@ float * gausskerpar(uint32_t sx, uint32_t sy, uint32_t sz,
 
 float * gausskerpar2d(uint32_t sx, uint32_t sy, float radius);
 
-uint32_t print_localizations(float* rec, uint32_t* activepix, uint32_t nbact,
+uint32_t print_localizations(float* rec, float* reconspic,
+                             uint32_t* activepix, uint32_t nbact,
                              uint32_t nbfluoini,
-                             uint32_t sizex, uint32_t size2,
+                             uint32_t sizex, uint32_t sizey, uint32_t sizez,
+                             uint32_t size2,
                              FILE* out, params_t* par);
 
 float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
@@ -897,15 +899,54 @@ uint8_t * create_overlay(float * imgmes, float * imgrecons,
 /* } */
 #endif
 
-uint32_t print_localizations(float* rec, uint32_t* activepix, uint32_t nbact,
+uint32_t print_localizations(float* rec, float* reconspic,
+                             uint32_t* activepix, uint32_t nbact,
                              uint32_t nbfluoini,
-                             uint32_t sizex, uint32_t size2,
+                             uint32_t sizex, uint32_t sizey, uint32_t sizez,
+                             uint32_t size2,
                              FILE* out, params_t* par)
 {
     uint32_t nbfluo = nbfluoini;
     for (uint32_t i = 0; i < nbact; ++i) {
         int check = 0;
-        if (par->random_loca) {
+        if (par->loca_mode == 1) {
+            if (rec[i] > par->pixmean - 2 * par->pixstd) {
+                check = 1;
+            } else if (rec[i] < par->locaintensthr) {
+                check = 0;
+            } else {
+                uint32_t ind = activepix[i];
+                uint32_t c = (ind % size2) % sizex;
+                uint32_t l = (ind % size2) / sizex;
+                uint32_t z = ind / size2;
+
+                /* List all the conditions */
+                int8_t zm = -(z > 0);
+                int8_t zp = (z < sizez - 1) + 1;
+                int8_t lm = -(l > 0);
+                int8_t lp = (l < sizey - 1) + 1;
+                int8_t cm = -(c > 0);
+                int8_t cp = (c < sizex - 1) + 1;
+
+                int8_t checkint = 1;
+                for (int8_t j = zm; j < zp ; ++j) {
+                    for (int8_t k = lm; k < lp; ++k) {
+                        for (int8_t m = cm; m < cp; ++m) {
+                            uint32_t indc = ind + j * size2 + k * sizex + m;
+                            if (rec[i] < reconspic[indc]) {
+                                checkint = 0;
+                                break;
+                            }
+                        }
+                        if (!checkint) break;
+                    }
+                    if (!checkint) break;
+                }
+                if (checkint) {
+                    check = 1;
+                }
+            }
+        } else if (par->loca_mode == 2) {
             if (drand48() < rec[i] / (par->pixmean - 2 * par->pixstd)) {
                 check = 1;
             }
@@ -1004,10 +1045,11 @@ float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
         }
 
         if (floca) {
-            nbfluo = print_localizations(rectmp,
+            nbfluo = print_localizations(rectmp, reconspic,
                                          ccdec.activepixcomp[i],
-                                         ccdec.nbact[i],
-                                         nbfluo, sizex, size2, floca, par);
+                                         ccdec.nbact[i], nbfluo,
+                                         sizex, sizey, sizez, size2,
+                                         floca, par);
         }
 
         brecs_free(rectmp);
