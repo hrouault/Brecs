@@ -68,7 +68,8 @@ static void update_omegavmu(float * omegamu, float * vmu,
                             float * ker, float * ker2,
                             float * abeal, float * vbeal,
                             uint32_t nbact, uint32_t * activepix,
-                            veci3 * srec, params_t * par);
+                            veci3 * srec, uint32_t * keroffsets,
+                            params_t * par);
 
 static void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
                          afloat * abeal, afloat * vbeal,
@@ -77,7 +78,7 @@ static void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
                          afloat * ker, afloat * ker2,
                          afloat * imgnoise, afloat * imgmes,
                          uint32_t nbact, uint32_t * activepix,
-                         veci3 * srec, params_t * par);
+                         veci3 * srec, uint32_t * keroffsets, params_t * par);
 
 static void update_mualbe(float * mu_albe_A, float * mu_albe_B,
                           float * sum_mualbe_A, float * sum_mualbe_B,
@@ -86,7 +87,7 @@ static void update_mualbe(float * mu_albe_A, float * mu_albe_B,
                           float * ker, float * ker2,
                           float * imgnoise, float * imgmes,
                           uint32_t nbact, uint32_t * activepix,
-                          veci3 * srec, params_t * par);
+                          veci3 * srec, uint32_t * keroffsets, params_t * par);
 
 static void update_mubeal(float * vbeal, float * abeal,
                           float * mu_albe_A, float * mu_albe_B,
@@ -209,7 +210,8 @@ static void update_omegavmu(float * omegamu, float * vmu,
                             float * ker, float * ker2,
                             float * abeal, float * vbeal,
                             uint32_t nbact, uint32_t * activepix,
-                            veci3 * srec, params_t * par)
+                            veci3 * srec, uint32_t * keroffsets,
+                            params_t * par)
 {
     const vecfloat zero = VFUNC(set1_ps) (0);
 
@@ -234,30 +236,33 @@ static void update_omegavmu(float * omegamu, float * vmu,
         VFUNC(store_ps) (omegamu + mu, zero);
     }
 
+    uint16_t pixo2 = pixsdiv / 2;
+
     for (uint32_t k = 0; k < nbact; ++k) {
         uint32_t i = activepix[k];
         float * cabeal = abeal + k * kersize3;
         float * cvbeal = vbeal + k * kersize3;
 
-        uint32_t ci = ((i % size2) % srec->x) % pixsdiv;
-        uint32_t li = ((i % size2) / srec->x) % pixsdiv;
-        uint32_t zi = (i / size2) % pixsdivz;
+        uint32_t c = (i % size2) % srec->x + pixo2;
+        uint32_t l = (i % size2) / srec->x + pixo2;
+        uint32_t z = i / size2;
+
+        uint32_t ci = c % pixsdiv;
+        uint32_t li = l % pixsdiv;
+        uint32_t zi = z % pixsdivz;
         uint32_t ikeri = ci + li * pixsdiv + zi * pixsdiv2;
 
-        uint32_t cmu0 = ((i % size2) % srec->x) / pixsdiv + kersize / 2;
-        uint32_t lmu0 = ((i % size2) / srec->x) / pixsdiv + kersize / 2;
-        uint32_t zmu0 = (i / size2) / pixsdivz + kersizez / 2;
+        uint32_t cmu0 = c / pixsdiv;
+        uint32_t lmu0 = l / pixsdiv;
+        uint32_t zmu0 = z / pixsdivz;
 
         float * cker = ker + ikeri * kersize3;
         float * cker2 = ker2 + ikeri * kersize3;
 
         for (uint32_t mu = 0; mu < kersize3; mu += shift) {
-            uint32_t cmu = cmu0 + (mu % kersize2) % kersize;
-            cmu -= kersize / 2;
-            uint32_t lmu = lmu0 + (mu % kersize2) / kersize;
-            lmu -= kersize / 2;
-            uint32_t zmu = zmu0 + (mu / kersize2);
-            zmu -= kersizez / 2;
+            uint32_t cmu = cmu0 + keroffsets[mu];
+            uint32_t lmu = lmu0 + keroffsets[kersize3 + mu];
+            uint32_t zmu = zmu0 + keroffsets[2 * kersize3 + mu];
             uint32_t imu = cmu + lmu * nbmesx + zmu * nbmes2;
 
             vecfloat ck = VFUNC(load_ps) (cker + mu);
@@ -288,7 +293,7 @@ static void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
                          afloat * ker, afloat * ker2,
                          afloat * imgnoise, afloat * imgmes,
                          uint32_t nbact, uint32_t * activepix,
-                         veci3 * srec, params_t * par)
+                         veci3 * srec, uint32_t * keroffsets, params_t * par)
 {
     uint32_t pixsdiv = par->pixsdiv;
     uint32_t pixsdivz = par->pixsdivz;
@@ -310,7 +315,9 @@ static void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
     uint32_t size2 = srec->x * srec->y;
 
     update_omegavmu(omegamu, vmu, ker, ker2, abeal, vbeal, nbact, activepix,
-                    srec, par);
+                    srec, keroffsets, par);
+
+    uint16_t pixo2 = pixsdiv / 2;
 
     for (uint32_t k = 0; k < nbact; ++k) {
         uint32_t i = activepix[k];
@@ -319,14 +326,18 @@ static void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
         float * cabeal = abeal + k * kersize3;
         float * cvbeal = vbeal + k * kersize3;
 
-        uint32_t ci = ((i % size2) % srec->x) % pixsdiv;
-        uint32_t li = ((i % size2) / srec->x) % pixsdiv;
-        uint32_t zi = (i / size2) % pixsdivz;
+        uint32_t c = (i % size2) % srec->x + pixo2;
+        uint32_t l = (i % size2) / srec->x + pixo2;
+        uint32_t z = i / size2;
+
+        uint32_t ci = c % pixsdiv;
+        uint32_t li = l % pixsdiv;
+        uint32_t zi = z % pixsdivz;
         uint32_t ikeri = ci + li * pixsdiv + zi * pixsdiv2;
 
-        uint32_t cmu0 = ((i % size2) % srec->x) / pixsdiv + kersize / 2;
-        uint32_t lmu0 = ((i % size2) / srec->x) / pixsdiv + kersize / 2;
-        uint32_t zmu0 = (i / size2) / pixsdivz + kersizez / 2;
+        uint32_t cmu0 = c / pixsdiv;
+        uint32_t lmu0 = l / pixsdiv;
+        uint32_t zmu0 = z / pixsdivz;
 
         float * cker = ker + ikeri * kersize3;
         float * cker2 = ker2 + ikeri * kersize3;
@@ -338,12 +349,9 @@ static void update_Palbe(afloat * mu_albe_A, afloat * mu_albe_B,
         vecfloat sumB = zero;
 
         for (uint32_t mu = 0; mu < kersize3; mu += shift) {
-            uint32_t cmu = cmu0 + (mu % kersize2) % kersize;
-            cmu -= kersize / 2;
-            uint32_t lmu = lmu0 + (mu % kersize2) / kersize;
-            lmu -= kersize / 2;
-            uint32_t zmu = zmu0 + (mu / kersize2);
-            zmu -= kersizez / 2;
+            uint32_t cmu = cmu0 + keroffsets[mu];
+            uint32_t lmu = lmu0 + keroffsets[kersize3 + mu];
+            uint32_t zmu = zmu0 + keroffsets[2 * kersize3 + mu];
             uint32_t imu = cmu + lmu * nbmesx + zmu * nbmes2;
 
             vecfloat den = VFUNC(loadu_ps) (imgnoise + imu);
@@ -400,21 +408,17 @@ static void update_mualbe(float * mu_albe_A, float * mu_albe_B,
                           float * ker, float * ker2,
                           float * imgnoise, float * imgmes,
                           uint32_t nbact, uint32_t * activepix,
-                          veci3 * srec, params_t * par)
+                          veci3 * srec, uint32_t * keroffsets, params_t * par)
 {
     uint32_t kersize = par->kersize;
     uint32_t kersize2 = kersize * kersize;
     uint32_t kersizez = par->kersizez;
     uint32_t kersize3 = kersize2 * kersizez;
 
-    update_Palbe(mu_albe_A, mu_albe_B,
-                 abeal, vbeal,
-                 sum_mualbe_A, sum_mualbe_B,
-                 omegamu, vmu,
-                 ker, ker2,
-                 imgnoise, imgmes,
-                 nbact, activepix,
-                 srec, par);
+    update_Palbe(mu_albe_A, mu_albe_B, abeal, vbeal,
+                 sum_mualbe_A, sum_mualbe_B, omegamu, vmu,
+                 ker, ker2, imgnoise, imgmes, nbact, activepix,
+                 srec, keroffsets, par);
 
     const vecfloat zero = VFUNC(set1_ps) (0);
     const vecfloat oneosk = VFUNC(set1_ps) (1.0f / kersize3);
@@ -692,6 +696,8 @@ float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
     float * omegamu;
     float * vmu;
 
+    uint32_t * keroffsets;
+
     float * res;
 
     int errnopos = brecs_memalign((void **)&imgnoisecp, nbmes3 * sizeof(float));
@@ -739,6 +745,10 @@ float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
     errnopos = brecs_memalign((void **)&vmu, nbmes3 * sifl);
     if (!vmu) brecs_error("Failed to allocate memory for vmu ",
                           strerror(errnopos), prog_name);
+    static const size_t sii32 = sizeof(uint32_t);
+    errnopos = brecs_memalign((void **)&keroffsets, 3 * kersize3 * sii32);
+    if (!keroffsets) brecs_error("Failed to allocate memory for keroffsets ",
+                                 strerror(errnopos), prog_name);
 
     float Binit = rho * pixmean * Ainit;
 
@@ -759,6 +769,12 @@ float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
         VFUNC(store_ps) (sum_mualbe_B + i * shift, vBinit);
     }
 
+    for (uint32_t mu = 0; mu < kersize3; ++mu) {
+        keroffsets[mu] = (mu % kersize2) % kersize;
+        keroffsets[kersize3 + mu] = (mu % kersize2) / kersize;
+        keroffsets[2 * kersize3 + mu] = mu / kersize2;
+    }
+
     /* Main loop */
     float relerr = 1.0;
     uint32_t iter = 0;
@@ -766,26 +782,17 @@ float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
         iter++;
         /* Internal loop */
         for (uint32_t j = 0; j < nbinternloop; ++j) {
-            update_mubeal(vbeal, abeal,
-                    mu_albe_A, mu_albe_B,
-                    P_be_E, P_be_F,
-                    sum_mualbe_A, sum_mualbe_B,
-                    nbact, par);
+            update_mubeal(vbeal, abeal, mu_albe_A, mu_albe_B,
+                          P_be_E, P_be_F, sum_mualbe_A, sum_mualbe_B,
+                          nbact, par);
 
-            update_mualbe(mu_albe_A, mu_albe_B,
-                    sum_mualbe_A, sum_mualbe_B,
-                    abeal, vbeal,
-                    omegamu, vmu,
-                    ker, ker2,
-                    imgnoisecp, imgmes,
-                    nbact, activepix,
-                    srec, par);
+            update_mualbe(mu_albe_A, mu_albe_B, sum_mualbe_A, sum_mualbe_B,
+                          abeal, vbeal, omegamu, vmu,
+                          ker, ker2, imgnoisecp, imgmes, nbact, activepix,
+                          srec, keroffsets, par);
         }
 
-        relerr = update_pbe(P_be_E, P_be_F,
-                            vbeal, abeal,
-                            nbact,
-                            par);
+        relerr = update_pbe(P_be_E, P_be_F, vbeal, abeal, nbact, par);
         if (iter < 200) relerr = 1.0;
     }
 
@@ -812,6 +819,7 @@ float * recons_ccomp(float * imgmes, float * imgnoise, uint32_t nbmes3,
     brecs_free(omegamu);
     brecs_free(vmu);
     brecs_free(imgnoisecp);
+    brecs_free(keroffsets);
 
     return res;
 }
@@ -998,7 +1006,7 @@ float * reconssparse(float* imgmes,float* imgnoise, veci3* smes,
     float * ker = images->ker;
     float * ker2;
     int errnopos = brecs_memalign((void **)&ker2,
-                   pixsdiv3 * kersize3 * sizeof(float));
+                                  pixsdiv3 * kersize3 * sizeof(float));
     if (!ker2) brecs_error("Failed to allocate memory for ker2 ",
                            strerror(errnopos), prog_name);
 
